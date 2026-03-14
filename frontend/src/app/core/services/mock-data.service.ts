@@ -10,6 +10,17 @@ import {
   AuditLog,
   CaseType,
   KanbanBoard,
+  Workflow,
+  WorkflowValidationResult,
+  ApprovalChain,
+  ApprovalDecision,
+  ApprovalDelegation,
+  Document,
+  DocumentVersion,
+  SLADashboard,
+  SLADefinition,
+  FormDefinition,
+  FormSubmission,
 } from '../models';
 import { DataService } from './data.service';
 
@@ -663,5 +674,330 @@ export class MockDataService extends DataService {
       return of(this.mockNotifications[notifIdx]).pipe(delay(300));
     }
     throw new Error('Notification not found');
+  }
+
+  // ===== Phase 2 Mock Data =====
+
+  private mockWorkflows: Workflow[] = [
+    {
+      id: 'wf-1',
+      name: 'Loan Origination Workflow',
+      description: 'Standard loan processing pipeline',
+      caseTypeId: 'case-type-1',
+      definition: {
+        nodes: [
+          { id: 'n1', type: 'start', label: 'Start', position: { x: 50, y: 200 } },
+          { id: 'n2', type: 'task', label: 'Intake Review', position: { x: 250, y: 200 }, assigneeRole: 'WORKER' },
+          { id: 'n3', type: 'decision', label: 'Docs Complete?', position: { x: 450, y: 200 } },
+          { id: 'n4', type: 'task', label: 'Request Documents', position: { x: 450, y: 350 }, assigneeRole: 'WORKER' },
+          { id: 'n5', type: 'task', label: 'Underwriting', position: { x: 650, y: 200 }, assigneeRole: 'MANAGER' },
+          { id: 'n6', type: 'decision', label: 'Approved?', position: { x: 850, y: 200 } },
+          { id: 'n7', type: 'task', label: 'Disbursement', position: { x: 1050, y: 200 }, assigneeRole: 'WORKER' },
+          { id: 'n8', type: 'end', label: 'Complete', position: { x: 1250, y: 200 } },
+          { id: 'n9', type: 'end', label: 'Rejected', position: { x: 850, y: 350 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'n1', target: 'n2' },
+          { id: 'e2', source: 'n2', target: 'n3' },
+          { id: 'e3', source: 'n3', target: 'n5', label: 'Yes' },
+          { id: 'e4', source: 'n3', target: 'n4', label: 'No' },
+          { id: 'e5', source: 'n4', target: 'n3' },
+          { id: 'e6', source: 'n5', target: 'n6' },
+          { id: 'e7', source: 'n6', target: 'n7', label: 'Approved' },
+          { id: 'e8', source: 'n6', target: 'n9', label: 'Rejected' },
+          { id: 'e9', source: 'n7', target: 'n8' },
+        ],
+      },
+      version: 1,
+      isActive: true,
+      createdBy: 'user-4',
+      createdAt: '2025-01-15T00:00:00.000Z',
+    },
+  ];
+
+  private mockApprovals: ApprovalChain[] = [
+    {
+      id: 'approval-1',
+      caseId: 'CASE-2026-00002',
+      mode: 'sequential',
+      approvers: [
+        { userId: 'user-1', userName: 'Alice Johnson', status: 'approved', decidedAt: '2026-03-10T00:00:00.000Z', comment: 'Looks good' },
+        { userId: 'user-4', userName: 'Dave Wilson', status: 'pending' },
+      ],
+      status: 'pending',
+      createdBy: 'user-2',
+      createdAt: '2026-03-09T00:00:00.000Z',
+    },
+  ];
+
+  private mockDocuments: Document[] = [
+    {
+      id: 'doc-1',
+      caseId: 'CASE-2026-00001',
+      filename: 'identity_verification.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 245760,
+      version: 1,
+      isCurrent: true,
+      uploadedBy: 'user-2',
+      uploadedAt: '2026-03-11T00:00:00.000Z',
+      description: 'Government ID scan',
+      tags: ['identity', 'verification'],
+    },
+    {
+      id: 'doc-2',
+      caseId: 'CASE-2026-00002',
+      filename: 'income_statement.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 512000,
+      version: 2,
+      isCurrent: true,
+      uploadedBy: 'user-3',
+      uploadedAt: '2026-03-06T00:00:00.000Z',
+      description: 'Proof of income — updated',
+      tags: ['income', 'financial'],
+    },
+  ];
+
+  private mockFormDefinitions: FormDefinition[] = [
+    {
+      id: 'form-1',
+      name: 'Loan Intake Form',
+      caseTypeId: 'case-type-1',
+      stage: 'intake',
+      sections: [
+        { id: 'sec-1', title: 'Applicant Information', order: 0 },
+        { id: 'sec-2', title: 'Loan Details', order: 1 },
+      ],
+      fields: [
+        { id: 'f1', type: 'text', label: 'Full Name', placeholder: 'Enter full name', order: 0, section: 'sec-1', validation: { required: true, minLength: 2 } },
+        { id: 'f2', type: 'text', label: 'Email', placeholder: 'email@example.com', order: 1, section: 'sec-1', validation: { required: true, pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$' } },
+        { id: 'f3', type: 'number', label: 'Loan Amount', placeholder: '50000', order: 0, section: 'sec-2', validation: { required: true, minValue: 1000, maxValue: 1000000 } },
+        { id: 'f4', type: 'select', label: 'Loan Type', order: 1, section: 'sec-2', validation: { required: true, options: ['personal', 'business', 'mortgage', 'auto'] } },
+        { id: 'f5', type: 'date', label: 'Application Date', order: 2, section: 'sec-2', validation: { required: true } },
+      ],
+      description: 'Initial intake form for loan applications',
+      version: 1,
+      isActive: true,
+      createdAt: '2025-01-20T00:00:00.000Z',
+    },
+  ];
+
+  // Phase 2 Methods
+
+  // Workflows
+  getWorkflows(): Observable<Workflow[]> {
+    return of([...this.mockWorkflows]).pipe(delay(300));
+  }
+
+  getWorkflowById(id: string): Observable<Workflow> {
+    const wf = this.mockWorkflows.find(w => w.id === id);
+    if (!wf) throw new Error('Workflow not found');
+    return of({ ...wf }).pipe(delay(200));
+  }
+
+  createWorkflow(workflow: Partial<Workflow>): Observable<Workflow> {
+    const newWf: Workflow = {
+      id: `wf-${Date.now()}`,
+      name: workflow.name || 'New Workflow',
+      description: workflow.description || '',
+      caseTypeId: workflow.caseTypeId || '',
+      definition: workflow.definition || { nodes: [], edges: [] },
+      version: 1,
+      isActive: true,
+      createdBy: 'user-1',
+      createdAt: new Date().toISOString(),
+    };
+    this.mockWorkflows.push(newWf);
+    return of(newWf).pipe(delay(500));
+  }
+
+  updateWorkflow(id: string, updates: Partial<Workflow>): Observable<Workflow> {
+    const idx = this.mockWorkflows.findIndex(w => w.id === id);
+    if (idx < 0) throw new Error('Workflow not found');
+    this.mockWorkflows[idx] = { ...this.mockWorkflows[idx], ...updates, updatedAt: new Date().toISOString() };
+    return of(this.mockWorkflows[idx]).pipe(delay(500));
+  }
+
+  deleteWorkflow(id: string): Observable<void> {
+    this.mockWorkflows = this.mockWorkflows.filter(w => w.id !== id);
+    return of(void 0).pipe(delay(300));
+  }
+
+  validateWorkflow(id: string): Observable<WorkflowValidationResult> {
+    return of({ valid: true, errors: [] }).pipe(delay(300));
+  }
+
+  // Approvals
+  getApprovals(caseId?: string): Observable<ApprovalChain[]> {
+    let approvals = [...this.mockApprovals];
+    if (caseId) approvals = approvals.filter(a => a.caseId === caseId);
+    return of(approvals).pipe(delay(300));
+  }
+
+  getApprovalById(id: string): Observable<ApprovalChain> {
+    const a = this.mockApprovals.find(a => a.id === id);
+    if (!a) throw new Error('Approval not found');
+    return of({ ...a }).pipe(delay(200));
+  }
+
+  createApproval(approval: Partial<ApprovalChain>): Observable<ApprovalChain> {
+    const newA: ApprovalChain = {
+      id: `approval-${Date.now()}`,
+      caseId: approval.caseId || '',
+      mode: approval.mode || 'sequential',
+      approvers: approval.approvers || [],
+      status: 'pending',
+      createdBy: 'user-1',
+      createdAt: new Date().toISOString(),
+    };
+    this.mockApprovals.push(newA);
+    return of(newA).pipe(delay(500));
+  }
+
+  approveChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
+    const idx = this.mockApprovals.findIndex(a => a.id === id);
+    if (idx < 0) throw new Error('Approval not found');
+    return of(this.mockApprovals[idx]).pipe(delay(500));
+  }
+
+  rejectChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
+    const idx = this.mockApprovals.findIndex(a => a.id === id);
+    if (idx < 0) throw new Error('Approval not found');
+    this.mockApprovals[idx] = { ...this.mockApprovals[idx], status: 'rejected' };
+    return of(this.mockApprovals[idx]).pipe(delay(500));
+  }
+
+  delegateApproval(id: string, delegation: ApprovalDelegation): Observable<ApprovalChain> {
+    const idx = this.mockApprovals.findIndex(a => a.id === id);
+    if (idx < 0) throw new Error('Approval not found');
+    return of(this.mockApprovals[idx]).pipe(delay(500));
+  }
+
+  // Documents
+  getDocuments(caseId?: string): Observable<Document[]> {
+    let docs = [...this.mockDocuments];
+    if (caseId) docs = docs.filter(d => d.caseId === caseId);
+    return of(docs).pipe(delay(300));
+  }
+
+  getDocumentById(id: string): Observable<Document> {
+    const doc = this.mockDocuments.find(d => d.id === id);
+    if (!doc) throw new Error('Document not found');
+    return of({ ...doc }).pipe(delay(200));
+  }
+
+  uploadDocument(caseId: string, file: File, description?: string, tags?: string[]): Observable<Document> {
+    const newDoc: Document = {
+      id: `doc-${Date.now()}`,
+      caseId,
+      filename: file.name,
+      contentType: file.type,
+      sizeBytes: file.size,
+      version: 1,
+      isCurrent: true,
+      uploadedBy: 'user-1',
+      uploadedAt: new Date().toISOString(),
+      description,
+      tags: tags || [],
+    };
+    this.mockDocuments.push(newDoc);
+    return of(newDoc).pipe(delay(800));
+  }
+
+  deleteDocument(id: string): Observable<void> {
+    this.mockDocuments = this.mockDocuments.filter(d => d.id !== id);
+    return of(void 0).pipe(delay(300));
+  }
+
+  getDocumentVersions(id: string): Observable<DocumentVersion[]> {
+    const doc = this.mockDocuments.find(d => d.id === id);
+    if (!doc) return of([]);
+    return of([{
+      id: doc.id,
+      filename: doc.filename,
+      version: doc.version,
+      isCurrent: doc.isCurrent,
+      uploadedBy: doc.uploadedBy,
+      uploadedAt: doc.uploadedAt,
+    }]).pipe(delay(200));
+  }
+
+  // SLA
+  getSLADashboard(): Observable<SLADashboard> {
+    return of<SLADashboard>({
+      summary: { total: 3, critical: 0, breached: 1, warning: 1, normal: 1 },
+      cases: [
+        { id: 'CASE-2026-00002', type: 'loan_origination', stage: 'underwriting', priority: 'critical', ownerId: 'user-2', slaTarget: '2026-03-19T00:00:00.000Z', percentageElapsed: 105, remainingHours: -12, risk: 'breached' as const, escalated: true, escalationLevel: 1 },
+        { id: 'CASE-2026-00001', type: 'loan_origination', stage: 'intake', priority: 'high', ownerId: 'user-1', slaTarget: '2026-03-17T00:00:00.000Z', percentageElapsed: 78, remainingHours: 36, risk: 'warning' as const, escalated: false, escalationLevel: 0 },
+        { id: 'CASE-2026-00003', type: 'loan_origination', stage: 'disbursement', priority: 'medium', ownerId: 'user-3', slaTarget: '2026-03-01T00:00:00.000Z', percentageElapsed: 45, remainingHours: 120, risk: 'normal' as const, escalated: false, escalationLevel: 0 },
+      ],
+    }).pipe(delay(300));
+  }
+
+  getSLADefinitions(caseTypeId?: string): Observable<SLADefinition[]> {
+    return of([
+      { id: 'sla-1', caseTypeId: 'case-type-1', stage: 'intake', hoursTarget: 48, escalationEnabled: true, escalateToRole: 'MANAGER', createdAt: '2025-01-01T00:00:00.000Z' },
+      { id: 'sla-2', caseTypeId: 'case-type-1', stage: 'underwriting', hoursTarget: 120, escalationEnabled: true, escalateToRole: 'ADMIN', createdAt: '2025-01-01T00:00:00.000Z' },
+    ]).pipe(delay(300));
+  }
+
+  acknowledgeSLA(caseId: string): Observable<any> {
+    return of({ acknowledged: true, case_id: caseId }).pipe(delay(300));
+  }
+
+  // Forms
+  getFormDefinitions(caseTypeId?: string): Observable<FormDefinition[]> {
+    let forms = [...this.mockFormDefinitions];
+    if (caseTypeId) forms = forms.filter(f => f.caseTypeId === caseTypeId);
+    return of(forms).pipe(delay(300));
+  }
+
+  getFormDefinitionById(id: string): Observable<FormDefinition> {
+    const form = this.mockFormDefinitions.find(f => f.id === id);
+    if (!form) throw new Error('Form not found');
+    return of({ ...form }).pipe(delay(200));
+  }
+
+  createFormDefinition(form: Partial<FormDefinition>): Observable<FormDefinition> {
+    const newForm: FormDefinition = {
+      id: `form-${Date.now()}`,
+      name: form.name || 'New Form',
+      caseTypeId: form.caseTypeId || '',
+      sections: form.sections || [],
+      fields: form.fields || [],
+      description: form.description || '',
+      version: 1,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+    this.mockFormDefinitions.push(newForm);
+    return of(newForm).pipe(delay(500));
+  }
+
+  updateFormDefinition(id: string, form: Partial<FormDefinition>): Observable<FormDefinition> {
+    const idx = this.mockFormDefinitions.findIndex(f => f.id === id);
+    if (idx < 0) throw new Error('Form not found');
+    this.mockFormDefinitions[idx] = { ...this.mockFormDefinitions[idx], ...form, updatedAt: new Date().toISOString() };
+    return of(this.mockFormDefinitions[idx]).pipe(delay(500));
+  }
+
+  deleteFormDefinition(id: string): Observable<void> {
+    this.mockFormDefinitions = this.mockFormDefinitions.filter(f => f.id !== id);
+    return of(void 0).pipe(delay(300));
+  }
+
+  submitForm(submission: Omit<FormSubmission, 'id' | 'submittedBy' | 'submittedAt'>): Observable<FormSubmission> {
+    const newSub: FormSubmission = {
+      ...submission,
+      id: `sub-${Date.now()}`,
+      submittedBy: 'user-1',
+      submittedAt: new Date().toISOString(),
+    };
+    return of(newSub).pipe(delay(500));
+  }
+
+  getFormSubmissions(caseId?: string, formId?: string): Observable<FormSubmission[]> {
+    return of([]).pipe(delay(200));
   }
 }

@@ -25,9 +25,12 @@ services:
       - DATABASE_NAME=workflow_platform
       - JWT_SECRET=workflow-dev-secret-change-in-production
       - CORS_ORIGINS=["http://localhost:4200"]
+    volumes:
+      - document_uploads:/data/documents
     depends_on:
       mongodb:
         condition: service_healthy
 
 volumes:
   mongo_data:
+  document_uploads:

@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterOutlet, Router } from '@angular/router';
+import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule, MatSidenav } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
@@ -21,6 +21,7 @@ import * as NotificationsActions from '@state/notifications/notifications.action
   imports: [
     CommonModule,
     RouterLink,
+    RouterLinkActive,
     RouterOutlet,
     MatToolbarModule,
     MatSidenavModule,
@@ -108,6 +109,30 @@ import * as NotificationsActions from '@state/notifications/notifications.action
             <a mat-list-item routerLink="/tasks" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
               <mat-icon matListItemIcon>task_alt</mat-icon>
               <span matListItemTitle>My Tasks</span>
+            </a>
+            <a mat-list-item routerLink="/documents" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>description</mat-icon>
+              <span matListItemTitle>Documents</span>
+            </a>
+            <a mat-list-item routerLink="/approvals" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>approval</mat-icon>
+              <span matListItemTitle>Approvals</span>
+            </a>
+          </mat-nav-list>
+
+          <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tools</p>
+          <mat-nav-list class="px-2">
+            <a mat-list-item routerLink="/workflows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>account_tree</mat-icon>
+              <span matListItemTitle>Workflow Designer</span>
+            </a>
+            <a mat-list-item routerLink="/forms" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>dynamic_form</mat-icon>
+              <span matListItemTitle>Form Builder</span>
+            </a>
+            <a mat-list-item routerLink="/sla" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>speed</mat-icon>
+              <span matListItemTitle>SLA Dashboard</span>
             </a>
           </mat-nav-list>
 

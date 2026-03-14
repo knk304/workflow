@@ -175,3 +175,215 @@ export interface AuditLog {
   };
   timestamp: string;
 }
+
+// ===== Phase 2 Models =====
+
+// Workflow Designer
+export type NodeType = 'start' | 'end' | 'task' | 'decision' | 'parallel' | 'subprocess';
+
+export interface NodePosition {
+  x: number;
+  y: number;
+}
+
+export interface WorkflowNode {
+  id: string;
+  type: NodeType;
+  label: string;
+  position: NodePosition;
+  assigneeRole?: string;
+  config?: Record<string, any>;
+}
+
+export interface WorkflowEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  condition?: string;
+}
+
+export interface WorkflowDefinition {
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  caseTypeId: string;
+  definition: WorkflowDefinition;
+  version: number;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface WorkflowValidationError {
+  field: string;
+  message: string;
+}
+
+export interface WorkflowValidationResult {
+  valid: boolean;
+  errors: WorkflowValidationError[];
+}
+
+// Approval Engine
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'delegated';
+export type ApprovalMode = 'sequential' | 'parallel';
+
+export interface Approver {
+  userId: string;
+  userName?: string;
+  status: ApprovalStatus;
+  decidedAt?: string;
+  comment?: string;
+  delegatedTo?: string;
+}
+
+export interface ApprovalChain {
+  id: string;
+  caseId: string;
+  taskId?: string;
+  mode: ApprovalMode;
+  approvers: Approver[];
+  status: ApprovalStatus;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface ApprovalDecision {
+  comment: string;
+}
+
+export interface ApprovalDelegation {
+  delegateTo: string;
+  comment: string;
+}
+
+// Document Management
+export interface Document {
+  id: string;
+  caseId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  version: number;
+  isCurrent: boolean;
+  uploadedBy: string;
+  uploadedAt: string;
+  description?: string;
+  tags: string[];
+}
+
+export interface DocumentVersion {
+  id: string;
+  filename: string;
+  version: number;
+  isCurrent: boolean;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+// SLA Dashboard
+export type SLARisk = 'normal' | 'warning' | 'breached' | 'critical';
+
+export interface SLACaseInfo {
+  id: string;
+  type: string;
+  stage: string;
+  priority: string;
+  ownerId: string;
+  slaTarget: string;
+  percentageElapsed: number;
+  remainingHours: number;
+  risk: SLARisk;
+  escalated: boolean;
+  escalationLevel: number;
+}
+
+export interface SLADashboard {
+  summary: {
+    total: number;
+    critical: number;
+    breached: number;
+    warning: number;
+    normal: number;
+  };
+  cases: SLACaseInfo[];
+}
+
+export interface SLADefinition {
+  id: string;
+  caseTypeId: string;
+  stage: string;
+  hoursTarget: number;
+  escalationEnabled: boolean;
+  escalateToRole: string;
+  createdAt: string;
+}
+
+// Form Builder
+export interface FormFieldValidation {
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minValue?: number;
+  maxValue?: number;
+  options?: string[];
+}
+
+export interface FormField {
+  id: string;
+  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file';
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  validation: FormFieldValidation;
+  order: number;
+  section: string;
+  visibleWhen?: Record<string, any>;
+}
+
+export interface FormSection {
+  id: string;
+  title: string;
+  order: number;
+}
+
+export interface FormDefinition {
+  id: string;
+  name: string;
+  caseTypeId: string;
+  stage?: string;
+  sections: FormSection[];
+  fields: FormField[];
+  description: string;
+  version: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  caseId: string;
+  data: Record<string, any>;
+  submittedBy: string;
+  submittedAt: string;
+}
+
+// WebSocket messages
+export type WSMessageType = 'task_updated' | 'comment_added' | 'case_updated' | 'user_joined' | 'user_left' | 'presence' | 'heartbeat';
+
+export interface WSMessage {
+  type: WSMessageType;
+  data: any;
+  userId?: string;
+  timestamp?: string;
+}

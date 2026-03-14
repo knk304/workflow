@@ -2,6 +2,11 @@ import { Observable } from 'rxjs';
 import {
   User, Team, CaseType, Case, Task, KanbanBoard,
   Comment, Notification, AuditLog,
+  Workflow, WorkflowValidationResult,
+  ApprovalChain, ApprovalDecision, ApprovalDelegation,
+  Document, DocumentVersion,
+  SLADashboard, SLADefinition,
+  FormDefinition, FormSubmission,
 } from '../models';
 
 export abstract class DataService {
@@ -40,4 +45,43 @@ export abstract class DataService {
 
   // Audit
   abstract getAuditLogs(entityId: string): Observable<AuditLog[]>;
+
+  // ===== Phase 2 =====
+
+  // Workflows
+  abstract getWorkflows(): Observable<Workflow[]>;
+  abstract getWorkflowById(id: string): Observable<Workflow>;
+  abstract createWorkflow(workflow: Partial<Workflow>): Observable<Workflow>;
+  abstract updateWorkflow(id: string, updates: Partial<Workflow>): Observable<Workflow>;
+  abstract deleteWorkflow(id: string): Observable<void>;
+  abstract validateWorkflow(id: string): Observable<WorkflowValidationResult>;
+
+  // Approvals
+  abstract getApprovals(caseId?: string): Observable<ApprovalChain[]>;
+  abstract getApprovalById(id: string): Observable<ApprovalChain>;
+  abstract createApproval(approval: Partial<ApprovalChain>): Observable<ApprovalChain>;
+  abstract approveChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain>;
+  abstract rejectChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain>;
+  abstract delegateApproval(id: string, delegation: ApprovalDelegation): Observable<ApprovalChain>;
+
+  // Documents
+  abstract getDocuments(caseId?: string): Observable<Document[]>;
+  abstract getDocumentById(id: string): Observable<Document>;
+  abstract uploadDocument(caseId: string, file: File, description?: string, tags?: string[]): Observable<Document>;
+  abstract deleteDocument(id: string): Observable<void>;
+  abstract getDocumentVersions(id: string): Observable<DocumentVersion[]>;
+
+  // SLA
+  abstract getSLADashboard(): Observable<SLADashboard>;
+  abstract getSLADefinitions(caseTypeId?: string): Observable<SLADefinition[]>;
+  abstract acknowledgeSLA(caseId: string): Observable<any>;
+
+  // Forms
+  abstract getFormDefinitions(caseTypeId?: string): Observable<FormDefinition[]>;
+  abstract getFormDefinitionById(id: string): Observable<FormDefinition>;
+  abstract createFormDefinition(form: Partial<FormDefinition>): Observable<FormDefinition>;
+  abstract updateFormDefinition(id: string, form: Partial<FormDefinition>): Observable<FormDefinition>;
+  abstract deleteFormDefinition(id: string): Observable<void>;
+  abstract submitForm(submission: Omit<FormSubmission, 'id' | 'submittedBy' | 'submittedAt'>): Observable<FormSubmission>;
+  abstract getFormSubmissions(caseId?: string, formId?: string): Observable<FormSubmission[]>;
 }

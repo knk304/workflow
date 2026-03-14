@@ -6,6 +6,7 @@ export const environment = {
   caseApiUrl: 'https://api.workflow.example.com/api',
   taskApiUrl: 'https://api.workflow.example.com/api',
   notifyApiUrl: 'https://api.workflow.example.com/api',
+  wsUrl: 'wss://api.workflow.example.com',
   tokenKey: 'auth_token',
   refreshTokenKey: 'refresh_token',
 };

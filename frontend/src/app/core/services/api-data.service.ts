@@ -5,6 +5,11 @@ import { map } from 'rxjs/operators';
 import {
   User, Team, CaseType, Case, Task, KanbanBoard,
   Comment, Notification, AuditLog,
+  Workflow, WorkflowValidationResult,
+  ApprovalChain, ApprovalDecision, ApprovalDelegation,
+  Document, DocumentVersion,
+  SLADashboard, SLADefinition,
+  FormDefinition, FormSubmission,
 } from '../models';
 import { DataService } from './data.service';
 import { environment } from '../../../environments/environment';
@@ -131,5 +136,134 @@ export class ApiDataService extends DataService {
     return this.http.get<AuditLog[]>(`${this.caseUrl}/audit-logs`, {
       params: new HttpParams().set('entityId', entityId),
     });
+  }
+
+  // ─── Workflows ──────────────────────────────────
+  getWorkflows(): Observable<Workflow[]> {
+    return this.http.get<Workflow[]>(`${this.caseUrl}/workflows`);
+  }
+
+  getWorkflowById(id: string): Observable<Workflow> {
+    return this.http.get<Workflow>(`${this.caseUrl}/workflows/${id}`);
+  }
+
+  createWorkflow(workflow: Partial<Workflow>): Observable<Workflow> {
+    return this.http.post<Workflow>(`${this.caseUrl}/workflows`, workflow);
+  }
+
+  updateWorkflow(id: string, updates: Partial<Workflow>): Observable<Workflow> {
+    return this.http.patch<Workflow>(`${this.caseUrl}/workflows/${id}`, updates);
+  }
+
+  deleteWorkflow(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/workflows/${id}`);
+  }
+
+  validateWorkflow(id: string): Observable<WorkflowValidationResult> {
+    return this.http.post<WorkflowValidationResult>(`${this.caseUrl}/workflows/${id}/validate`, {});
+  }
+
+  // ─── Approvals ──────────────────────────────────
+  getApprovals(caseId?: string): Observable<ApprovalChain[]> {
+    let params = new HttpParams();
+    if (caseId) { params = params.set('case_id', caseId); }
+    return this.http.get<ApprovalChain[]>(`${this.caseUrl}/approvals`, { params });
+  }
+
+  getApprovalById(id: string): Observable<ApprovalChain> {
+    return this.http.get<ApprovalChain>(`${this.caseUrl}/approvals/${id}`);
+  }
+
+  createApproval(approval: Partial<ApprovalChain>): Observable<ApprovalChain> {
+    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals`, approval);
+  }
+
+  approveChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
+    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals/${id}/approve`, decision);
+  }
+
+  rejectChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
+    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals/${id}/reject`, decision);
+  }
+
+  delegateApproval(id: string, delegation: ApprovalDelegation): Observable<ApprovalChain> {
+    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals/${id}/delegate`, delegation);
+  }
+
+  // ─── Documents ──────────────────────────────────
+  getDocuments(caseId?: string): Observable<Document[]> {
+    let params = new HttpParams();
+    if (caseId) { params = params.set('case_id', caseId); }
+    return this.http.get<Document[]>(`${this.caseUrl}/documents`, { params });
+  }
+
+  getDocumentById(id: string): Observable<Document> {
+    return this.http.get<Document>(`${this.caseUrl}/documents/${id}`);
+  }
+
+  uploadDocument(caseId: string, file: File, description?: string, tags?: string[]): Observable<Document> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('case_id', caseId);
+    if (description) formData.append('description', description);
+    if (tags) formData.append('tags', tags.join(','));
+    return this.http.post<Document>(`${this.caseUrl}/documents`, formData);
+  }
+
+  deleteDocument(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/documents/${id}`);
+  }
+
+  getDocumentVersions(id: string): Observable<DocumentVersion[]> {
+    return this.http.get<DocumentVersion[]>(`${this.caseUrl}/documents/${id}/versions`);
+  }
+
+  // ─── SLA ────────────────────────────────────────
+  getSLADashboard(): Observable<SLADashboard> {
+    return this.http.get<SLADashboard>(`${this.caseUrl}/sla/dashboard`);
+  }
+
+  getSLADefinitions(caseTypeId?: string): Observable<SLADefinition[]> {
+    let params = new HttpParams();
+    if (caseTypeId) { params = params.set('case_type_id', caseTypeId); }
+    return this.http.get<SLADefinition[]>(`${this.caseUrl}/sla/definitions`, { params });
+  }
+
+  acknowledgeSLA(caseId: string): Observable<any> {
+    return this.http.post(`${this.caseUrl}/sla/${caseId}/acknowledge`, {});
+  }
+
+  // ─── Forms ──────────────────────────────────────
+  getFormDefinitions(caseTypeId?: string): Observable<FormDefinition[]> {
+    let params = new HttpParams();
+    if (caseTypeId) { params = params.set('case_type_id', caseTypeId); }
+    return this.http.get<FormDefinition[]>(`${this.caseUrl}/forms/definitions`, { params });
+  }
+
+  getFormDefinitionById(id: string): Observable<FormDefinition> {
+    return this.http.get<FormDefinition>(`${this.caseUrl}/forms/definitions/${id}`);
+  }
+
+  createFormDefinition(form: Partial<FormDefinition>): Observable<FormDefinition> {
+    return this.http.post<FormDefinition>(`${this.caseUrl}/forms/definitions`, form);
+  }
+
+  updateFormDefinition(id: string, form: Partial<FormDefinition>): Observable<FormDefinition> {
+    return this.http.patch<FormDefinition>(`${this.caseUrl}/forms/definitions/${id}`, form);
+  }
+
+  deleteFormDefinition(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/forms/definitions/${id}`);
+  }
+
+  submitForm(submission: Omit<FormSubmission, 'id' | 'submittedBy' | 'submittedAt'>): Observable<FormSubmission> {
+    return this.http.post<FormSubmission>(`${this.caseUrl}/forms/submissions`, submission);
+  }
+
+  getFormSubmissions(caseId?: string, formId?: string): Observable<FormSubmission[]> {
+    let params = new HttpParams();
+    if (caseId) { params = params.set('case_id', caseId); }
+    if (formId) { params = params.set('form_id', formId); }
+    return this.http.get<FormSubmission[]>(`${this.caseUrl}/forms/submissions`, { params });
   }
 }

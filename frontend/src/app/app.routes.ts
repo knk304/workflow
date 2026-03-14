@@ -7,6 +7,11 @@ import { CaseListComponent } from './features/cases/case-list.component';
 import { CaseDetailComponent } from './features/cases/case-detail.component';
 import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
 import { AdminUsersComponent } from './features/admin/admin-users.component';
+import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
+import { ApprovalsComponent } from './features/approvals/approvals.component';
+import { DocumentsComponent } from './features/documents/documents.component';
+import { SLADashboardComponent } from './features/sla/sla-dashboard.component';
+import { FormBuilderComponent } from './features/forms/form-builder.component';
 
 export const routes: Routes = [
   // Auth Routes (public)
@@ -50,6 +55,32 @@ export const routes: Routes = [
         path: 'tasks',
         component: TaskKanbanComponent,
         data: { title: 'Task Kanban' },
+      },
+      // Phase 2 routes
+      {
+        path: 'workflows',
+        component: WorkflowDesignerComponent,
+        data: { title: 'Workflow Designer' },
+      },
+      {
+        path: 'approvals',
+        component: ApprovalsComponent,
+        data: { title: 'Approvals' },
+      },
+      {
+        path: 'documents',
+        component: DocumentsComponent,
+        data: { title: 'Documents' },
+      },
+      {
+        path: 'sla',
+        component: SLADashboardComponent,
+        data: { title: 'SLA Dashboard' },
+      },
+      {
+        path: 'forms',
+        component: FormBuilderComponent,
+        data: { title: 'Form Builder' },
       },
       {
         path: 'admin',

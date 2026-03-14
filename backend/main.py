@@ -16,6 +16,14 @@ from routes.audit_logs import router as audit_logs_router
 from routes.tasks import router as tasks_router
 from routes.notifications import router as notifications_router
 
+# Phase 2 routers
+from routes.workflows import router as workflows_router
+from routes.approvals import router as approvals_router
+from routes.documents import router as documents_router
+from routes.sla import router as sla_router
+from routes.forms import router as forms_router
+from routes.websocket import router as ws_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,6 +58,14 @@ app.include_router(comments_router)
 app.include_router(audit_logs_router)
 app.include_router(tasks_router)
 app.include_router(notifications_router)
+
+# Phase 2 routers
+app.include_router(workflows_router)
+app.include_router(approvals_router)
+app.include_router(documents_router)
+app.include_router(sla_router)
+app.include_router(forms_router)
+app.include_router(ws_router)
 
 
 @app.get("/health")

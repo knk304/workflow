@@ -12,6 +12,21 @@ import {
   commentsFeatureKey,
   commentsReducer,
 } from './comments/comments.reducer';
+import {
+  WorkflowsState,
+  workflowsFeatureKey,
+  workflowsReducer,
+} from './workflows/workflows.reducer';
+import {
+  ApprovalsState,
+  approvalsFeatureKey,
+  approvalsReducer,
+} from './approvals/approvals.reducer';
+import {
+  DocumentsState,
+  documentsFeatureKey,
+  documentsReducer,
+} from './documents/documents.reducer';
 
 export interface AppState {
   [authFeatureKey]: AuthState;
@@ -19,6 +34,9 @@ export interface AppState {
   [tasksFeatureKey]: TasksState;
   [notificationsFeatureKey]: NotificationsState;
   [commentsFeatureKey]: CommentsState;
+  [workflowsFeatureKey]: WorkflowsState;
+  [approvalsFeatureKey]: ApprovalsState;
+  [documentsFeatureKey]: DocumentsState;
 }
 
 export const appReducers = {
@@ -27,4 +45,7 @@ export const appReducers = {
   [tasksFeatureKey]: tasksReducer,
   [notificationsFeatureKey]: notificationsReducer,
   [commentsFeatureKey]: commentsReducer,
+  [workflowsFeatureKey]: workflowsReducer,
+  [approvalsFeatureKey]: approvalsReducer,
+  [documentsFeatureKey]: documentsReducer,
 };
