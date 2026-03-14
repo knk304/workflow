@@ -9,14 +9,14 @@ import {
 } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { MockAuthService } from '../services/mock-auth.service';
+import { AuthService } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthGuard implements CanActivate, CanActivateChild {
   constructor(
-    private authService: MockAuthService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -55,7 +55,7 @@ export class AuthGuard implements CanActivate, CanActivateChild {
 })
 export class RoleGuard implements CanActivate {
   constructor(
-    private authService: MockAuthService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -81,7 +81,7 @@ export class RoleGuard implements CanActivate {
 
 // Functional guard export for standalone routing
 export const authGuard: CanActivateFn = (route, state) => {
-  const authService = inject(MockAuthService);
+  const authService = inject(AuthService);
   const router = inject(Router);
 
   return authService.getCurrentUser().pipe(

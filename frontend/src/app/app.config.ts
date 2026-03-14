@@ -12,6 +12,7 @@ import { CasesEffects } from './state/cases/cases.effects';
 import { TasksEffects } from './state/tasks/tasks.effects';
 import { NotificationsEffects } from './state/notifications/notifications.effects';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
+import { serviceProviders } from './core/services/service-providers';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -19,6 +20,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimations(),
     provideHttpClient(withInterceptors([jwtInterceptor])),
+
+    // Service providers (mock or API based on environment)
+    ...serviceProviders,
 
     // NgRx Store Configuration
     importProvidersFrom([

@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { map, catchError, switchMap, mergeMap } from 'rxjs/operators';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 import * as CasesActions from './cases.actions';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class CasesEffects {
     this.actions$.pipe(
       ofType(CasesActions.loadCases),
       switchMap(({ filters }) =>
-        this.mockDataService.getCases(filters).pipe(
+        this.dataService.getCases(filters).pipe(
           map((cases) => CasesActions.loadCasesSuccess({ cases })),
           catchError((error) => of(CasesActions.loadCasesFailure({ error: error.message })))
         )
@@ -24,7 +24,7 @@ export class CasesEffects {
     this.actions$.pipe(
       ofType(CasesActions.loadCaseById),
       switchMap(({ id }) =>
-        this.mockDataService.getCaseById(id).pipe(
+        this.dataService.getCaseById(id).pipe(
           map((caseData) => {
             if (caseData) {
               return CasesActions.loadCaseByIdSuccess({ case: caseData });
@@ -44,7 +44,7 @@ export class CasesEffects {
     this.actions$.pipe(
       ofType(CasesActions.updateCase),
       mergeMap(({ caseId, updates }) =>
-        this.mockDataService.updateCase(caseId, updates).pipe(
+        this.dataService.updateCase(caseId, updates).pipe(
           map((caseData) => CasesActions.updateCaseSuccess({ case: caseData })),
           catchError((error) => of(CasesActions.updateCaseFailure({ error: error.message })))
         )
@@ -56,7 +56,7 @@ export class CasesEffects {
     this.actions$.pipe(
       ofType(CasesActions.transitionCase),
       mergeMap(({ caseId, action, notes }) =>
-        this.mockDataService.getCaseById(caseId).pipe(
+        this.dataService.getCaseById(caseId).pipe(
           map((caseData) => {
             if (caseData) {
               // Mock transition logic
@@ -91,6 +91,6 @@ export class CasesEffects {
 
   constructor(
     private actions$: Actions,
-    private mockDataService: MockDataService
+    private dataService: DataService
   ) {}
 }

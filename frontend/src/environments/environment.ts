@@ -1,6 +1,11 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api',
+  useMock: true,
+  apiUrl: 'http://localhost:8000/api',
+  authApiUrl: 'http://localhost:8000/api',
+  caseApiUrl: 'http://localhost:8000/api',
+  taskApiUrl: 'http://localhost:8000/api',
+  notifyApiUrl: 'http://localhost:8000/api',
   tokenKey: 'auth_token',
-  mockDelay: 300,
+  refreshTokenKey: 'refresh_token',
 };

@@ -11,7 +11,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 import { Comment, Mention } from '../../core/models';
 
 @Component({
@@ -251,7 +251,7 @@ export class CommentsComponent implements OnInit {
 
   constructor(
     private formBuilder: FormBuilder,
-    private mockDataService: MockDataService,
+    private dataService: DataService,
     private store: Store
   ) {
     this.commentForm = this.formBuilder.group({
@@ -275,7 +275,7 @@ export class CommentsComponent implements OnInit {
   loadComments(): void {
     // In a real app, this would fetch comments from the backend
     // For now, using mock data
-    this.mockDataService.getComments().subscribe(comments => {
+    this.dataService.getComments().subscribe(comments => {
       this.comments = comments;
     });
   }

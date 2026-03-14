@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { map, catchError, switchMap, mergeMap } from 'rxjs/operators';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 import * as TasksActions from './tasks.actions';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class TasksEffects {
     this.actions$.pipe(
       ofType(TasksActions.loadTasks),
       switchMap(({ filters }) =>
-        this.mockDataService.getTasks(filters).pipe(
+        this.dataService.getTasks(filters).pipe(
           map((tasks) => TasksActions.loadTasksSuccess({ tasks })),
           catchError((error) => of(TasksActions.loadTasksFailure({ error: error.message })))
         )
@@ -24,7 +24,7 @@ export class TasksEffects {
     this.actions$.pipe(
       ofType(TasksActions.loadKanbanBoard),
       switchMap(({ caseId }) =>
-        this.mockDataService.getKanbanBoard(caseId).pipe(
+        this.dataService.getKanbanBoard(caseId).pipe(
           map((board) => TasksActions.loadKanbanBoardSuccess({ board })),
           catchError((error) => of(TasksActions.loadTasksFailure({ error: error.message })))
         )
@@ -36,7 +36,7 @@ export class TasksEffects {
     this.actions$.pipe(
       ofType(TasksActions.loadTaskById),
       switchMap(({ id }) =>
-        this.mockDataService.getTaskById(id).pipe(
+        this.dataService.getTaskById(id).pipe(
           map((task) => {
             if (task) {
               return TasksActions.loadTaskByIdSuccess({ task });
@@ -54,7 +54,7 @@ export class TasksEffects {
     this.actions$.pipe(
       ofType(TasksActions.updateTask),
       mergeMap(({ taskId, updates }) =>
-        this.mockDataService.updateTask(taskId, updates).pipe(
+        this.dataService.updateTask(taskId, updates).pipe(
           map((task) => TasksActions.updateTaskSuccess({ task })),
           catchError((error) => of(TasksActions.updateTaskFailure({ error: error.message })))
         )
@@ -68,7 +68,7 @@ export class TasksEffects {
       mergeMap(({ taskId, status }) => {
         // Ensure status is a valid Task.status value
         const validStatus = status as any;
-        return this.mockDataService.updateTask(taskId, { status: validStatus }).pipe(
+        return this.dataService.updateTask(taskId, { status: validStatus }).pipe(
           map((task) => TasksActions.updateTaskSuccess({ task })),
           catchError((error) => of(TasksActions.updateTaskFailure({ error: error.message })))
         );
@@ -80,7 +80,7 @@ export class TasksEffects {
     this.actions$.pipe(
       ofType(TasksActions.updateTaskAssignee),
       mergeMap(({ taskId, assigneeId }) =>
-        this.mockDataService.updateTask(taskId, { assigneeId }).pipe(
+        this.dataService.updateTask(taskId, { assigneeId }).pipe(
           map((task) => TasksActions.updateTaskSuccess({ task })),
           catchError((error) => of(TasksActions.updateTaskFailure({ error: error.message })))
         )
@@ -90,6 +90,6 @@ export class TasksEffects {
 
   constructor(
     private actions$: Actions,
-    private mockDataService: MockDataService
+    private dataService: DataService
   ) {}
 }

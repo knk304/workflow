@@ -10,11 +10,11 @@ import {
 } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { MockAuthService } from '../services/mock-auth.service';
+import { AuthService } from '../services/auth.service';
 
 @Injectable()
 export class JwtInterceptor implements HttpInterceptor {
-  constructor(private authService: MockAuthService) {}
+  constructor(private authService: AuthService) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     const token = this.authService.getToken();
@@ -41,7 +41,7 @@ export class JwtInterceptor implements HttpInterceptor {
 
 // Functional interceptor export for withInterceptors
 export const jwtInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: HttpHandlerFn) => {
-  const authService = inject(MockAuthService);
+  const authService = inject(AuthService);
   const token = authService.getToken();
 
   if (token) {

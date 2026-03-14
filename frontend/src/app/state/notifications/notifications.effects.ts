@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { map, catchError, switchMap, mergeMap } from 'rxjs/operators';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { DataService } from '../../core/services/data.service';
 import * as NotificationsActions from './notifications.actions';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class NotificationsEffects {
     this.actions$.pipe(
       ofType(NotificationsActions.loadNotifications),
       switchMap(({ userId }) =>
-        this.mockDataService.getNotifications(userId).pipe(
+        this.dataService.getNotifications(userId).pipe(
           map((notifications) =>
             NotificationsActions.loadNotificationsSuccess({ notifications })
           ),
@@ -32,7 +32,7 @@ export class NotificationsEffects {
     this.actions$.pipe(
       ofType(NotificationsActions.addNotification),
       mergeMap(({ notification }) =>
-        this.mockDataService.addNotification(notification).pipe(
+        this.dataService.addNotification(notification).pipe(
           map((newNotification) =>
             NotificationsActions.addNotificationSuccess({
               notification: newNotification,
@@ -54,7 +54,7 @@ export class NotificationsEffects {
     this.actions$.pipe(
       ofType(NotificationsActions.markAsRead),
       mergeMap(({ notificationId }) =>
-        this.mockDataService.markNotificationAsRead(notificationId).pipe(
+        this.dataService.markNotificationAsRead(notificationId).pipe(
           map((notification) =>
             NotificationsActions.markAsReadSuccess({ notification })
           ),
@@ -72,6 +72,6 @@ export class NotificationsEffects {
 
   constructor(
     private actions$: Actions,
-    private mockDataService: MockDataService
+    private dataService: DataService
   ) {}
 }

@@ -4,7 +4,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { map, catchError, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { MockAuthService } from '../../core/services/mock-auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import * as AuthActions from './auth.actions';
 
 @Injectable()
@@ -83,7 +83,7 @@ export class AuthEffects {
 
   constructor(
     private actions$: Actions,
-    private authService: MockAuthService,
+    private authService: AuthService,
     private router: Router
   ) {}
 }

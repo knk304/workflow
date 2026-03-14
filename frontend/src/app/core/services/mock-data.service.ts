@@ -11,11 +11,10 @@ import {
   CaseType,
   KanbanBoard,
 } from '../models';
+import { DataService } from './data.service';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class MockDataService {
+@Injectable()
+export class MockDataService extends DataService {
   // Mock Users
   private mockUsers: User[] = [
     {

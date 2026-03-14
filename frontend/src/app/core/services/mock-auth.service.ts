@@ -2,11 +2,10 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 import { User, LoginRequest, RegisterRequest } from '../models';
+import { AuthService, LoginResponse, RegisterResponse } from './auth.service';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class MockAuthService {
+@Injectable()
+export class MockAuthService extends AuthService {
   private currentUser: User | null = null;
   private token: string | null = null;
 
@@ -73,6 +72,15 @@ export class MockAuthService {
 
   getToken(): string | null {
     return this.token;
+  }
+
+  setToken(token: string): void {
+    this.token = token;
+  }
+
+  clearToken(): void {
+    this.token = null;
+    this.currentUser = null;
   }
 
   refreshToken(): Observable<string> {

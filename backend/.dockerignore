@@ -1,0 +1,19 @@
+# Old microservice directories (consolidated into single service)
+auth-service/
+case-service/
+task-service/
+notify-service/
+gateway/
+shared/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
