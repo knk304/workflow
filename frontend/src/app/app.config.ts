@@ -11,6 +11,7 @@ import { AuthEffects } from './state/auth/auth.effects';
 import { CasesEffects } from './state/cases/cases.effects';
 import { TasksEffects } from './state/tasks/tasks.effects';
 import { NotificationsEffects } from './state/notifications/notifications.effects';
+import { CommentsEffects } from './state/comments/comments.effects';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { serviceProviders } from './core/services/service-providers';
 import { environment } from '../environments/environment';
@@ -43,6 +44,7 @@ export const appConfig: ApplicationConfig = {
         CasesEffects,
         TasksEffects,
         NotificationsEffects,
+        CommentsEffects,
       ]),
 
       // Store Devtools (only in development)

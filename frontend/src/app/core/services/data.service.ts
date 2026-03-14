@@ -20,6 +20,7 @@ export abstract class DataService {
   abstract getCases(filters?: Record<string, string>): Observable<Case[]>;
   abstract getCaseById(id: string): Observable<Case | undefined>;
   abstract updateCase(caseId: string, updates: Partial<Case>): Observable<Case>;
+  abstract transitionCase(caseId: string, action: string, notes?: string): Observable<Case>;
 
   // Tasks
   abstract getTasks(filters?: Record<string, string>): Observable<Task[]>;

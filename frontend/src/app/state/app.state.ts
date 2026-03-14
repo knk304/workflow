@@ -7,12 +7,18 @@ import {
   notificationsFeatureKey,
   notificationsReducer,
 } from './notifications/notifications.reducer';
+import {
+  CommentsState,
+  commentsFeatureKey,
+  commentsReducer,
+} from './comments/comments.reducer';
 
 export interface AppState {
   [authFeatureKey]: AuthState;
   [casesFeatureKey]: CasesState;
   [tasksFeatureKey]: TasksState;
   [notificationsFeatureKey]: NotificationsState;
+  [commentsFeatureKey]: CommentsState;
 }
 
 export const appReducers = {
@@ -20,4 +26,5 @@ export const appReducers = {
   [casesFeatureKey]: casesReducer,
   [tasksFeatureKey]: tasksReducer,
   [notificationsFeatureKey]: notificationsReducer,
+  [commentsFeatureKey]: commentsReducer,
 };

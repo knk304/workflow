@@ -62,6 +62,10 @@ export class ApiDataService extends DataService {
     return this.http.patch<Case>(`${this.caseUrl}/cases/${caseId}`, updates);
   }
 
+  transitionCase(caseId: string, action: string, notes?: string): Observable<Case> {
+    return this.http.post<Case>(`${this.caseUrl}/cases/${caseId}/stage`, { action, notes });
+  }
+
   // ─── Tasks ───────────────────────────────────────
   getTasks(filters?: Record<string, string>): Observable<Task[]> {
     let params = new HttpParams();

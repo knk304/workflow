@@ -596,6 +596,35 @@ export class MockDataService extends DataService {
     throw new Error('Case not found');
   }
 
+  transitionCase(caseId: string, action: string, notes?: string): Observable<Case> {
+    const caseIdx = this.mockCases.findIndex((c) => c.id === caseId);
+    if (caseIdx >= 0) {
+      const caseData = { ...this.mockCases[caseIdx] };
+      const stages = ['intake', 'documents', 'underwriting', 'approval', 'disbursement'];
+      const currentIndex = stages.indexOf(caseData.stage);
+      if (currentIndex >= 0 && currentIndex < stages.length - 1) {
+        const currentStageIndex = caseData.stages.length - 1;
+        if (currentStageIndex >= 0) {
+          caseData.stages = [...caseData.stages];
+          caseData.stages[currentStageIndex] = {
+            ...caseData.stages[currentStageIndex],
+            status: 'completed',
+            completedAt: new Date().toISOString(),
+          };
+        }
+        caseData.stage = stages[currentIndex + 1];
+        caseData.stages = [
+          ...caseData.stages,
+          { name: caseData.stage, status: 'in_progress', enteredAt: new Date().toISOString() },
+        ];
+      }
+      caseData.updatedAt = new Date().toISOString();
+      this.mockCases[caseIdx] = caseData;
+      return of(caseData).pipe(delay(500));
+    }
+    throw new Error('Case not found');
+  }
+
   updateTask(taskId: string, updates: Partial<Task>): Observable<Task> {
     const taskIdx = this.mockTasks.findIndex((t) => t.id === taskId);
     if (taskIdx >= 0) {

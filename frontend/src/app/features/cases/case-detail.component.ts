@@ -19,6 +19,8 @@ import { of, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { selectCasesList } from '../../state/cases/cases.selectors';
 import { Case, Task } from '../../core/models';
+import { CommentsComponent } from '../comments/comments.component';
+import { AuditLogComponent } from '../audit/audit-log.component';
 
 @Component({
   selector: 'app-case-detail',
@@ -39,6 +41,8 @@ import { Case, Task } from '../../core/models';
     MatDividerModule,
     MatExpansionModule,
     MatTooltipModule,
+    CommentsComponent,
+    AuditLogComponent,
   ],
   template: `
     @let caseData = case$ | async;
@@ -292,33 +296,21 @@ import { Case, Task } from '../../core/models';
                 </ng-template>
 
                 <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
-                  @if (caseData.auditLog && (caseData.auditLog.length > 0)) {
-                    <div class="relative pl-6">
-                      <!-- Timeline line -->
-                      <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-200"></div>
+                  <app-audit-log [entityId]="caseData.id"></app-audit-log>
+                </div>
+              </mat-tab>
 
-                      @for (log of caseData.auditLog | slice:0:10; track log.id) {
-                        <div class="relative mb-5 last:mb-0">
-                          <!-- Timeline dot -->
-                          <div class="absolute -left-6 top-1 w-3.5 h-3.5 rounded-full border-2 border-white ring-2"
-                               [ngClass]="auditDotColor(log.action)"></div>
-                          <div class="ml-2">
-                            <p class="font-semibold text-sm text-slate-800">{{ log.action }}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">
-                              {{ log.timestamp | date: 'medium' }}
-                              <span class="mx-1">·</span>
-                              <span class="text-slate-500">{{ log.actorName }}</span>
-                            </p>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <div class="text-center py-12">
-                      <mat-icon class="text-5xl text-slate-200">history</mat-icon>
-                      <p class="text-slate-400 mt-3 text-sm">No activity recorded</p>
-                    </div>
-                  }
+              <!-- Comments Tab -->
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <div class="flex items-center gap-2 py-1">
+                    <mat-icon>chat_bubble_outline</mat-icon>
+                    <span>Comments</span>
+                  </div>
+                </ng-template>
+
+                <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  <app-comments [caseId]="caseData.id"></app-comments>
                 </div>
               </mat-tab>
             </mat-tab-group>

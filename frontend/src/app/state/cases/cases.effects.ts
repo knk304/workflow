@@ -56,31 +56,8 @@ export class CasesEffects {
     this.actions$.pipe(
       ofType(CasesActions.transitionCase),
       mergeMap(({ caseId, action, notes }) =>
-        this.dataService.getCaseById(caseId).pipe(
-          map((caseData) => {
-            if (caseData) {
-              // Mock transition logic
-              const updatedCase = { ...caseData };
-              const currentStageIndex = updatedCase.stages.length - 1;
-              if (currentStageIndex >= 0) {
-                updatedCase.stages[currentStageIndex].status = 'completed';
-              }
-              // Move to next stage (simplified)
-              const stages = ['intake', 'documents', 'underwriting', 'approval', 'disbursement'];
-              const currentIndex = stages.indexOf(updatedCase.stage);
-              if (currentIndex < stages.length - 1) {
-                updatedCase.stage = stages[currentIndex + 1];
-                updatedCase.stages.push({
-                  name: updatedCase.stage,
-                  status: 'in_progress',
-                  enteredAt: new Date().toISOString(),
-                });
-              }
-              updatedCase.updatedAt = new Date().toISOString();
-              return CasesActions.transitionCaseSuccess({ case: updatedCase });
-            }
-            return CasesActions.transitionCaseSuccess({ case: caseData! });
-          }),
+        this.dataService.transitionCase(caseId, action, notes).pipe(
+          map((caseData) => CasesActions.transitionCaseSuccess({ case: caseData })),
           catchError((error) =>
             of(CasesActions.transitionCaseFailure({ error: error.message }))
           )

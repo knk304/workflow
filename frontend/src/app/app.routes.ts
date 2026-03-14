@@ -6,6 +6,7 @@ import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { CaseListComponent } from './features/cases/case-list.component';
 import { CaseDetailComponent } from './features/cases/case-detail.component';
 import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
+import { AdminUsersComponent } from './features/admin/admin-users.component';
 
 export const routes: Routes = [
   // Auth Routes (public)
@@ -49,6 +50,27 @@ export const routes: Routes = [
         path: 'tasks',
         component: TaskKanbanComponent,
         data: { title: 'Task Kanban' },
+      },
+      {
+        path: 'admin',
+        children: [
+          { path: '', redirectTo: 'users', pathMatch: 'full' },
+          {
+            path: 'users',
+            component: AdminUsersComponent,
+            data: { title: 'User Management' },
+          },
+          {
+            path: 'teams',
+            component: AdminUsersComponent,
+            data: { title: 'Team Management' },
+          },
+          {
+            path: 'workflows',
+            component: AdminUsersComponent,
+            data: { title: 'Workflow Management' },
+          },
+        ],
       },
     ],
   },
