@@ -65,12 +65,14 @@ export class TasksEffects {
   updateTaskStatus$ = createEffect(() =>
     this.actions$.pipe(
       ofType(TasksActions.updateTaskStatus),
-      mergeMap(({ taskId, status }) =>
-        this.mockDataService.updateTask(taskId, { status }).pipe(
+      mergeMap(({ taskId, status }) => {
+        // Ensure status is a valid Task.status value
+        const validStatus = status as any;
+        return this.mockDataService.updateTask(taskId, { status: validStatus }).pipe(
           map((task) => TasksActions.updateTaskSuccess({ task })),
           catchError((error) => of(TasksActions.updateTaskFailure({ error: error.message })))
-        )
-      )
+        );
+      })
     )
   );
 

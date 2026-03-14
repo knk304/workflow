@@ -36,7 +36,7 @@ export const selectInProgressTasks = createSelector(
 );
 
 export const selectOverdueTasks = createSelector(selectTasksList, (tasks) => {
-  const now = new Date();
+  const now = new Date().toISOString();
   return tasks.filter(
     (t) => t.dueDate && t.dueDate < now && t.status !== 'completed' && t.status !== 'cancelled'
   );

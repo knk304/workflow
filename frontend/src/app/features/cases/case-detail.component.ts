@@ -13,7 +13,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
+import { of, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { selectCasesList } from '../../state/cases/cases.selectors';
 import { Case, Task } from '../../core/models';
 
@@ -22,7 +25,6 @@ import { Case, Task } from '../../core/models';
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
     FormsModule,
     ReactiveFormsModule,
     MatTabsModule,
@@ -36,325 +38,410 @@ import { Case, Task } from '../../core/models';
     MatListModule,
     MatDividerModule,
     MatExpansionModule,
+    MatTooltipModule,
   ],
   template: `
-    @if (case$ | async as case) {
-      <div class="case-detail-container p-6 max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="flex justify-between items-start mb-6">
-          <div>
-            <h1 class="text-4xl font-bold text-gray-800">{{ case.id }}</h1>
-            <p class="text-gray-600 mt-2">{{ case.fields.applicantName }} • {{ case.caseType | uppercase }}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-600">Status</p>
-            <mat-icon [ngClass]="statusColor(case.status)" class="text-3xl">
-              {{ statusIcon(case.status) }}
-            </mat-icon>
-            <p [ngClass]="statusColor(case.status)" class="font-semibold">{{ case.status | uppercase }}</p>
+    @let caseData = case$ | async;
+    @if (caseData) {
+      <div class="case-detail-container animate-fade-in">
+        <!-- Breadcrumb & Back -->
+        <div class="flex items-center gap-2 mb-6 text-sm text-slate-500">
+          <a routerLink="/cases" class="hover:text-indigo-600 transition-colors flex items-center gap-1">
+            <mat-icon class="text-base">arrow_back</mat-icon>
+            Cases
+          </a>
+          <mat-icon class="text-base">chevron_right</mat-icon>
+          <span class="text-slate-800 font-medium">{{ caseData.id }}</span>
+        </div>
+
+        <!-- Header Card -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-center gap-4">
+              <!-- Case icon -->
+              <div class="w-14 h-14 rounded-xl flex items-center justify-center"
+                   [ngClass]="statusBg(caseData.status)">
+                <mat-icon class="text-3xl" [ngClass]="statusColor(caseData.status)">
+                  {{ statusIcon(caseData.status) }}
+                </mat-icon>
+              </div>
+              <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ caseData.id }}</h1>
+                <p class="text-slate-500 mt-0.5">
+                  {{ caseData.fields['applicantName'] }}
+                  <span class="mx-1.5 text-slate-300">|</span>
+                  <span class="wf-badge wf-badge--neutral">{{ caseData.caseType | uppercase }}</span>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="wf-badge" [ngClass]="statusBadge(caseData.status)">
+                <span class="w-2 h-2 rounded-full inline-block" [ngClass]="statusDot(caseData.status)"></span>
+                {{ caseData.status | uppercase }}
+              </span>
+              <span class="wf-badge" [ngClass]="priorityBadgeClass(caseData.priority)">
+                {{ caseData.priority | uppercase }}
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- Stage Progression -->
-        <mat-card class="mb-6">
-          <mat-card-content>
-            <h3 class="text-lg font-semibold mb-4">Case Journey</h3>
-            <div class="flex items-center gap-4">
-              @for (stage of stages; track stage.name) {
-                <div class="flex flex-col items-center gap-2">
-                  <!-- Stage Circle -->
-                  <div
-                    class="w-12 h-12 rounded-full flex items-center justify-center font-bold"
-                    [ngClass]="stageCircleClass(case.stageHistory, stage.name)"
-                  >
-                    @if (isStageCompleted(case.stageHistory, stage.name)) {
-                      <mat-icon>check</mat-icon>
-                    } @else if (isStageActive(case.stage, stage.name)) {
-                      <mat-icon class="animate-pulse">radio_button_checked</mat-icon>
-                    } @else {
-                      <span class="text-xs">{{ stage.order }}</span>
-                    }
-                  </div>
-                  <!-- Stage Label -->
-                  <span class="text-xs font-semibold text-center max-w-20">{{ stage.name | uppercase }}</span>
+        <!-- Stage Journey -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <mat-icon class="text-indigo-500">route</mat-icon>
+              Case Journey
+            </h3>
+            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+              {{ getProgressPercentage(caseData.stageHistory ?? []) | number:'1.0-0' }}% Complete
+            </span>
+          </div>
+
+          <!-- Stage Steps -->
+          <div class="flex items-start justify-between relative">
+            <!-- Connector line behind circles -->
+            <div class="absolute top-5 left-[5%] right-[5%] h-0.5 bg-slate-200 z-0"></div>
+            <div class="absolute top-5 left-[5%] h-0.5 bg-indigo-500 z-0 transition-all duration-500"
+                 [style.width.%]="getProgressPercentage(caseData.stageHistory ?? []) * 0.9"></div>
+
+            @for (stage of stages; track stage.name) {
+              <div class="flex flex-col items-center z-10 flex-1">
+                <!-- Circle -->
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ring-4 ring-white"
+                     [ngClass]="stageCircleClass(caseData.stageHistory ?? [], stage.name)">
+                  @if (isStageCompleted(caseData.stageHistory ?? [], stage.name)) {
+                    <mat-icon class="text-lg">check</mat-icon>
+                  } @else if (isStageActive(caseData.stage, stage.name)) {
+                    <mat-icon class="text-lg animate-pulse">fiber_manual_record</mat-icon>
+                  } @else {
+                    <span>{{ stage.order }}</span>
+                  }
                 </div>
+                <!-- Label -->
+                <span class="text-[11px] font-semibold mt-2 text-center leading-tight"
+                      [ngClass]="isStageCompleted(caseData.stageHistory ?? [], stage.name) ? 'text-emerald-700' :
+                                 isStageActive(caseData.stage, stage.name) ? 'text-indigo-700' : 'text-slate-400'">
+                  {{ stage.name | uppercase }}
+                </span>
+              </div>
+            }
+          </div>
 
-                <!-- Connector -->
-                @if (!$last) {
-                  <div class="flex-1 h-1 bg-gray-300 mb-6"></div>
-                }
-              }
-            </div>
+          <!-- Progress Bar -->
+          <div class="mt-5">
+            <mat-progress-bar
+              mode="determinate"
+              [value]="getProgressPercentage(caseData.stageHistory ?? [])"
+            ></mat-progress-bar>
+          </div>
+        </div>
 
-            <!-- Progress Bar -->
-            <div class="mt-4">
-              <p class="text-sm text-gray-600 mb-2">Overall Progress</p>
-              <mat-progress-bar
-                mode="determinate"
-                [value]="getProgressPercentage(case.stageHistory)"
-                class="h-2"
-              ></mat-progress-bar>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Main Content -->
+        <!-- Main Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Left: Case Details (2 cols) -->
-          <div class="lg:col-span-2 space-y-6">
-            <mat-tab-group>
+          <!-- Left: Tabs (2 cols) -->
+          <div class="lg:col-span-2">
+            <mat-tab-group animationDuration="200ms">
               <!-- Details Tab -->
-              <mat-tab label="Details">
+              <mat-tab>
                 <ng-template mat-tab-label>
-                  <mat-icon class="mr-2">description</mat-icon>
-                  Details
+                  <div class="flex items-center gap-2 py-1">
+                    <mat-icon>description</mat-icon>
+                    <span>Details</span>
+                  </div>
                 </ng-template>
-                <mat-card>
-                  <mat-card-content class="pt-6">
-                    <form [formGroup]="detailsForm" class="space-y-4">
-                      <div class="grid grid-cols-2 gap-4">
-                        <!-- Field 1 -->
-                        <mat-form-field appearance="outline" class="w-full">
-                          <mat-label>Applicant Name</mat-label>
-                          <input matInput formControlName="applicantName" readonly />
-                        </mat-form-field>
 
-                        <!-- Field 2 -->
-                        <mat-form-field appearance="outline" class="w-full">
-                          <mat-label>Loan Amount</mat-label>
-                          <input matInput formControlName="loanAmount" readonly />
-                        </mat-form-field>
-
-                        <!-- Field 3 -->
-                        <mat-form-field appearance="outline" class="w-full">
-                          <mat-label>Interest Rate</mat-label>
-                          <input matInput formControlName="interestRate" readonly />
-                        </mat-form-field>
-
-                        <!-- Field 4 -->
-                        <mat-form-field appearance="outline" class="w-full">
-                          <mat-label>Loan Term (months)</mat-label>
-                          <input matInput formControlName="loanTerm" readonly />
-                        </mat-form-field>
-
-                        <!-- Status (editable) -->
-                        <mat-form-field appearance="outline" class="w-full">
-                          <mat-label>Status</mat-label>
-                          <mat-select formControlName="status">
-                            <mat-option value="open">Open</mat-option>
-                            <mat-option value="in_progress">In Progress</mat-option>
-                            <mat-option value="pending_review">Pending Review</mat-option>
-                            <mat-option value="closed">Closed</mat-option>
-                          </mat-select>
-                        </mat-form-field>
-
-                        <!-- Priority (editable) -->
-                        <mat-form-field appearance="outline" class="w-full">
-                          <mat-label>Priority</mat-label>
-                          <mat-select formControlName="priority">
-                            <mat-option value="critical">Critical</mat-option>
-                            <mat-option value="high">High</mat-option>
-                            <mat-option value="medium">Medium</mat-option>
-                            <mat-option value="low">Low</mat-option>
-                          </mat-select>
-                        </mat-form-field>
-                      </div>
-
-                      <!-- Notes -->
+                <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  <form [formGroup]="detailsForm" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <mat-form-field appearance="outline" class="w-full">
-                        <mat-label>Notes</mat-label>
-                        <textarea matInput formControlName="notes" rows="4"></textarea>
+                        <mat-label>Applicant Name</mat-label>
+                        <input matInput formControlName="applicantName" readonly />
+                        <mat-icon matPrefix class="text-slate-400 mr-2">person</mat-icon>
                       </mat-form-field>
 
-                      <!-- Buttons -->
-                      <div class="flex gap-2 pt-4">
-                        <button mat-raised-button color="primary">
-                          <mat-icon>save</mat-icon>
-                          Save Changes
-                        </button>
-                        <button mat-stroked-button>
-                          <mat-icon>cancel</mat-icon>
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  </mat-card-content>
-                </mat-card>
+                      <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Loan Amount</mat-label>
+                        <input matInput formControlName="loanAmount" readonly />
+                        <mat-icon matPrefix class="text-slate-400 mr-2">payments</mat-icon>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Interest Rate</mat-label>
+                        <input matInput formControlName="interestRate" readonly />
+                        <mat-icon matPrefix class="text-slate-400 mr-2">percent</mat-icon>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Loan Term (months)</mat-label>
+                        <input matInput formControlName="loanTerm" readonly />
+                        <mat-icon matPrefix class="text-slate-400 mr-2">date_range</mat-icon>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Status</mat-label>
+                        <mat-select formControlName="status">
+                          <mat-option value="open">Open</mat-option>
+                          <mat-option value="in_progress">In Progress</mat-option>
+                          <mat-option value="pending_review">Pending Review</mat-option>
+                          <mat-option value="closed">Closed</mat-option>
+                        </mat-select>
+                        <mat-icon matPrefix class="text-slate-400 mr-2">flag</mat-icon>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Priority</mat-label>
+                        <mat-select formControlName="priority">
+                          <mat-option value="critical">Critical</mat-option>
+                          <mat-option value="high">High</mat-option>
+                          <mat-option value="medium">Medium</mat-option>
+                          <mat-option value="low">Low</mat-option>
+                        </mat-select>
+                        <mat-icon matPrefix class="text-slate-400 mr-2">priority_high</mat-icon>
+                      </mat-form-field>
+                    </div>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Notes</mat-label>
+                      <textarea matInput formControlName="notes" rows="4"></textarea>
+                      <mat-icon matPrefix class="text-slate-400 mr-2">notes</mat-icon>
+                    </mat-form-field>
+
+                    <div class="flex gap-3 pt-2">
+                      <button mat-raised-button color="primary">
+                        <mat-icon>save</mat-icon>
+                        Save Changes
+                      </button>
+                      <button mat-stroked-button>
+                        <mat-icon>undo</mat-icon>
+                        Reset
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </mat-tab>
 
               <!-- Tasks Tab -->
-              <mat-tab label="Tasks">
+              <mat-tab>
                 <ng-template mat-tab-label>
-                  <mat-icon class="mr-2">task</mat-icon>
-                  Tasks ({{ tasks.length }})
-                </ng-template>
-                <mat-card>
-                  <mat-card-content class="pt-6">
+                  <div class="flex items-center gap-2 py-1">
+                    <mat-icon>task_alt</mat-icon>
+                    <span>Tasks</span>
                     @if (tasks.length > 0) {
-                      <mat-list>
-                        @for (task of tasks; track task.id) {
-                          <mat-list-item class="border-b pb-4 mb-4">
-                            <div class="flex gap-3 w-full">
-                              <mat-icon [ngClass]="taskStatusColor(task.status)" class="text-lg">
-                                {{ taskStatusIcon(task.status) }}
-                              </mat-icon>
-                              <div class="flex-1">
-                                <h4 class="font-semibold">{{ task.title }}</h4>
-                                <p class="text-sm text-gray-600">{{ task.description }}</p>
-                                <div class="flex gap-2 mt-2 text-xs">
-                                  <span class="bg-gray-100 px-2 py-1 rounded">
-                                    Due: {{ task.dueDate | date: 'short' }}
-                                  </span>
-                                  <span [ngClass]="priorityBadgeClass(task.priority)" class="px-2 py-1 rounded">
-                                    {{ task.priority | uppercase }}
-                                  </span>
-                                </div>
-                              </div>
-                              <button mat-icon-button matTooltip="View Task">
-                                <mat-icon>open_in_new</mat-icon>
-                              </button>
-                            </div>
-                          </mat-list-item>
-                        }
-                      </mat-list>
-                    } @else {
-                      <p class="text-gray-500 text-center py-6">No tasks for this case yet</p>
+                      <span class="ml-1 bg-indigo-100 text-indigo-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        {{ tasks.length }}
+                      </span>
                     }
-                  </mat-card-content>
-                </mat-card>
+                  </div>
+                </ng-template>
+
+                <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  @if (tasks.length > 0) {
+                    <div class="space-y-3">
+                      @for (task of tasks; track task.id) {
+                        <div class="group flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-200 cursor-pointer">
+                          <!-- Status Icon -->
+                          <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                               [ngClass]="taskStatusBg(task.status)">
+                            <mat-icon class="text-lg" [ngClass]="taskStatusColor(task.status)">
+                              {{ taskStatusIcon(task.status) }}
+                            </mat-icon>
+                          </div>
+                          <!-- Content -->
+                          <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold text-slate-800 text-sm">{{ task.title }}</h4>
+                            <p class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                              @if (task.dueDate) {
+                                <span class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full">
+                                  <mat-icon class="text-xs">schedule</mat-icon>
+                                  {{ task.dueDate | date: 'mediumDate' }}
+                                </span>
+                              }
+                              <span class="wf-badge text-[10px]" [ngClass]="priorityBadgeClass(task.priority)">
+                                {{ task.priority | uppercase }}
+                              </span>
+                            </div>
+                          </div>
+                          <!-- Arrow -->
+                          <mat-icon class="text-slate-300 group-hover:text-indigo-400 transition-colors">
+                            chevron_right
+                          </mat-icon>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="text-center py-12">
+                      <mat-icon class="text-5xl text-slate-200">task_alt</mat-icon>
+                      <p class="text-slate-400 mt-3 text-sm">No tasks for this case yet</p>
+                      <button mat-stroked-button color="primary" class="mt-4">
+                        <mat-icon>add</mat-icon> Create Task
+                      </button>
+                    </div>
+                  }
+                </div>
               </mat-tab>
 
               <!-- Activity Tab -->
-              <mat-tab label="Activity">
+              <mat-tab>
                 <ng-template mat-tab-label>
-                  <mat-icon class="mr-2">history</mat-icon>
-                  Activity
+                  <div class="flex items-center gap-2 py-1">
+                    <mat-icon>history</mat-icon>
+                    <span>Activity</span>
+                  </div>
                 </ng-template>
-                <mat-card>
-                  <mat-card-content class="pt-6">
-                    @if (case.auditLog && case.auditLog.length > 0) {
-                      <mat-list>
-                        @for (log of case.auditLog | slice:0:10; track log.id) {
-                          <mat-list-item class="border-l-4 pl-4 mb-3" [ngClass]="auditLogBorder(log.action)">
-                            <div class="flex-1">
-                              <p class="font-semibold text-sm">{{ log.description }}</p>
-                              <p class="text-xs text-gray-600">
-                                {{ log.timestamp | date: 'medium' }} • {{ log.performedBy.name }}
-                              </p>
-                            </div>
-                          </mat-list-item>
-                        }
-                      </mat-list>
-                    } @else {
-                      <p class="text-gray-500 text-center py-6">No activity recorded</p>
-                    }
-                  </mat-card-content>
-                </mat-card>
+
+                <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  @if (caseData.auditLog && (caseData.auditLog.length > 0)) {
+                    <div class="relative pl-6">
+                      <!-- Timeline line -->
+                      <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-200"></div>
+
+                      @for (log of caseData.auditLog | slice:0:10; track log.id) {
+                        <div class="relative mb-5 last:mb-0">
+                          <!-- Timeline dot -->
+                          <div class="absolute -left-6 top-1 w-3.5 h-3.5 rounded-full border-2 border-white ring-2"
+                               [ngClass]="auditDotColor(log.action)"></div>
+                          <div class="ml-2">
+                            <p class="font-semibold text-sm text-slate-800">{{ log.action }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                              {{ log.timestamp | date: 'medium' }}
+                              <span class="mx-1">·</span>
+                              <span class="text-slate-500">{{ log.actorName }}</span>
+                            </p>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="text-center py-12">
+                      <mat-icon class="text-5xl text-slate-200">history</mat-icon>
+                      <p class="text-slate-400 mt-3 text-sm">No activity recorded</p>
+                    </div>
+                  }
+                </div>
               </mat-tab>
             </mat-tab-group>
           </div>
 
-          <!-- Right: Summary Panel (1 col) -->
-          <div class="space-y-6">
+          <!-- Right: Summary Sidebar -->
+          <div class="space-y-5">
             <!-- Case Info Card -->
-            <mat-card>
-              <mat-card-header>
-                <mat-card-title>Case Information</mat-card-title>
-              </mat-card-header>
-              <mat-card-content class="space-y-4">
-                <div>
-                  <p class="text-xs text-gray-600 font-semibold">Case ID</p>
-                  <p class="text-sm font-mono">{{ case.id }}</p>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <mat-icon class="text-base text-slate-400">info</mat-icon>
+                  Case Information
+                </h4>
+              </div>
+              <div class="divide-y divide-slate-100">
+                <div class="px-5 py-3">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Case ID</p>
+                  <p class="text-sm font-mono text-slate-800 mt-0.5">{{ caseData.id }}</p>
                 </div>
-                <mat-divider></mat-divider>
-
-                <div>
-                  <p class="text-xs text-gray-600 font-semibold">Case Type</p>
-                  <p class="text-sm">{{ case.caseType | uppercase }}</p>
+                <div class="px-5 py-3">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Type</p>
+                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.caseType | uppercase }}</p>
                 </div>
-                <mat-divider></mat-divider>
-
-                <div>
-                  <p class="text-xs text-gray-600 font-semibold">Current Stage</p>
-                  <p class="text-sm font-semibold" [ngClass]="stageColor(case.stage)">
-                    {{ case.stage | uppercase }}
-                  </p>
+                <div class="px-5 py-3">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Current Stage</p>
+                  <span class="wf-badge mt-1" [ngClass]="stageBadgeClass(caseData.stage)">
+                    {{ caseData.stage | uppercase }}
+                  </span>
                 </div>
-                <mat-divider></mat-divider>
-
-                <div>
-                  <p class="text-xs text-gray-600 font-semibold">Assigned To</p>
-                  <p class="text-sm">{{ case.assignedTo?.name || 'Unassigned' }}</p>
+                <div class="px-5 py-3">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Assigned To</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                      {{ (caseData.assignedTo?.name || 'U').charAt(0) }}
+                    </div>
+                    <span class="text-sm text-slate-800">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
+                  </div>
                 </div>
-                <mat-divider></mat-divider>
-
-                <div>
-                  <p class="text-xs text-gray-600 font-semibold">Created</p>
-                  <p class="text-sm">{{ case.createdAt | date: 'medium' }}</p>
+                <div class="px-5 py-3">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Created</p>
+                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.createdAt | date: 'mediumDate' }}</p>
                 </div>
-                <mat-divider></mat-divider>
-
-                <div>
-                  <p class="text-xs text-gray-600 font-semibold">Updated</p>
-                  <p class="text-sm">{{ case.updatedAt | date: 'medium' }}</p>
+                <div class="px-5 py-3">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Last Updated</p>
+                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.updatedAt | date: 'mediumDate' }}</p>
                 </div>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </div>
 
             <!-- SLA Card -->
-            @if (case.sla) {
-              <mat-card>
-                <mat-card-header>
-                  <mat-card-title>SLA</mat-card-title>
-                </mat-card-header>
-                <mat-card-content class="space-y-4">
+            @if (caseData.sla) {
+              <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                  <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <mat-icon class="text-base text-slate-400">timer</mat-icon>
+                    SLA Tracking
+                  </h4>
+                </div>
+                <div class="p-5 space-y-4">
                   <div>
-                    <p class="text-xs text-gray-600 font-semibold">Target Resolution</p>
-                    <p class="text-sm">{{ case.sla.targetResolutionDate | date: 'short' }}</p>
+                    <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Target Resolution</p>
+                    <p class="text-sm text-slate-800 mt-0.5">{{ caseData.sla.targetResolutionDate | date: 'mediumDate' }}</p>
                   </div>
-                  <mat-divider></mat-divider>
-
                   <div>
-                    <p class="text-xs text-gray-600 font-semibold">Days Remaining</p>
-                    <p class="text-sm font-semibold" [ngClass]="slaColor(case.sla.daysRemaining)">
-                      {{ case.sla.daysRemaining }} days
-                    </p>
+                    <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Days Remaining</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <div class="text-2xl font-bold" [ngClass]="slaColor(caseData.sla.daysRemaining ?? 0)">
+                        {{ caseData.sla.daysRemaining ?? 0 }}
+                      </div>
+                      <span class="text-xs text-slate-500">days left</span>
+                    </div>
                   </div>
-                </mat-card-content>
-              </mat-card>
+                  @if (caseData.sla.escalated) {
+                    <div class="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs font-semibold">
+                      <mat-icon class="text-base">warning</mat-icon>
+                      Escalated (Level {{ caseData.sla.escalationLevel }})
+                    </div>
+                  }
+                </div>
+              </div>
             }
 
-            <!-- Actions -->
-            <mat-card>
-              <mat-card-header>
-                <mat-card-title>Actions</mat-card-title>
-              </mat-card-header>
-              <mat-card-content class="space-y-2">
-                <button mat-stroked-button class="w-full">
-                  <mat-icon>edit</mat-icon>
-                  Edit Case
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <mat-icon class="text-base text-slate-400">bolt</mat-icon>
+                  Quick Actions
+                </h4>
+              </div>
+              <div class="p-4 space-y-2">
+                <button mat-stroked-button class="w-full justify-start">
+                  <mat-icon class="text-indigo-500">edit</mat-icon>
+                  <span class="ml-1">Edit Case</span>
                 </button>
-                <button mat-stroked-button class="w-full">
-                  <mat-icon>forward</mat-icon>
-                  Transition Stage
+                <button mat-stroked-button class="w-full justify-start">
+                  <mat-icon class="text-purple-500">swap_horiz</mat-icon>
+                  <span class="ml-1">Transition Stage</span>
                 </button>
-                <button mat-stroked-button class="w-full">
-                  <mat-icon>comment</mat-icon>
-                  Add Comment
+                <button mat-stroked-button class="w-full justify-start">
+                  <mat-icon class="text-cyan-500">chat_bubble_outline</mat-icon>
+                  <span class="ml-1">Add Comment</span>
                 </button>
-                <button mat-stroked-button class="w-full">
+                <button mat-stroked-button class="w-full justify-start text-red-600">
                   <mat-icon>archive</mat-icon>
-                  Close Case
+                  <span class="ml-1">Close Case</span>
                 </button>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     } @else {
-      <div class="p-6 text-center">
-        <p class="text-gray-500">Case not found</p>
-        <button mat-raised-button color="primary" routerLink="/cases" class="mt-4">
+      <!-- Empty State -->
+      <div class="flex flex-col items-center justify-center py-24 animate-fade-in">
+        <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+          <mat-icon class="text-4xl text-slate-300">search_off</mat-icon>
+        </div>
+        <h2 class="text-lg font-semibold text-slate-700">Case Not Found</h2>
+        <p class="text-slate-400 text-sm mt-1">The case you're looking for doesn't exist or has been removed.</p>
+        <button mat-raised-button color="primary" routerLink="/cases" class="mt-6">
+          <mat-icon>arrow_back</mat-icon>
           Back to Cases
         </button>
       </div>
@@ -364,28 +451,15 @@ import { Case, Task } from '../../core/models';
     :host {
       display: block;
     }
-
     .case-detail-container {
-      background-color: #fafafa;
-      min-height: 100vh;
-    }
-
-    .animate-pulse {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.5;
-      }
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
     }
   `],
 })
 export class CaseDetailComponent implements OnInit {
-  case$: any;
+  case$!: Observable<Case | undefined>;
   detailsForm: FormGroup;
   tasks: Task[] = [];
 
@@ -417,16 +491,13 @@ export class CaseDetailComponent implements OnInit {
     const caseId = this.route.snapshot.paramMap.get('id');
 
     this.case$ = this.store.select(selectCasesList).pipe(
-      // Find the specific case
+      map(cases => cases.find(c => c.id === caseId))
     );
 
-    // For now, mock the case data retrieval
-    this.store.select(selectCasesList).subscribe(cases => {
-      const selectedCase = cases.find(c => c.id === caseId);
+    // Subscribe to populate form and tasks
+    this.case$.subscribe(selectedCase => {
       if (selectedCase) {
-        this.case$ = Promise.resolve(selectedCase);
         this.updateForm(selectedCase);
-        // Filter tasks for this case
         this.tasks = selectedCase.tasks || [];
       }
     });
@@ -434,10 +505,10 @@ export class CaseDetailComponent implements OnInit {
 
   updateForm(case_: Case): void {
     this.detailsForm.patchValue({
-      applicantName: case_.fields.applicantName,
-      loanAmount: case_.fields.loanAmount,
-      interestRate: case_.fields.interestRate,
-      loanTerm: case_.fields.loanTerm,
+      applicantName: case_.fields['applicantName'],
+      loanAmount: case_.fields['loanAmount'],
+      interestRate: case_.fields['interestRate'],
+      loanTerm: case_.fields['loanTerm'],
       status: case_.status,
       priority: case_.priority,
       notes: case_.notes || '',
@@ -459,12 +530,12 @@ export class CaseDetailComponent implements OnInit {
 
   stageCircleClass(stageHistory: any[], stageName: string): string {
     if (this.isStageCompleted(stageHistory, stageName)) {
-      return 'bg-green-100 text-green-600';
+      return 'bg-emerald-500 text-white shadow-sm shadow-emerald-200';
     }
     if (this.isStageActive(stageName, stageName)) {
-      return 'bg-blue-100 text-blue-600 border-2 border-blue-600';
+      return 'bg-indigo-500 text-white shadow-sm shadow-indigo-200';
     }
-    return 'bg-gray-100 text-gray-600';
+    return 'bg-slate-100 text-slate-400';
   }
 
   statusIcon(status: string): string {
@@ -481,26 +552,64 @@ export class CaseDetailComponent implements OnInit {
     return {
       open: 'text-blue-600',
       in_progress: 'text-purple-600',
-      closed: 'text-green-600',
-      pending_review: 'text-orange-600',
-    }[status] || 'text-gray-600';
+      closed: 'text-emerald-600',
+      pending_review: 'text-amber-600',
+    }[status] || 'text-slate-600';
+  }
+
+  statusBg(status: string): string {
+    return {
+      open: 'bg-blue-50',
+      in_progress: 'bg-purple-50',
+      closed: 'bg-emerald-50',
+      pending_review: 'bg-amber-50',
+    }[status] || 'bg-slate-50';
+  }
+
+  statusBadge(status: string): string {
+    return {
+      open: 'wf-badge--info',
+      in_progress: 'wf-badge--purple',
+      closed: 'wf-badge--success',
+      pending_review: 'wf-badge--warning',
+    }[status] || 'wf-badge--neutral';
+  }
+
+  statusDot(status: string): string {
+    return {
+      open: 'bg-blue-500',
+      in_progress: 'bg-purple-500',
+      closed: 'bg-emerald-500',
+      pending_review: 'bg-amber-500',
+    }[status] || 'bg-slate-500';
   }
 
   stageColor(stage: string): string {
     const colors: Record<string, string> = {
       intake: 'text-blue-600',
       documents: 'text-purple-600',
-      underwriting: 'text-yellow-600',
+      underwriting: 'text-amber-600',
       approval: 'text-orange-600',
-      disbursement: 'text-green-600',
+      disbursement: 'text-emerald-600',
     };
-    return colors[stage] || 'text-gray-600';
+    return colors[stage] || 'text-slate-600';
+  }
+
+  stageBadgeClass(stage: string): string {
+    const classes: Record<string, string> = {
+      intake: 'wf-badge--info',
+      documents: 'wf-badge--purple',
+      underwriting: 'wf-badge--warning',
+      approval: 'wf-badge--danger',
+      disbursement: 'wf-badge--success',
+    };
+    return classes[stage] || 'wf-badge--neutral';
   }
 
   taskStatusIcon(status: string): string {
     const icons: Record<string, string> = {
       pending: 'schedule',
-      in_progress: 'play_circle_filled',
+      in_progress: 'play_circle',
       completed: 'check_circle',
       blocked: 'block',
     };
@@ -509,34 +618,52 @@ export class CaseDetailComponent implements OnInit {
 
   taskStatusColor(status: string): string {
     return {
-      pending: 'text-gray-600',
+      pending: 'text-slate-500',
       in_progress: 'text-blue-600',
-      completed: 'text-green-600',
+      completed: 'text-emerald-600',
       blocked: 'text-red-600',
-    }[status] || 'text-gray-600';
+    }[status] || 'text-slate-500';
+  }
+
+  taskStatusBg(status: string): string {
+    return {
+      pending: 'bg-slate-100',
+      in_progress: 'bg-blue-50',
+      completed: 'bg-emerald-50',
+      blocked: 'bg-red-50',
+    }[status] || 'bg-slate-100';
   }
 
   priorityBadgeClass(priority: string): string {
     return {
-      critical: 'bg-red-100 text-red-800',
+      critical: 'wf-badge--danger',
       high: 'bg-orange-100 text-orange-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      low: 'bg-green-100 text-green-800',
-    }[priority] || 'bg-gray-100 text-gray-800';
+      medium: 'bg-amber-100 text-amber-800',
+      low: 'wf-badge--success',
+    }[priority] || 'wf-badge--neutral';
   }
 
   auditLogBorder(action: string): string {
     return {
       create: 'border-blue-400',
-      update: 'border-yellow-400',
+      update: 'border-amber-400',
       transition: 'border-purple-400',
-      comment: 'border-green-400',
-    }[action] || 'border-gray-400';
+      comment: 'border-emerald-400',
+    }[action] || 'border-slate-400';
+  }
+
+  auditDotColor(action: string): string {
+    return {
+      create: 'bg-blue-400 ring-blue-100',
+      update: 'bg-amber-400 ring-amber-100',
+      transition: 'bg-purple-400 ring-purple-100',
+      comment: 'bg-emerald-400 ring-emerald-100',
+    }[action] || 'bg-slate-400 ring-slate-100';
   }
 
   slaColor(daysRemaining: number): string {
     if (daysRemaining < 1) return 'text-red-600';
-    if (daysRemaining < 3) return 'text-orange-600';
-    return 'text-green-600';
+    if (daysRemaining < 3) return 'text-amber-600';
+    return 'text-emerald-600';
   }
 }

@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { selectIsAuthenticated } from './state/auth/auth.selectors';
@@ -7,7 +8,7 @@ import { ShellComponent } from './layout/shell.component';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ShellComponent],
+  imports: [CommonModule, AsyncPipe, RouterOutlet, ShellComponent],
   template: `
     @if (isAuthenticated$ | async) {
       <app-shell>

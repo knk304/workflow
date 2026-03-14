@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
 import { selectCasesList } from '../../state/cases/cases.selectors';
 import * as CasesActions from '../../state/cases/cases.actions';
@@ -32,6 +33,7 @@ import { Case } from '../../core/models';
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
+    MatTooltipModule,
   ],
   template: `
     <div class="case-list-container space-y-6 p-6">
@@ -171,7 +173,7 @@ import { Case } from '../../core/models';
           <ng-container matColumnDef="applicant">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Applicant</th>
             <td mat-cell *matCellDef="let case">
-              {{ case.fields.applicantName }}
+              {{ case.fields['applicantName'] }}
             </td>
           </ng-container>
 
@@ -323,7 +325,7 @@ export class CaseListComponent implements OnInit {
       filtered = filtered.filter(
         c =>
           c.id.toLowerCase().includes(search) ||
-          c.fields.applicantName.toLowerCase().includes(search)
+          c.fields['applicantName'].toLowerCase().includes(search)
       );
     }
 
@@ -379,7 +381,7 @@ export class CaseListComponent implements OnInit {
       case 'type':
         return case_.caseType;
       case 'applicant':
-        return case_.fields.applicantName;
+        return case_.fields['applicantName'];
       case 'status':
         return case_.status;
       case 'stage':

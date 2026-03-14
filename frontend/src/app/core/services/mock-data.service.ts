@@ -25,7 +25,7 @@ export class MockDataService {
       role: 'MANAGER',
       teamIds: ['team-1'],
       avatar: '👩‍💼',
-      createdAt: new Date('2025-01-01'),
+      createdAt: '2025-01-01T00:00:00.000Z',
     },
     {
       id: 'user-2',
@@ -34,7 +34,7 @@ export class MockDataService {
       role: 'WORKER',
       teamIds: ['team-1'],
       avatar: '👨‍💼',
-      createdAt: new Date('2025-01-05'),
+      createdAt: '2025-01-05T00:00:00.000Z',
     },
     {
       id: 'user-3',
@@ -43,7 +43,7 @@ export class MockDataService {
       role: 'WORKER',
       teamIds: ['team-1'],
       avatar: '👩‍🔬',
-      createdAt: new Date('2025-01-10'),
+      createdAt: '2025-01-10T00:00:00.000Z',
     },
     {
       id: 'user-4',
@@ -52,7 +52,7 @@ export class MockDataService {
       role: 'ADMIN',
       teamIds: ['team-1', 'team-2'],
       avatar: '👨‍⚖️',
-      createdAt: new Date('2024-12-01'),
+      createdAt: '2024-12-01T00:00:00.000Z',
     },
   ];
 
@@ -63,14 +63,14 @@ export class MockDataService {
       name: 'Lending Operations',
       description: 'Loan origination and processing',
       memberIds: ['user-1', 'user-2', 'user-3'],
-      createdAt: new Date('2024-12-01'),
+      createdAt: '2024-12-01T00:00:00.000Z',
     },
     {
       id: 'team-2',
       name: 'Compliance',
       description: 'Risk and compliance review',
       memberIds: ['user-4'],
-      createdAt: new Date('2024-12-15'),
+      createdAt: '2024-12-15T00:00:00.000Z',
     },
   ];
 
@@ -152,23 +152,23 @@ export class MockDataService {
         applicantName: 'Sarah Mitchell',
         loanAmount: 150000,
         loanType: 'mortgage',
-        applicationDate: new Date('2026-03-10'),
+        applicationDate: '2026-03-10T00:00:00.000Z',
         documentationComplete: false,
       },
       stages: [
         {
           name: 'intake',
           status: 'in_progress',
-          enteredAt: new Date('2026-03-10'),
+          enteredAt: '2026-03-10T00:00:00.000Z',
         },
       ],
       sla: {
-        targetDate: new Date('2026-03-17'),
+        targetDate: '2026-03-17T00:00:00.000Z',
         escalated: false,
         escalationLevel: -1,
       },
-      createdAt: new Date('2026-03-10'),
-      updatedAt: new Date('2026-03-12'),
+      createdAt: '2026-03-10T00:00:00.000Z',
+      updatedAt: '2026-03-12T00:00:00.000Z',
       createdBy: 'user-1',
     },
     {
@@ -183,37 +183,37 @@ export class MockDataService {
         applicantName: 'John Rodriguez',
         loanAmount: 75000,
         loanType: 'personal',
-        applicationDate: new Date('2026-02-28'),
+        applicationDate: '2026-02-28T00:00:00.000Z',
         documentationComplete: true,
       },
       stages: [
         {
           name: 'intake',
           status: 'completed',
-          enteredAt: new Date('2026-02-28'),
-          completedAt: new Date('2026-03-01'),
+          enteredAt: '2026-02-28T00:00:00.000Z',
+          completedAt: '2026-03-01T00:00:00.000Z',
           completedBy: 'user-2',
         },
         {
           name: 'documents',
           status: 'completed',
-          enteredAt: new Date('2026-03-01'),
-          completedAt: new Date('2026-03-05'),
+          enteredAt: '2026-03-01T00:00:00.000Z',
+          completedAt: '2026-03-05T00:00:00.000Z',
           completedBy: 'user-3',
         },
         {
           name: 'underwriting',
           status: 'in_progress',
-          enteredAt: new Date('2026-03-05'),
+          enteredAt: '2026-03-05T00:00:00.000Z',
         },
       ],
       sla: {
-        targetDate: new Date('2026-03-19'),
+        targetDate: '2026-03-19T00:00:00.000Z',
         escalated: true,
         escalationLevel: 0,
       },
-      createdAt: new Date('2026-02-28'),
-      updatedAt: new Date('2026-03-12'),
+      createdAt: '2026-02-28T00:00:00.000Z',
+      updatedAt: '2026-03-12T00:00:00.000Z',
       createdBy: 'user-1',
     },
     {
@@ -228,53 +228,53 @@ export class MockDataService {
         applicantName: 'Emma Thompson',
         loanAmount: 250000,
         loanType: 'business',
-        applicationDate: new Date('2026-02-01'),
+        applicationDate: '2026-02-01T00:00:00.000Z',
         documentationComplete: true,
       },
       stages: [
         {
           name: 'intake',
           status: 'completed',
-          enteredAt: new Date('2026-02-01'),
-          completedAt: new Date('2026-02-03'),
+          enteredAt: '2026-02-01T00:00:00.000Z',
+          completedAt: '2026-02-03T00:00:00.000Z',
           completedBy: 'user-1',
         },
         {
           name: 'documents',
           status: 'completed',
-          enteredAt: new Date('2026-02-03'),
-          completedAt: new Date('2026-02-08'),
+          enteredAt: '2026-02-03T00:00:00.000Z',
+          completedAt: '2026-02-08T00:00:00.000Z',
           completedBy: 'user-2',
         },
         {
           name: 'underwriting',
           status: 'completed',
-          enteredAt: new Date('2026-02-08'),
-          completedAt: new Date('2026-02-15'),
+          enteredAt: '2026-02-08T00:00:00.000Z',
+          completedAt: '2026-02-15T00:00:00.000Z',
           completedBy: 'user-1',
         },
         {
           name: 'approval',
           status: 'completed',
-          enteredAt: new Date('2026-02-15'),
-          completedAt: new Date('2026-02-20'),
+          enteredAt: '2026-02-15T00:00:00.000Z',
+          completedAt: '2026-02-20T00:00:00.000Z',
           completedBy: 'user-4',
         },
         {
           name: 'disbursement',
           status: 'completed',
-          enteredAt: new Date('2026-02-20'),
-          completedAt: new Date('2026-03-01'),
+          enteredAt: '2026-02-20T00:00:00.000Z',
+          completedAt: '2026-03-01T00:00:00.000Z',
           completedBy: 'user-3',
         },
       ],
       sla: {
-        targetDate: new Date('2026-03-01'),
+        targetDate: '2026-03-01T00:00:00.000Z',
         escalated: false,
         escalationLevel: -1,
       },
-      createdAt: new Date('2026-02-01'),
-      updatedAt: new Date('2026-03-01'),
+      createdAt: '2026-02-01T00:00:00.000Z',
+      updatedAt: '2026-03-01T00:00:00.000Z',
       createdBy: 'user-1',
     },
   ];
@@ -290,16 +290,16 @@ export class MockDataService {
       teamId: 'team-1',
       status: 'in_progress',
       priority: 'high',
-      dueDate: new Date('2026-03-15'),
+      dueDate: '2026-03-15T00:00:00.000Z',
       dependsOn: [],
       tags: ['intake', 'verification'],
       checklist: [
-        { id: 'check-1', item: 'Verify identity documents', checked: true, completedAt: new Date() },
-        { id: 'check-2', item: 'Confirm contact information', checked: true, completedAt: new Date() },
+        { id: 'check-1', item: 'Verify identity documents', checked: true, completedAt: '2026-03-11T00:00:00.000Z' },
+        { id: 'check-2', item: 'Confirm contact information', checked: true, completedAt: '2026-03-11T00:00:00.000Z' },
         { id: 'check-3', item: 'Check income documentation', checked: false },
       ],
-      createdAt: new Date('2026-03-10'),
-      updatedAt: new Date('2026-03-12'),
+      createdAt: '2026-03-10T00:00:00.000Z',
+      updatedAt: '2026-03-12T00:00:00.000Z',
     },
     {
       id: 'task-2',
@@ -310,12 +310,12 @@ export class MockDataService {
       teamId: 'team-1',
       status: 'pending',
       priority: 'high',
-      dueDate: new Date('2026-03-13'),
+      dueDate: '2026-03-13T00:00:00.000Z',
       dependsOn: ['task-1'],
       tags: ['documents', 'follow-up'],
       checklist: [],
-      createdAt: new Date('2026-03-10'),
-      updatedAt: new Date('2026-03-10'),
+      createdAt: '2026-03-10T00:00:00.000Z',
+      updatedAt: '2026-03-10T00:00:00.000Z',
     },
     {
       id: 'task-3',
@@ -326,16 +326,16 @@ export class MockDataService {
       teamId: 'team-1',
       status: 'in_progress',
       priority: 'critical',
-      dueDate: new Date('2026-03-16'),
+      dueDate: '2026-03-16T00:00:00.000Z',
       dependsOn: [],
       tags: ['underwriting', 'risk'],
       checklist: [
-        { id: 'check-4', item: 'Credit check completed', checked: true, completedAt: new Date() },
-        { id: 'check-5', item: 'Debt-to-income ratio acceptable', checked: true, completedAt: new Date() },
+        { id: 'check-4', item: 'Credit check completed', checked: true, completedAt: '2026-03-10T00:00:00.000Z' },
+        { id: 'check-5', item: 'Debt-to-income ratio acceptable', checked: true, completedAt: '2026-03-10T00:00:00.000Z' },
         { id: 'check-6', item: 'Collateral assessment', checked: false },
       ],
-      createdAt: new Date('2026-03-05'),
-      updatedAt: new Date('2026-03-12'),
+      createdAt: '2026-03-05T00:00:00.000Z',
+      updatedAt: '2026-03-12T00:00:00.000Z',
     },
     {
       id: 'task-4',
@@ -346,12 +346,12 @@ export class MockDataService {
       teamId: 'team-1',
       status: 'pending',
       priority: 'critical',
-      dueDate: new Date('2026-03-18'),
+      dueDate: '2026-03-18T00:00:00.000Z',
       dependsOn: ['task-3'],
       tags: ['approval'],
       checklist: [],
-      createdAt: new Date('2026-03-05'),
-      updatedAt: new Date('2026-03-05'),
+      createdAt: '2026-03-05T00:00:00.000Z',
+      updatedAt: '2026-03-05T00:00:00.000Z',
     },
     {
       id: 'task-5',
@@ -362,7 +362,7 @@ export class MockDataService {
       teamId: 'team-1',
       status: 'completed',
       priority: 'medium',
-      dueDate: new Date('2026-02-28'),
+      dueDate: '2026-02-28T00:00:00.000Z',
       dependsOn: [],
       tags: ['disbursement', 'ops'],
       checklist: [
@@ -370,18 +370,18 @@ export class MockDataService {
           id: 'check-7',
           item: 'Bank account verified',
           checked: true,
-          completedAt: new Date('2026-02-25'),
+          completedAt: '2026-02-25T00:00:00.000Z',
         },
         {
           id: 'check-8',
           item: 'Transfer limit confirmed',
           checked: true,
-          completedAt: new Date('2026-02-26'),
+          completedAt: '2026-02-26T00:00:00.000Z',
         },
       ],
-      createdAt: new Date('2026-02-20'),
-      updatedAt: new Date('2026-02-28'),
-      completedAt: new Date('2026-02-28'),
+      createdAt: '2026-02-20T00:00:00.000Z',
+      updatedAt: '2026-02-28T00:00:00.000Z',
+      completedAt: '2026-02-28T00:00:00.000Z',
     },
   ];
 
@@ -395,8 +395,8 @@ export class MockDataService {
       userAvatar: '👩‍💼',
       text: 'I reviewed the application. Looking good so far, but missing proof of income.',
       mentions: [],
-      createdAt: new Date('2026-03-11'),
-      updatedAt: new Date('2026-03-11'),
+      createdAt: '2026-03-11T00:00:00.000Z',
+      updatedAt: '2026-03-11T00:00:00.000Z',
     },
     {
       id: 'comment-2',
@@ -406,8 +406,8 @@ export class MockDataService {
       userAvatar: '👨‍💼',
       text: '@Alice Johnson - I will reach out to the applicant today about the missing documents.',
       mentions: [{ userId: 'user-1', userName: 'Alice Johnson' }],
-      createdAt: new Date('2026-03-12'),
-      updatedAt: new Date('2026-03-12'),
+      createdAt: '2026-03-12T00:00:00.000Z',
+      updatedAt: '2026-03-12T00:00:00.000Z',
     },
     {
       id: 'comment-3',
@@ -418,8 +418,8 @@ export class MockDataService {
       userAvatar: '👩‍💼',
       text: 'Credit score is excellent. DTI ratio is within acceptable limits. Just waiting on collateral assessment.',
       mentions: [],
-      createdAt: new Date('2026-03-12'),
-      updatedAt: new Date('2026-03-12'),
+      createdAt: '2026-03-12T00:00:00.000Z',
+      updatedAt: '2026-03-12T00:00:00.000Z',
     },
   ];
 
@@ -434,8 +434,8 @@ export class MockDataService {
       entityType: 'task',
       entityId: 'task-1',
       isRead: true,
-      readAt: new Date('2026-03-12'),
-      createdAt: new Date('2026-03-10'),
+      readAt: '2026-03-12T00:00:00.000Z',
+      createdAt: '2026-03-10T00:00:00.000Z',
     },
     {
       id: 'notif-2',
@@ -446,7 +446,7 @@ export class MockDataService {
       entityType: 'case',
       entityId: 'CASE-2026-00001',
       isRead: false,
-      createdAt: new Date('2026-03-12'),
+      createdAt: '2026-03-12T00:00:00.000Z',
     },
     {
       id: 'notif-3',
@@ -457,7 +457,7 @@ export class MockDataService {
       entityType: 'case',
       entityId: 'CASE-2026-00002',
       isRead: false,
-      createdAt: new Date('2026-03-12'),
+      createdAt: '2026-03-12T00:00:00.000Z',
     },
   ];
 
@@ -474,7 +474,7 @@ export class MockDataService {
         before: {},
         after: { status: 'open', stage: 'intake' },
       },
-      timestamp: new Date('2026-03-10'),
+      timestamp: '2026-03-10T00:00:00.000Z',
     },
     {
       id: 'audit-2',
@@ -487,7 +487,7 @@ export class MockDataService {
         before: { assigneeId: null },
         after: { assigneeId: 'user-1' },
       },
-      timestamp: new Date('2026-03-10'),
+      timestamp: '2026-03-10T00:00:00.000Z',
     },
   ];
 
@@ -561,9 +561,9 @@ export class MockDataService {
     const board: KanbanBoard = {
       pending: tasks.filter((t) => t.status === 'pending'),
       inProgress: tasks.filter((t) => t.status === 'in_progress'),
-      review: tasks.filter((t) => t.status === 'review'),
+      review: tasks.filter((t) => t.status === 'blocked'), // Blocked tasks shown in review column
       done: tasks.filter((t) => t.status === 'completed'),
-      blocked: tasks.filter((t) => t.status === 'blocked'),
+      blocked: tasks.filter((t) => t.status === 'cancelled'),
     };
     return of(board).pipe(delay(300));
   }
@@ -610,8 +610,8 @@ export class MockDataService {
     const newComment: Comment = {
       ...comment,
       id: `comment-${Date.now()}`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     this.mockComments.push(newComment);
     return of(newComment).pipe(delay(500));
@@ -621,7 +621,7 @@ export class MockDataService {
     const newNotif: Notification = {
       ...notification,
       id: `notif-${Date.now()}`,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
     this.mockNotifications.push(newNotif);
     return of(newNotif).pipe(delay(300));
@@ -631,7 +631,7 @@ export class MockDataService {
     const notifIdx = this.mockNotifications.findIndex((n) => n.id === notificationId);
     if (notifIdx >= 0) {
       this.mockNotifications[notifIdx].isRead = true;
-      this.mockNotifications[notifIdx].readAt = new Date();
+      this.mockNotifications[notifIdx].readAt = new Date().toISOString();
       return of(this.mockNotifications[notifIdx]).pipe(delay(300));
     }
     throw new Error('Notification not found');

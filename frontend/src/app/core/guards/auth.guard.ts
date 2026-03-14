@@ -1,14 +1,15 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   CanActivate,
   CanActivateChild,
   Router,
   ActivatedRouteSnapshot,
   RouterStateSnapshot,
+  CanActivateFn,
 } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { MockAuthService } from './mock-auth.service';
+import { MockAuthService } from '../services/mock-auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -77,3 +78,26 @@ export class RoleGuard implements CanActivate {
     );
   }
 }
+
+// Functional guard export for standalone routing
+export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(MockAuthService);
+  const router = inject(Router);
+
+  return authService.getCurrentUser().pipe(
+    map((user) => {
+      if (user) {
+        // Check role if required
+        const requiredRoles = route.data['roles'] as string[];
+        if (requiredRoles && !requiredRoles.includes(user.role)) {
+          router.navigate(['/unauthorized']);
+          return false;
+        }
+        return true;
+      } else {
+        router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+        return false;
+      }
+    })
+  );
+};

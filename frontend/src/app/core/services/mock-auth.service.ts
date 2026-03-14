@@ -24,7 +24,7 @@ export class MockAuthService {
       role: req.email === 'admin@example.com' ? 'ADMIN' : 'MANAGER',
       teamIds: ['team-1'],
       avatar: '👩‍💼',
-      createdAt: new Date('2025-01-01'),
+      createdAt: '2025-01-01T00:00:00.000Z',
     };
 
     this.currentUser = mockUser;
@@ -49,7 +49,7 @@ export class MockAuthService {
       role: 'VIEWER',
       teamIds: [],
       avatar: '👤',
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
 
     this.currentUser = newUser;

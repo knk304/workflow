@@ -92,9 +92,10 @@ import * as AuthActions from '../../state/auth/auth.actions';
             </mat-form-field>
 
             <!-- Error Message -->
-            @if (error$ | async as error) {
+            @let errorMsg = error$ | async;
+            @if (errorMsg) {
               <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                {{ error }}
+                {{ errorMsg }}
               </div>
             }
 
@@ -104,7 +105,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
               color="primary"
               type="submit"
               class="w-full mb-4"
-              [disabled]="isLoading$ | async"
+              [disabled]="(isLoading$ | async) || false"
             >
               @if (isLoading$ | async) {
                 <mat-spinner diameter="20" class="mr-2"></mat-spinner>

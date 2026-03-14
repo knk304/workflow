@@ -6,7 +6,7 @@ export interface User {
   role: 'ADMIN' | 'MANAGER' | 'WORKER' | 'VIEWER';
   teamIds: string[];
   avatar?: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface AuthState {
@@ -32,29 +32,37 @@ export interface RegisterRequest {
 export interface Case {
   id: string;
   type: string;
+  caseType?: string; // Alias for type for compatibility
   status: 'open' | 'pending' | 'resolved' | 'withdrawn';
   stage: string;
+  stageHistory?: StageHistory[]; // Alias for stages for compatibility
   priority: 'low' | 'medium' | 'high' | 'critical';
   ownerId: string;
   teamId: string;
+  assignedTo?: User; // Person assigned to this case
   fields: Record<string, any>;
   stages: StageHistory[];
+  tasks?: Task[]; // Tasks related to this case
+  notes?: string; // Case notes
   sla: SLAInfo;
-  createdAt: Date;
-  updatedAt: Date;
+  auditLog?: AuditLog[]; // Audit trail
+  createdAt: string;
+  updatedAt: string;
   createdBy: string;
 }
 
 export interface StageHistory {
   name: string;
   status: 'pending' | 'in_progress' | 'completed' | 'skipped';
-  completedAt?: Date;
-  enteredAt: Date;
+  completedAt?: string;
+  enteredAt: string;
   completedBy?: string;
 }
 
 export interface SLAInfo {
-  targetDate: Date;
+  targetDate: string;
+  targetResolutionDate?: string; // Alias for targetDate
+  daysRemaining?: number; // Days until target resolution
   escalated: boolean;
   escalationLevel: number;
 }
@@ -85,20 +93,20 @@ export interface Task {
   teamId?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  dueDate?: Date;
+  dueDate?: string;
   dependsOn: string[];
   tags: string[];
   checklist: ChecklistItem[];
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
 }
 
 export interface ChecklistItem {
   id: string;
   item: string;
-  checked: boolean;
-  completedAt?: Date;
+  checked?: boolean; // checkbox status for template compatibility
+  completedAt?: string; // When the item was marked complete
 }
 
 export interface KanbanBoard {
@@ -121,8 +129,8 @@ export interface Comment {
   mentions: Mention[];
   parentId?: string;
   replies?: Comment[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Mention {
@@ -140,8 +148,8 @@ export interface Notification {
   entityType: 'case' | 'task';
   entityId: string;
   isRead: boolean;
-  readAt?: Date;
-  createdAt: Date;
+  readAt?: string;
+  createdAt: string;
 }
 
 // Team Models
@@ -150,7 +158,7 @@ export interface Team {
   name: string;
   description?: string;
   memberIds: string[];
-  createdAt: Date;
+  createdAt: string;
 }
 
 // Audit Log
@@ -165,5 +173,5 @@ export interface AuditLog {
     before: Record<string, any>;
     after: Record<string, any>;
   };
-  timestamp: Date;
+  timestamp: string;
 }

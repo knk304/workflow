@@ -12,7 +12,6 @@ import {
   CdkDragDrop,
   copyArrayItem,
   moveItemInArray,
-  moveItemInCopy,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
@@ -85,8 +84,7 @@ import { Task, KanbanBoard } from '../../core/models';
                 <span>{{ column.label }}</span>
               </div>
               <span
-                matBadge
-                [content]="getTasksForColumn(column.status).length"
+                [matBadge]="getTasksForColumn(column.status).length"
                 matBadgeColor="accent"
                 class="text-white"
               ></span>
@@ -123,12 +121,12 @@ import { Task, KanbanBoard } from '../../core/models';
                     <div class="flex items-center justify-between gap-2">
                       <!-- Assignee Avatar -->
                       <div class="flex items-center gap-2">
-                        @if (task.assignedTo) {
+                        @if (task.assigneeId) {
                           <div
                             class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold"
-                            [title]="task.assignedTo.name"
+                            [title]="task.assigneeId"
                           >
-                            {{ task.assignedTo.name.charAt(0) }}
+                            {{ task.assigneeId.charAt(0) }}
                           </div>
                         }
                         <span class="text-xs text-gray-600">{{ task.caseId }}</span>
@@ -259,7 +257,7 @@ export class TaskKanbanComponent implements OnInit {
 
   kanbanBoard: KanbanBoard = {
     pending: [],
-    in_progress: [],
+    inProgress: [],
     review: [],
     done: [],
     blocked: [],
@@ -285,7 +283,7 @@ export class TaskKanbanComponent implements OnInit {
     let filtered = tasks;
 
     if (this.viewFilter === 'my') {
-      filtered = filtered.filter(t => t.assignedTo?.id === 'user-1');
+      filtered = filtered.filter(t => t.assigneeId === 'user-1');
     }
 
     if (this.priorityFilter) {
@@ -299,12 +297,10 @@ export class TaskKanbanComponent implements OnInit {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
-      moveItemInCopy(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
+      // Move item from previous container
+      const item = event.previousContainer.data[event.previousIndex];
+      event.previousContainer.data.splice(event.previousIndex, 1);
+      event.container.data.splice(event.currentIndex, 0, item);
 
       // Update the task status in the store
       const task = event.container.data[event.currentIndex];
@@ -366,7 +362,8 @@ export class TaskKanbanComponent implements OnInit {
     }[priority] || 'bg-gray-100 text-gray-800';
   }
 
-  dueDateClass(dueDate: Date): string {
+  dueDateClass(dueDate: string | undefined): string {
+    if (!dueDate) return 'text-gray-600';
     const today = new Date();
     const taskDate = new Date(dueDate);
 
@@ -381,12 +378,12 @@ export class TaskKanbanComponent implements OnInit {
 
   getChecklistProgress(task: Task): number {
     if (!task.checklist || task.checklist.length === 0) return 0;
-    const completed = task.checklist.filter(item => item.completed).length;
+    const completed = task.checklist.filter(item => item.checked).length;
     return (completed / task.checklist.length) * 100;
   }
 
   getChecklistCompletedCount(task: Task): number {
     if (!task.checklist) return 0;
-    return task.checklist.filter(item => item.completed).length;
+    return task.checklist.filter(item => item.checked).length;
   }
 }

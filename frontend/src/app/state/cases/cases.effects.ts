@@ -73,10 +73,10 @@ export class CasesEffects {
                 updatedCase.stages.push({
                   name: updatedCase.stage,
                   status: 'in_progress',
-                  enteredAt: new Date(),
+                  enteredAt: new Date().toISOString(),
                 });
               }
-              updatedCase.updatedAt = new Date();
+              updatedCase.updatedAt = new Date().toISOString();
               return CasesActions.transitionCaseSuccess({ case: updatedCase });
             }
             return CasesActions.transitionCaseSuccess({ case: caseData! });

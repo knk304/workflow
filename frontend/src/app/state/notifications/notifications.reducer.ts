@@ -47,7 +47,7 @@ export const notificationsReducer = createReducer(
     items: state.items.map((n) => ({
       ...n,
       isRead: true,
-      readAt: new Date(),
+      readAt: new Date().toISOString(),
     })),
   })),
   on(NotificationsActions.dismissNotification, (state, { notificationId }) => ({
