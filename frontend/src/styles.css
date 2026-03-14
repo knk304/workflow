@@ -1,11 +1,10 @@
 /* ===== Global Styles – Workflow Platform ===== */
 
-/* Base reset */
+/* Base reset – handled by Tailwind preflight in styles.scss;
+   only set box-sizing here (safe for MDC internals). */
 *,
 *::before,
 *::after {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -118,16 +117,15 @@ a:hover {
 /* ===== Material Overrides – Form Fields ===== */
 .mat-mdc-form-field {
   font-size: 14px;
-}
-.mat-mdc-form-field .mdc-text-field--outlined .mdc-notched-outline__leading,
-.mat-mdc-form-field .mdc-text-field--outlined .mdc-notched-outline__notch,
-.mat-mdc-form-field .mdc-text-field--outlined .mdc-notched-outline__trailing {
-  border-color: var(--wf-border) !important;
-}
-.mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
-.mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
-.mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
-  border-color: var(--wf-primary) !important;
+  /* Material 19 fill-appearance custom properties */
+  --mdc-filled-text-field-active-indicator-color: var(--wf-border);
+  --mdc-filled-text-field-hover-active-indicator-color: var(--wf-primary-light);
+  --mdc-filled-text-field-focus-active-indicator-color: var(--wf-primary);
+  --mdc-filled-text-field-error-active-indicator-color: var(--wf-danger);
+  --mdc-filled-text-field-error-focus-active-indicator-color: var(--wf-danger);
+  --mdc-filled-text-field-error-hover-active-indicator-color: var(--wf-danger);
+  --mdc-filled-text-field-container-color: var(--wf-surface);
+  --mdc-filled-text-field-disabled-container-color: #f1f5f9;
 }
 
 /* ===== Material Overrides – Buttons ===== */

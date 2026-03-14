@@ -44,7 +44,7 @@ import { Task, KanbanBoard } from '../../core/models';
 
       <!-- Filters -->
       <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex gap-4">
-        <mat-form-field appearance="outline">
+        <mat-form-field>
           <mat-label>View</mat-label>
           <mat-select [(ngModel)]="viewFilter">
             <mat-option value="all">All Tasks</mat-option>
@@ -53,7 +53,7 @@ import { Task, KanbanBoard } from '../../core/models';
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field>
           <mat-label>Filter by Priority</mat-label>
           <mat-select [(ngModel)]="priorityFilter">
             <mat-option value="">All Priorities</mat-option>

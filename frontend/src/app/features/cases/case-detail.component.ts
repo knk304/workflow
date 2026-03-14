@@ -154,31 +154,31 @@ import { Case, Task } from '../../core/models';
                 <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
                   <form [formGroup]="detailsForm" class="space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>Applicant Name</mat-label>
                         <input matInput formControlName="applicantName" readonly />
-                        <mat-icon matPrefix class="text-slate-400 mr-2">person</mat-icon>
+                        <mat-icon matIconPrefix>person</mat-icon>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>Loan Amount</mat-label>
                         <input matInput formControlName="loanAmount" readonly />
-                        <mat-icon matPrefix class="text-slate-400 mr-2">payments</mat-icon>
+                        <mat-icon matIconPrefix>payments</mat-icon>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>Interest Rate</mat-label>
                         <input matInput formControlName="interestRate" readonly />
-                        <mat-icon matPrefix class="text-slate-400 mr-2">percent</mat-icon>
+                        <mat-icon matIconPrefix>percent</mat-icon>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>Loan Term (months)</mat-label>
                         <input matInput formControlName="loanTerm" readonly />
-                        <mat-icon matPrefix class="text-slate-400 mr-2">date_range</mat-icon>
+                        <mat-icon matIconPrefix>date_range</mat-icon>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>Status</mat-label>
                         <mat-select formControlName="status">
                           <mat-option value="open">Open</mat-option>
@@ -186,10 +186,10 @@ import { Case, Task } from '../../core/models';
                           <mat-option value="pending_review">Pending Review</mat-option>
                           <mat-option value="closed">Closed</mat-option>
                         </mat-select>
-                        <mat-icon matPrefix class="text-slate-400 mr-2">flag</mat-icon>
+                        <mat-icon matIconPrefix>flag</mat-icon>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>Priority</mat-label>
                         <mat-select formControlName="priority">
                           <mat-option value="critical">Critical</mat-option>
@@ -197,14 +197,14 @@ import { Case, Task } from '../../core/models';
                           <mat-option value="medium">Medium</mat-option>
                           <mat-option value="low">Low</mat-option>
                         </mat-select>
-                        <mat-icon matPrefix class="text-slate-400 mr-2">priority_high</mat-icon>
+                        <mat-icon matIconPrefix>priority_high</mat-icon>
                       </mat-form-field>
                     </div>
 
-                    <mat-form-field appearance="outline" class="w-full">
+                    <mat-form-field class="w-full">
                       <mat-label>Notes</mat-label>
                       <textarea matInput formControlName="notes" rows="4"></textarea>
-                      <mat-icon matPrefix class="text-slate-400 mr-2">notes</mat-icon>
+                      <mat-icon matIconPrefix>notes</mat-icon>
                     </mat-form-field>
 
                     <div class="flex gap-3 pt-2">

@@ -39,7 +39,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
         <mat-card-content class="p-6">
           <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
             <!-- Email Field -->
-            <mat-form-field class="w-full mb-4" appearance="outline">
+            <mat-form-field class="w-full mb-4">
               <mat-label>Email</mat-label>
               <input
                 matInput
@@ -47,7 +47,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
                 type="email"
                 placeholder="you@example.com"
               />
-              <mat-icon matSuffix>email</mat-icon>
+              <mat-icon matIconSuffix>email</mat-icon>
               @if (loginForm.get('email')?.hasError('required') && submitted()) {
                 <mat-error>Email is required</mat-error>
               }
@@ -55,9 +55,10 @@ import * as AuthActions from '../../state/auth/auth.actions';
                 <mat-error>Enter a valid email</mat-error>
               }
             </mat-form-field>
+            
 
             <!-- Password Field -->
-            <mat-form-field class="w-full mb-6" appearance="outline">
+            <mat-form-field class="w-full mb-6">
               <mat-label>Password</mat-label>
               <input
                 matInput
@@ -67,7 +68,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
               />
               <button
                 mat-icon-button
-                matSuffix
+                matIconSuffix
                 (click)="showPassword.set(!showPassword())"
                 type="button"
               >

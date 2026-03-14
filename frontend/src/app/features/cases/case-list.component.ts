@@ -53,14 +53,14 @@ import { Case } from '../../core/models';
       <div class="bg-white rounded-lg shadow-sm p-4 space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <!-- Search -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field class="w-full">
             <mat-label>Search</mat-label>
             <input matInput placeholder="Case ID or applicant name" [(ngModel)]="searchTerm" />
-            <mat-icon matSuffix>search</mat-icon>
+            <mat-icon matIconSuffix>search</mat-icon>
           </mat-form-field>
 
           <!-- Status Filter -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field class="w-full">
             <mat-label>Status</mat-label>
             <mat-select [(ngModel)]="statusFilter">
               <mat-option value="">All Statuses</mat-option>
@@ -72,7 +72,7 @@ import { Case } from '../../core/models';
           </mat-form-field>
 
           <!-- Stage Filter -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field class="w-full">
             <mat-label>Stage</mat-label>
             <mat-select [(ngModel)]="stageFilter">
               <mat-option value="">All Stages</mat-option>
@@ -85,7 +85,7 @@ import { Case } from '../../core/models';
           </mat-form-field>
 
           <!-- Priority Filter -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field class="w-full">
             <mat-label>Priority</mat-label>
             <mat-select [(ngModel)]="priorityFilter">
               <mat-option value="">All Priorities</mat-option>

@@ -45,7 +45,7 @@ import { Comment, Mention } from '../../core/models';
       @if (showCommentForm) {
         <div class="bg-blue-50 rounded-lg p-4 space-y-3">
           <form [formGroup]="commentForm" (ngSubmit)="onAddComment()">
-            <mat-form-field appearance="outline" class="w-full">
+            <mat-form-field class="w-full">
               <mat-label>Add a comment...</mat-label>
               <textarea
                 matInput
@@ -54,7 +54,7 @@ import { Comment, Mention } from '../../core/models';
                 placeholder="Type @mention to notify team members"
                 [matAutocomplete]="mentionAuto"
               ></textarea>
-              <mat-icon matSuffix>comment</mat-icon>
+              <mat-icon matIconSuffix>comment</mat-icon>
             </mat-form-field>
 
             <!-- Mention Autocomplete -->
@@ -65,7 +65,7 @@ import { Comment, Mention } from '../../core/models';
                     <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs">
                       {{ user.name.charAt(0) }}
                     </div>
-                    <span>{{ user.name }}</span>
+                    <span>{{ user.name }}</span> 
                   </div>
                 </mat-option>
               }
@@ -108,12 +108,12 @@ import { Comment, Mention } from '../../core/models';
 
                 <!-- Comment Actions -->
                 <div class="flex gap-1">
-                  @if (canEditComment(comment) {
+                  @if (canEditComment(comment)) {
                     <button mat-icon-button matTooltip="Edit" (click)="editComment(comment)" size="small">
                       <mat-icon class="text-sm">edit</mat-icon>
                     </button>
                   }
-                  @if (canDeleteComment(comment) {
+                  @if (canDeleteComment(comment)) {
                     <button mat-icon-button matTooltip="Delete" (click)="deleteComment(comment)" size="small">
                       <mat-icon class="text-sm">delete</mat-icon>
                     </button>
@@ -124,7 +124,7 @@ import { Comment, Mention } from '../../core/models';
               <!-- Comment Body -->
               @if (editingCommentId === comment.id) {
                 <form [formGroup]="editCommentForm" (ngSubmit)="onSaveEditedComment(comment)" class="space-y-2 mb-2">
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field class="w-full">
                     <textarea matInput formControlName="text" rows="3"></textarea>
                   </mat-form-field>
                   <div class="flex gap-2 justify-end">
@@ -183,7 +183,7 @@ import { Comment, Mention } from '../../core/models';
               <!-- Reply Form -->
               @if (replyingToCommentId === comment.id) {
                 <form [formGroup]="replyForm" (ngSubmit)="onAddReply(comment)" class="mt-3 space-y-2">
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field class="w-full">
                     <mat-label>Reply...</mat-label>
                     <textarea matInput formControlName="text" rows="2"></textarea>
                   </mat-form-field>

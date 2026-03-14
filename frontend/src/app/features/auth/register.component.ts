@@ -39,17 +39,17 @@ import * as AuthActions from '../../state/auth/auth.actions';
         <mat-card-content class="p-6">
           <form [formGroup]="registerForm" (ngSubmit)="onRegister()">
             <!-- Name Field -->
-            <mat-form-field class="w-full mb-4" appearance="outline">
+            <mat-form-field class="w-full mb-4">
               <mat-label>Full Name</mat-label>
               <input matInput formControlName="name" placeholder="John Doe" />
-              <mat-icon matSuffix>person</mat-icon>
+              <mat-icon matIconSuffix>person</mat-icon>
               @if (registerForm.get('name')?.hasError('required') && submitted()) {
                 <mat-error>Name is required</mat-error>
               }
             </mat-form-field>
 
             <!-- Email Field -->
-            <mat-form-field class="w-full mb-4" appearance="outline">
+            <mat-form-field class="w-full mb-4">
               <mat-label>Email</mat-label>
               <input
                 matInput
@@ -57,7 +57,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
                 type="email"
                 placeholder="you@example.com"
               />
-              <mat-icon matSuffix>email</mat-icon>
+              <mat-icon matIconSuffix>email</mat-icon>
               @if (registerForm.get('email')?.hasError('required') && submitted()) {
                 <mat-error>Email is required</mat-error>
               }
@@ -67,7 +67,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
             </mat-form-field>
 
             <!-- Password Field -->
-            <mat-form-field class="w-full mb-4" appearance="outline">
+            <mat-form-field class="w-full mb-4">
               <mat-label>Password</mat-label>
               <input
                 matInput
@@ -77,7 +77,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
               />
               <button
                 mat-icon-button
-                matSuffix
+                matIconSuffix
                 (click)="showPassword.set(!showPassword())"
                 type="button"
               >
