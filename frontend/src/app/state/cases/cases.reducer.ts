@@ -60,5 +60,21 @@ export const casesReducer = createReducer(
   on(CasesActions.clearError, (state) => ({
     ...state,
     error: null,
+  })),
+  on(CasesActions.createCase, (state) => ({
+    ...state,
+    isLoading: true,
+    error: null,
+  })),
+  on(CasesActions.createCaseSuccess, (state, { case: newCase }) => ({
+    ...state,
+    list: [newCase, ...state.list],
+    selected: newCase,
+    isLoading: false,
+  })),
+  on(CasesActions.createCaseFailure, (state, { error }) => ({
+    ...state,
+    isLoading: false,
+    error,
   }))
 );

@@ -8,6 +8,8 @@ import { MatListModule } from '@angular/material/list';
 import { Store } from '@ngrx/store';
 import { selectOpenCases, selectCriticalCases } from '../../state/cases/cases.selectors';
 import { selectMyTasks, selectOverdueTasks } from '../../state/tasks/tasks.selectors';
+import * as CasesActions from '../../state/cases/cases.actions';
+import * as TasksActions from '../../state/tasks/tasks.actions';
 
 @Component({
   selector: 'app-dashboard',
@@ -178,6 +180,9 @@ export class DashboardComponent implements OnInit {
   constructor(private store: Store) {}
 
   ngOnInit(): void {
+    this.store.dispatch(CasesActions.loadCases({}));
+    this.store.dispatch(TasksActions.loadTasks({}));
+
     this.store.select(selectOpenCases).subscribe(cases => {
       this.openCases = cases;
     });

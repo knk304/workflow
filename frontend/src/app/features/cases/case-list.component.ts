@@ -43,7 +43,7 @@ import { Case } from '../../core/models';
           <h1 class="text-4xl font-bold text-gray-800">Cases</h1>
           <p class="text-gray-600 mt-2">Manage and track workflow cases</p>
         </div>
-        <button mat-raised-button color="primary">
+        <button mat-raised-button color="primary" routerLink="/cases/new">
           <mat-icon>add</mat-icon>
           New Case
         </button>
@@ -165,7 +165,7 @@ import { Case } from '../../core/models';
           <ng-container matColumnDef="type">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
             <td mat-cell *matCellDef="let case">
-              {{ case.caseType | uppercase }}
+              {{ (case.caseType || case.type) | uppercase }}
             </td>
           </ng-container>
 
@@ -311,6 +311,8 @@ export class CaseListComponent implements OnInit {
   constructor(private store: Store) {}
 
   ngOnInit(): void {
+    this.store.dispatch(CasesActions.loadCases({}));
+
     this.store.select(selectCasesList).subscribe(cases => {
       this.allCases = cases;
       this.applyFilters();

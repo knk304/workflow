@@ -63,6 +63,10 @@ export class ApiDataService extends DataService {
     return this.http.get<Case>(`${this.caseUrl}/cases/${id}`);
   }
 
+  createCase(caseData: Partial<Case>): Observable<Case> {
+    return this.http.post<Case>(`${this.caseUrl}/cases`, caseData);
+  }
+
   updateCase(caseId: string, updates: Partial<Case>): Observable<Case> {
     return this.http.patch<Case>(`${this.caseUrl}/cases/${caseId}`, updates);
   }

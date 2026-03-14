@@ -540,6 +540,32 @@ export class MockDataService extends DataService {
     return of(this.mockCases.find((c) => c.id === id)).pipe(delay(200));
   }
 
+  createCase(caseData: Partial<Case>): Observable<Case> {
+    const now = new Date().toISOString();
+    const caseNumber = String(this.mockCases.length + 1).padStart(5, '0');
+    const newCase: Case = {
+      id: `CASE-2026-${caseNumber}`,
+      type: caseData.type || 'loan_origination',
+      status: 'open',
+      stage: 'intake',
+      priority: caseData.priority || 'medium',
+      ownerId: caseData.ownerId || 'user-1',
+      teamId: caseData.teamId || 'team-1',
+      fields: caseData.fields || {},
+      stages: [{ name: 'intake', status: 'in_progress', enteredAt: now }],
+      sla: {
+        targetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        escalated: false,
+        escalationLevel: 0,
+      },
+      createdAt: now,
+      updatedAt: now,
+      createdBy: caseData.createdBy || 'user-1',
+    };
+    this.mockCases.push(newCase);
+    return of(newCase).pipe(delay(500));
+  }
+
   getTasks(filters?: any): Observable<Task[]> {
     let tasks = [...this.mockTasks];
     if (filters?.caseId) {

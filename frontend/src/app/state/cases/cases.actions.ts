@@ -50,3 +50,18 @@ export const transitionCaseFailure = createAction(
 );
 
 export const clearError = createAction('[Cases] Clear Error');
+
+export const createCase = createAction(
+  '[Cases] Create',
+  props<{ caseData: Partial<Case> }>()
+);
+
+export const createCaseSuccess = createAction(
+  '[Cases] Create Success',
+  props<{ case: Case }>()
+);
+
+export const createCaseFailure = createAction(
+  '[Cases] Create Failure',
+  props<{ error: string }>()
+);

@@ -5,6 +5,7 @@ import { RegisterComponent } from './features/auth/register.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { CaseListComponent } from './features/cases/case-list.component';
 import { CaseDetailComponent } from './features/cases/case-detail.component';
+import { CaseCreateComponent } from './features/cases/case-create.component';
 import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
 import { AdminUsersComponent } from './features/admin/admin-users.component';
 import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
@@ -46,6 +47,11 @@ export const routes: Routes = [
         path: 'cases',
         component: CaseListComponent,
         data: { title: 'Cases' },
+      },
+      {
+        path: 'cases/new',
+        component: CaseCreateComponent,
+        data: { title: 'Create Case' },
       },
       {
         path: 'cases/:id',

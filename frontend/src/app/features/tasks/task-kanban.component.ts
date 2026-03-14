@@ -279,6 +279,8 @@ export class TaskKanbanComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.store.dispatch(TasksActions.loadKanbanBoard({}));
+
     this.store.select(selectKanbanBoard).subscribe(board => {
       if (board) {
         this.kanbanBoard = board;

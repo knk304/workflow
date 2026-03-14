@@ -66,6 +66,20 @@ export class CasesEffects {
     )
   );
 
+  createCase$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CasesActions.createCase),
+      mergeMap(({ caseData }) =>
+        this.dataService.createCase(caseData).pipe(
+          map((newCase) => CasesActions.createCaseSuccess({ case: newCase })),
+          catchError((error) =>
+            of(CasesActions.createCaseFailure({ error: error.message }))
+          )
+        )
+      )
+    )
+  );
+
   constructor(
     private actions$: Actions,
     private dataService: DataService
