@@ -1,0 +1,61 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { LoginComponent } from './features/auth/login.component';
+import { RegisterComponent } from './features/auth/register.component';
+import { DashboardComponent } from './features/dashboard/dashboard.component';
+import { CaseListComponent } from './features/cases/case-list.component';
+import { CaseDetailComponent } from './features/cases/case-detail.component';
+import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
+
+export const routes: Routes = [
+  // Auth Routes (public)
+  {
+    path: 'login',
+    component: LoginComponent,
+    data: { title: 'Login' },
+  },
+  {
+    path: 'register',
+    component: RegisterComponent,
+    data: { title: 'Register' },
+  },
+
+  // Protected Routes
+  {
+    path: '',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full',
+      },
+      {
+        path: 'dashboard',
+        component: DashboardComponent,
+        data: { title: 'Dashboard' },
+      },
+      {
+        path: 'cases',
+        component: CaseListComponent,
+        data: { title: 'Cases' },
+      },
+      {
+        path: 'cases/:id',
+        component: CaseDetailComponent,
+        data: { title: 'Case Details' },
+      },
+      {
+        path: 'tasks',
+        component: TaskKanbanComponent,
+        data: { title: 'Task Kanban' },
+      },
+    ],
+  },
+
+  // Wildcard route (must be last)
+  {
+    path: '**',
+    redirectTo: 'login',
+  },
+];

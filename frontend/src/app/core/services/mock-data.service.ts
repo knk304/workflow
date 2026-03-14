@@ -1,0 +1,639 @@
+import { Injectable } from '@angular/core';
+import { Observable, of, delay } from 'rxjs';
+import {
+  User,
+  Case,
+  Task,
+  Comment,
+  Notification,
+  Team,
+  AuditLog,
+  CaseType,
+  KanbanBoard,
+} from '../models';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class MockDataService {
+  // Mock Users
+  private mockUsers: User[] = [
+    {
+      id: 'user-1',
+      email: 'alice@example.com',
+      name: 'Alice Johnson',
+      role: 'MANAGER',
+      teamIds: ['team-1'],
+      avatar: '👩‍💼',
+      createdAt: new Date('2025-01-01'),
+    },
+    {
+      id: 'user-2',
+      email: 'bob@example.com',
+      name: 'Bob Smith',
+      role: 'WORKER',
+      teamIds: ['team-1'],
+      avatar: '👨‍💼',
+      createdAt: new Date('2025-01-05'),
+    },
+    {
+      id: 'user-3',
+      email: 'carol@example.com',
+      name: 'Carol Davis',
+      role: 'WORKER',
+      teamIds: ['team-1'],
+      avatar: '👩‍🔬',
+      createdAt: new Date('2025-01-10'),
+    },
+    {
+      id: 'user-4',
+      email: 'dave@example.com',
+      name: 'Dave Wilson',
+      role: 'ADMIN',
+      teamIds: ['team-1', 'team-2'],
+      avatar: '👨‍⚖️',
+      createdAt: new Date('2024-12-01'),
+    },
+  ];
+
+  // Mock Teams
+  private mockTeams: Team[] = [
+    {
+      id: 'team-1',
+      name: 'Lending Operations',
+      description: 'Loan origination and processing',
+      memberIds: ['user-1', 'user-2', 'user-3'],
+      createdAt: new Date('2024-12-01'),
+    },
+    {
+      id: 'team-2',
+      name: 'Compliance',
+      description: 'Risk and compliance review',
+      memberIds: ['user-4'],
+      createdAt: new Date('2024-12-15'),
+    },
+  ];
+
+  // Mock Case Types
+  private mockCaseTypes: CaseType[] = [
+    {
+      id: 'case-type-1',
+      name: 'loan_origination',
+      description: 'Personal or business loan application',
+      stages: ['intake', 'documents', 'underwriting', 'approval', 'disbursement'],
+      fieldsSchema: {
+        applicantName: {
+          type: 'text',
+          label: 'Applicant Name',
+          required: true,
+          placeholder: 'Full name',
+        },
+        loanAmount: {
+          type: 'number',
+          label: 'Loan Amount',
+          required: true,
+          placeholder: '50000',
+        },
+        loanType: {
+          type: 'select',
+          label: 'Loan Type',
+          required: true,
+          options: ['personal', 'business', 'mortgage', 'auto'],
+        },
+        applicationDate: {
+          type: 'date',
+          label: 'Application Date',
+          required: true,
+        },
+        documentationComplete: {
+          type: 'checkbox',
+          label: 'Documentation Complete',
+          required: false,
+        },
+      },
+    },
+    {
+      id: 'case-type-2',
+      name: 'support_ticket',
+      description: 'Customer support request',
+      stages: ['open', 'in_progress', 'waiting_info', 'resolved'],
+      fieldsSchema: {
+        issueTitle: {
+          type: 'text',
+          label: 'Issue Title',
+          required: true,
+        },
+        issueDescription: {
+          type: 'textarea',
+          label: 'Description',
+          required: true,
+        },
+        severity: {
+          type: 'select',
+          label: 'Severity',
+          required: true,
+          options: ['low', 'medium', 'high', 'critical'],
+        },
+      },
+    },
+  ];
+
+  // Mock Cases
+  private mockCases: Case[] = [
+    {
+      id: 'CASE-2026-00001',
+      type: 'loan_origination',
+      status: 'open',
+      stage: 'intake',
+      priority: 'high',
+      ownerId: 'user-1',
+      teamId: 'team-1',
+      fields: {
+        applicantName: 'Sarah Mitchell',
+        loanAmount: 150000,
+        loanType: 'mortgage',
+        applicationDate: new Date('2026-03-10'),
+        documentationComplete: false,
+      },
+      stages: [
+        {
+          name: 'intake',
+          status: 'in_progress',
+          enteredAt: new Date('2026-03-10'),
+        },
+      ],
+      sla: {
+        targetDate: new Date('2026-03-17'),
+        escalated: false,
+        escalationLevel: -1,
+      },
+      createdAt: new Date('2026-03-10'),
+      updatedAt: new Date('2026-03-12'),
+      createdBy: 'user-1',
+    },
+    {
+      id: 'CASE-2026-00002',
+      type: 'loan_origination',
+      status: 'pending',
+      stage: 'underwriting',
+      priority: 'critical',
+      ownerId: 'user-2',
+      teamId: 'team-1',
+      fields: {
+        applicantName: 'John Rodriguez',
+        loanAmount: 75000,
+        loanType: 'personal',
+        applicationDate: new Date('2026-02-28'),
+        documentationComplete: true,
+      },
+      stages: [
+        {
+          name: 'intake',
+          status: 'completed',
+          enteredAt: new Date('2026-02-28'),
+          completedAt: new Date('2026-03-01'),
+          completedBy: 'user-2',
+        },
+        {
+          name: 'documents',
+          status: 'completed',
+          enteredAt: new Date('2026-03-01'),
+          completedAt: new Date('2026-03-05'),
+          completedBy: 'user-3',
+        },
+        {
+          name: 'underwriting',
+          status: 'in_progress',
+          enteredAt: new Date('2026-03-05'),
+        },
+      ],
+      sla: {
+        targetDate: new Date('2026-03-19'),
+        escalated: true,
+        escalationLevel: 0,
+      },
+      createdAt: new Date('2026-02-28'),
+      updatedAt: new Date('2026-03-12'),
+      createdBy: 'user-1',
+    },
+    {
+      id: 'CASE-2026-00003',
+      type: 'loan_origination',
+      status: 'resolved',
+      stage: 'disbursement',
+      priority: 'medium',
+      ownerId: 'user-3',
+      teamId: 'team-1',
+      fields: {
+        applicantName: 'Emma Thompson',
+        loanAmount: 250000,
+        loanType: 'business',
+        applicationDate: new Date('2026-02-01'),
+        documentationComplete: true,
+      },
+      stages: [
+        {
+          name: 'intake',
+          status: 'completed',
+          enteredAt: new Date('2026-02-01'),
+          completedAt: new Date('2026-02-03'),
+          completedBy: 'user-1',
+        },
+        {
+          name: 'documents',
+          status: 'completed',
+          enteredAt: new Date('2026-02-03'),
+          completedAt: new Date('2026-02-08'),
+          completedBy: 'user-2',
+        },
+        {
+          name: 'underwriting',
+          status: 'completed',
+          enteredAt: new Date('2026-02-08'),
+          completedAt: new Date('2026-02-15'),
+          completedBy: 'user-1',
+        },
+        {
+          name: 'approval',
+          status: 'completed',
+          enteredAt: new Date('2026-02-15'),
+          completedAt: new Date('2026-02-20'),
+          completedBy: 'user-4',
+        },
+        {
+          name: 'disbursement',
+          status: 'completed',
+          enteredAt: new Date('2026-02-20'),
+          completedAt: new Date('2026-03-01'),
+          completedBy: 'user-3',
+        },
+      ],
+      sla: {
+        targetDate: new Date('2026-03-01'),
+        escalated: false,
+        escalationLevel: -1,
+      },
+      createdAt: new Date('2026-02-01'),
+      updatedAt: new Date('2026-03-01'),
+      createdBy: 'user-1',
+    },
+  ];
+
+  // Mock Tasks
+  private mockTasks: Task[] = [
+    {
+      id: 'task-1',
+      caseId: 'CASE-2026-00001',
+      title: 'Review initial application',
+      description: 'Verify all required fields are completed',
+      assigneeId: 'user-1',
+      teamId: 'team-1',
+      status: 'in_progress',
+      priority: 'high',
+      dueDate: new Date('2026-03-15'),
+      dependsOn: [],
+      tags: ['intake', 'verification'],
+      checklist: [
+        { id: 'check-1', item: 'Verify identity documents', checked: true, completedAt: new Date() },
+        { id: 'check-2', item: 'Confirm contact information', checked: true, completedAt: new Date() },
+        { id: 'check-3', item: 'Check income documentation', checked: false },
+      ],
+      createdAt: new Date('2026-03-10'),
+      updatedAt: new Date('2026-03-12'),
+    },
+    {
+      id: 'task-2',
+      caseId: 'CASE-2026-00001',
+      title: 'Request missing documents',
+      description: 'Request applicant to provide proof of income',
+      assigneeId: 'user-2',
+      teamId: 'team-1',
+      status: 'pending',
+      priority: 'high',
+      dueDate: new Date('2026-03-13'),
+      dependsOn: ['task-1'],
+      tags: ['documents', 'follow-up'],
+      checklist: [],
+      createdAt: new Date('2026-03-10'),
+      updatedAt: new Date('2026-03-10'),
+    },
+    {
+      id: 'task-3',
+      caseId: 'CASE-2026-00002',
+      title: 'Underwriting review',
+      description: 'Perform detailed credit and risk assessment',
+      assigneeId: 'user-1',
+      teamId: 'team-1',
+      status: 'in_progress',
+      priority: 'critical',
+      dueDate: new Date('2026-03-16'),
+      dependsOn: [],
+      tags: ['underwriting', 'risk'],
+      checklist: [
+        { id: 'check-4', item: 'Credit check completed', checked: true, completedAt: new Date() },
+        { id: 'check-5', item: 'Debt-to-income ratio acceptable', checked: true, completedAt: new Date() },
+        { id: 'check-6', item: 'Collateral assessment', checked: false },
+      ],
+      createdAt: new Date('2026-03-05'),
+      updatedAt: new Date('2026-03-12'),
+    },
+    {
+      id: 'task-4',
+      caseId: 'CASE-2026-00002',
+      title: 'Obtain manager approval',
+      description: 'Get final approval before proceeding',
+      assigneeId: undefined,
+      teamId: 'team-1',
+      status: 'pending',
+      priority: 'critical',
+      dueDate: new Date('2026-03-18'),
+      dependsOn: ['task-3'],
+      tags: ['approval'],
+      checklist: [],
+      createdAt: new Date('2026-03-05'),
+      updatedAt: new Date('2026-03-05'),
+    },
+    {
+      id: 'task-5',
+      caseId: 'CASE-2026-00003',
+      title: 'Fund transfer setup',
+      description: 'Configure automated payout',
+      assigneeId: 'user-3',
+      teamId: 'team-1',
+      status: 'completed',
+      priority: 'medium',
+      dueDate: new Date('2026-02-28'),
+      dependsOn: [],
+      tags: ['disbursement', 'ops'],
+      checklist: [
+        {
+          id: 'check-7',
+          item: 'Bank account verified',
+          checked: true,
+          completedAt: new Date('2026-02-25'),
+        },
+        {
+          id: 'check-8',
+          item: 'Transfer limit confirmed',
+          checked: true,
+          completedAt: new Date('2026-02-26'),
+        },
+      ],
+      createdAt: new Date('2026-02-20'),
+      updatedAt: new Date('2026-02-28'),
+      completedAt: new Date('2026-02-28'),
+    },
+  ];
+
+  // Mock Comments
+  private mockComments: Comment[] = [
+    {
+      id: 'comment-1',
+      caseId: 'CASE-2026-00001',
+      userId: 'user-1',
+      userName: 'Alice Johnson',
+      userAvatar: '👩‍💼',
+      text: 'I reviewed the application. Looking good so far, but missing proof of income.',
+      mentions: [],
+      createdAt: new Date('2026-03-11'),
+      updatedAt: new Date('2026-03-11'),
+    },
+    {
+      id: 'comment-2',
+      caseId: 'CASE-2026-00001',
+      userId: 'user-2',
+      userName: 'Bob Smith',
+      userAvatar: '👨‍💼',
+      text: '@Alice Johnson - I will reach out to the applicant today about the missing documents.',
+      mentions: [{ userId: 'user-1', userName: 'Alice Johnson' }],
+      createdAt: new Date('2026-03-12'),
+      updatedAt: new Date('2026-03-12'),
+    },
+    {
+      id: 'comment-3',
+      caseId: 'CASE-2026-00002',
+      taskId: 'task-3',
+      userId: 'user-1',
+      userName: 'Alice Johnson',
+      userAvatar: '👩‍💼',
+      text: 'Credit score is excellent. DTI ratio is within acceptable limits. Just waiting on collateral assessment.',
+      mentions: [],
+      createdAt: new Date('2026-03-12'),
+      updatedAt: new Date('2026-03-12'),
+    },
+  ];
+
+  // Mock Notifications
+  private mockNotifications: Notification[] = [
+    {
+      id: 'notif-1',
+      userId: 'user-1',
+      type: 'assignment',
+      title: 'New task assigned',
+      message: 'Review initial application for CASE-2026-00001',
+      entityType: 'task',
+      entityId: 'task-1',
+      isRead: true,
+      readAt: new Date('2026-03-12'),
+      createdAt: new Date('2026-03-10'),
+    },
+    {
+      id: 'notif-2',
+      userId: 'user-1',
+      type: 'mention',
+      title: 'You were mentioned',
+      message: 'Bob Smith mentioned you in CASE-2026-00001',
+      entityType: 'case',
+      entityId: 'CASE-2026-00001',
+      isRead: false,
+      createdAt: new Date('2026-03-12'),
+    },
+    {
+      id: 'notif-3',
+      userId: 'user-1',
+      type: 'sla_warning',
+      title: 'SLA Warning',
+      message: 'CASE-2026-00002 is approaching SLA threshold (75%)',
+      entityType: 'case',
+      entityId: 'CASE-2026-00002',
+      isRead: false,
+      createdAt: new Date('2026-03-12'),
+    },
+  ];
+
+  // Mock Audit Logs
+  private mockAuditLogs: AuditLog[] = [
+    {
+      id: 'audit-1',
+      entityType: 'case',
+      entityId: 'CASE-2026-00001',
+      action: 'created',
+      actorId: 'user-1',
+      actorName: 'Alice Johnson',
+      changes: {
+        before: {},
+        after: { status: 'open', stage: 'intake' },
+      },
+      timestamp: new Date('2026-03-10'),
+    },
+    {
+      id: 'audit-2',
+      entityType: 'task',
+      entityId: 'task-1',
+      action: 'assigned',
+      actorId: 'user-1',
+      actorName: 'Alice Johnson',
+      changes: {
+        before: { assigneeId: null },
+        after: { assigneeId: 'user-1' },
+      },
+      timestamp: new Date('2026-03-10'),
+    },
+  ];
+
+  // Getters
+  getUsers(): Observable<User[]> {
+    return of([...this.mockUsers]).pipe(delay(300));
+  }
+
+  getUserById(id: string): Observable<User | undefined> {
+    return of(this.mockUsers.find((u) => u.id === id)).pipe(delay(200));
+  }
+
+  getCurrentUser(): Observable<User> {
+    return of(this.mockUsers[0]).pipe(delay(200)); // Returns Alice as current user
+  }
+
+  getTeams(): Observable<Team[]> {
+    return of([...this.mockTeams]).pipe(delay(300));
+  }
+
+  getCaseTypes(): Observable<CaseType[]> {
+    return of([...this.mockCaseTypes]).pipe(delay(300));
+  }
+
+  getCases(filters?: any): Observable<Case[]> {
+    let cases = [...this.mockCases];
+    if (filters?.status) {
+      cases = cases.filter((c) => c.status === filters.status);
+    }
+    if (filters?.stage) {
+      cases = cases.filter((c) => c.stage === filters.stage);
+    }
+    if (filters?.ownerId) {
+      cases = cases.filter((c) => c.ownerId === filters.ownerId);
+    }
+    return of(cases).pipe(delay(300));
+  }
+
+  getCaseById(id: string): Observable<Case | undefined> {
+    return of(this.mockCases.find((c) => c.id === id)).pipe(delay(200));
+  }
+
+  getTasks(filters?: any): Observable<Task[]> {
+    let tasks = [...this.mockTasks];
+    if (filters?.caseId) {
+      tasks = tasks.filter((t) => t.caseId === filters.caseId);
+    }
+    if (filters?.assigneeId) {
+      tasks = tasks.filter((t) => t.assigneeId === filters.assigneeId);
+    }
+    if (filters?.status) {
+      tasks = tasks.filter((t) => t.status === filters.status);
+    }
+    return of(tasks).pipe(delay(300));
+  }
+
+  getTaskById(id: string): Observable<Task | undefined> {
+    return of(this.mockTasks.find((t) => t.id === id)).pipe(delay(200));
+  }
+
+  getTasksByStatus(status: string): Observable<Task[]> {
+    return of(this.mockTasks.filter((t) => t.status === status)).pipe(delay(300));
+  }
+
+  getKanbanBoard(caseId?: string): Observable<KanbanBoard> {
+    let tasks = [...this.mockTasks];
+    if (caseId) {
+      tasks = tasks.filter((t) => t.caseId === caseId);
+    }
+
+    const board: KanbanBoard = {
+      pending: tasks.filter((t) => t.status === 'pending'),
+      inProgress: tasks.filter((t) => t.status === 'in_progress'),
+      review: tasks.filter((t) => t.status === 'review'),
+      done: tasks.filter((t) => t.status === 'completed'),
+      blocked: tasks.filter((t) => t.status === 'blocked'),
+    };
+    return of(board).pipe(delay(300));
+  }
+
+  getComments(caseId?: string, taskId?: string): Observable<Comment[]> {
+    let comments = [...this.mockComments];
+    if (caseId) {
+      comments = comments.filter((c) => c.caseId === caseId);
+    }
+    if (taskId) {
+      comments = comments.filter((c) => c.taskId === taskId);
+    }
+    return of(comments).pipe(delay(300));
+  }
+
+  getNotifications(userId: string): Observable<Notification[]> {
+    return of(this.mockNotifications.filter((n) => n.userId === userId)).pipe(delay(300));
+  }
+
+  getAuditLogs(entityId: string): Observable<AuditLog[]> {
+    return of(this.mockAuditLogs.filter((a) => a.entityId === entityId)).pipe(delay(300));
+  }
+
+  // Mock mutations (update operations)
+  updateCase(caseId: string, updates: Partial<Case>): Observable<Case> {
+    const caseIdx = this.mockCases.findIndex((c) => c.id === caseId);
+    if (caseIdx >= 0) {
+      this.mockCases[caseIdx] = { ...this.mockCases[caseIdx], ...updates };
+      return of(this.mockCases[caseIdx]).pipe(delay(500));
+    }
+    throw new Error('Case not found');
+  }
+
+  updateTask(taskId: string, updates: Partial<Task>): Observable<Task> {
+    const taskIdx = this.mockTasks.findIndex((t) => t.id === taskId);
+    if (taskIdx >= 0) {
+      this.mockTasks[taskIdx] = { ...this.mockTasks[taskIdx], ...updates };
+      return of(this.mockTasks[taskIdx]).pipe(delay(500));
+    }
+    throw new Error('Task not found');
+  }
+
+  addComment(comment: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Observable<Comment> {
+    const newComment: Comment = {
+      ...comment,
+      id: `comment-${Date.now()}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.mockComments.push(newComment);
+    return of(newComment).pipe(delay(500));
+  }
+
+  addNotification(notification: Omit<Notification, 'id' | 'createdAt'>): Observable<Notification> {
+    const newNotif: Notification = {
+      ...notification,
+      id: `notif-${Date.now()}`,
+      createdAt: new Date(),
+    };
+    this.mockNotifications.push(newNotif);
+    return of(newNotif).pipe(delay(300));
+  }
+
+  markNotificationAsRead(notificationId: string): Observable<Notification> {
+    const notifIdx = this.mockNotifications.findIndex((n) => n.id === notificationId);
+    if (notifIdx >= 0) {
+      this.mockNotifications[notifIdx].isRead = true;
+      this.mockNotifications[notifIdx].readAt = new Date();
+      return of(this.mockNotifications[notifIdx]).pipe(delay(300));
+    }
+    throw new Error('Notification not found');
+  }
+}
