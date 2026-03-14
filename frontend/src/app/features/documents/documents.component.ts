@@ -13,8 +13,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { Document as WfDocument } from '../../core/models';
 import * as DocumentsActions from '../../state/documents/documents.actions';
+import { environment } from '../../../environments/environment';
 import {
   selectDocumentsList,
   selectDocumentsLoading,
@@ -38,6 +40,7 @@ import {
     MatTableModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDialogModule,
   ],
   template: `
     <div class="p-6">
@@ -118,6 +121,12 @@ import {
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #docMenu="matMenu">
+                  <button mat-menu-item (click)="previewDoc(doc)">
+                    <mat-icon>visibility</mat-icon> Preview
+                  </button>
+                  <button mat-menu-item (click)="downloadDoc(doc)">
+                    <mat-icon>download</mat-icon> Download
+                  </button>
                   <button mat-menu-item (click)="viewVersions(doc)">
                     <mat-icon>history</mat-icon> Version History
                   </button>
@@ -156,6 +165,41 @@ import {
           <p>No documents found</p>
         </div>
       }
+
+      <!-- Preview Overlay -->
+      @if (previewDocument()) {
+        <div class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+             (click)="closePreview()">
+          <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col m-4"
+               (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between p-4 border-b">
+              <h3 class="font-semibold">{{ previewDocument()!.filename }}</h3>
+              <button mat-icon-button (click)="closePreview()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div class="flex-1 overflow-auto p-4 flex items-center justify-center min-h-[400px]">
+              @if (isPreviewableImage(previewDocument()!.contentType)) {
+                <img [src]="getPreviewUrl(previewDocument()!)"
+                     [alt]="previewDocument()!.filename"
+                     class="max-w-full max-h-[70vh] object-contain">
+              } @else if (previewDocument()!.contentType.includes('pdf')) {
+                <iframe [src]="getPreviewUrl(previewDocument()!)"
+                        class="w-full h-[70vh] border-0"
+                        title="PDF Preview"></iframe>
+              } @else {
+                <div class="text-center text-gray-400">
+                  <mat-icon class="!text-5xl !w-12 !h-12 mb-3">insert_drive_file</mat-icon>
+                  <p>Preview not available for this file type</p>
+                  <button mat-raised-button color="primary" class="mt-4" (click)="downloadDoc(previewDocument()!)">
+                    <mat-icon>download</mat-icon> Download
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -166,9 +210,11 @@ export class DocumentsComponent implements OnInit {
 
   isDragOver = signal(false);
   filteredDocuments = signal<WfDocument[]>([]);
+  previewDocument = signal<WfDocument | null>(null);
   searchTerm = '';
   uploadCaseId = '';
   uploadDescription = '';
+  private apiUrl = environment.apiUrl;
 
   private allDocuments: WfDocument[] = [];
 
@@ -276,5 +322,30 @@ export class DocumentsComponent implements OnInit {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
     return d.toLocaleDateString();
+  }
+
+  // ─── Preview & Download ─────────────────────────
+  previewDoc(doc: WfDocument): void {
+    this.previewDocument.set(doc);
+  }
+
+  closePreview(): void {
+    this.previewDocument.set(null);
+  }
+
+  isPreviewableImage(contentType: string): boolean {
+    return contentType.startsWith('image/');
+  }
+
+  getPreviewUrl(doc: WfDocument): string {
+    return `${this.apiUrl}/api/documents/${doc.id}/download`;
+  }
+
+  downloadDoc(doc: WfDocument): void {
+    const url = this.getPreviewUrl(doc);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.filename;
+    a.click();
   }
 }

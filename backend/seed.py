@@ -375,3 +375,184 @@ async def seed_all():
         },
     ]
     await db.notifications.insert_many(notifications)
+
+    # ─── Phase 2: Workflows ─────────────────────
+    workflows = [
+        {
+            "_id": "wf-loan",
+            "name": "Loan Origination Workflow",
+            "description": "Standard loan processing workflow from intake to disbursement",
+            "case_type_id": "ct-loan",
+            "definition": {
+                "nodes": [
+                    {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}},
+                    {"id": "n-intake", "type": "task", "label": "Intake Review", "position": {"x": 220, "y": 200}, "assigneeRole": "WORKER"},
+                    {"id": "n-docs", "type": "task", "label": "Document Collection", "position": {"x": 400, "y": 200}, "assigneeRole": "WORKER"},
+                    {"id": "n-uw", "type": "task", "label": "Underwriting", "position": {"x": 580, "y": 200}, "assigneeRole": "WORKER"},
+                    {"id": "n-decision", "type": "decision", "label": "Approval?", "position": {"x": 760, "y": 200}},
+                    {"id": "n-approve", "type": "task", "label": "VP Approval", "position": {"x": 940, "y": 100}, "assigneeRole": "MANAGER"},
+                    {"id": "n-disburse", "type": "task", "label": "Disbursement", "position": {"x": 1100, "y": 200}, "assigneeRole": "WORKER"},
+                    {"id": "n-end", "type": "end", "label": "End", "position": {"x": 1280, "y": 200}},
+                ],
+                "edges": [
+                    {"id": "e-1", "source": "n-start", "target": "n-intake"},
+                    {"id": "e-2", "source": "n-intake", "target": "n-docs"},
+                    {"id": "e-3", "source": "n-docs", "target": "n-uw"},
+                    {"id": "e-4", "source": "n-uw", "target": "n-decision"},
+                    {"id": "e-5", "source": "n-decision", "target": "n-approve", "label": "High value"},
+                    {"id": "e-6", "source": "n-decision", "target": "n-disburse", "label": "Standard"},
+                    {"id": "e-7", "source": "n-approve", "target": "n-disburse"},
+                    {"id": "e-8", "source": "n-disburse", "target": "n-end"},
+                ],
+            },
+            "version": 1,
+            "is_active": True,
+            "created_by": "user-admin",
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+    ]
+    await db.workflows.insert_many(workflows)
+
+    # ─── Phase 2: Approval Chains ───────────────
+    approval_chains = [
+        {
+            "_id": "approval-1",
+            "case_id": "case-3",
+            "workflow_id": "wf-loan",
+            "mode": "sequential",
+            "approvers": [
+                {"user_id": "user-1", "sequence": 0, "status": "approved", "decision_at": "2025-05-16T10:00:00Z", "decision_notes": "Financials look strong"},
+                {"user_id": "user-admin", "sequence": 1, "status": "pending", "decision_at": None, "decision_notes": None},
+            ],
+            "status": "pending",
+            "created_at": "2025-05-15T09:30:00Z",
+            "completed_at": None,
+        },
+    ]
+    await db.approval_chains.insert_many(approval_chains)
+
+    # ─── Phase 2: SLA Definitions ───────────────
+    sla_definitions = [
+        {
+            "_id": "sla-intake",
+            "case_type_id": "ct-loan",
+            "stage": "intake",
+            "hours_target": 24,
+            "escalation_enabled": True,
+            "escalate_to_role": "MANAGER",
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+        {
+            "_id": "sla-documents",
+            "case_type_id": "ct-loan",
+            "stage": "documents",
+            "hours_target": 72,
+            "escalation_enabled": True,
+            "escalate_to_role": "MANAGER",
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+        {
+            "_id": "sla-underwriting",
+            "case_type_id": "ct-loan",
+            "stage": "underwriting",
+            "hours_target": 120,
+            "escalation_enabled": True,
+            "escalate_to_role": "ADMIN",
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+    ]
+    await db.sla_definitions.insert_many(sla_definitions)
+
+    # ─── Phase 2: Form Definitions ──────────────
+    form_definitions = [
+        {
+            "_id": "form-loan-intake",
+            "name": "Loan Intake Form",
+            "case_type_id": "ct-loan",
+            "stage": "intake",
+            "description": "Initial loan application intake form",
+            "sections": [
+                {"id": "sec-applicant", "title": "Applicant Information", "order": 0},
+                {"id": "sec-loan", "title": "Loan Details", "order": 1},
+            ],
+            "fields": [
+                {"id": "f-name", "type": "text", "label": "Applicant Name", "placeholder": "Full legal name", "order": 0, "section": "sec-applicant", "validation": {"required": True, "minLength": 2, "maxLength": 100}},
+                {"id": "f-email", "type": "text", "label": "Email Address", "placeholder": "applicant@example.com", "order": 1, "section": "sec-applicant", "validation": {"required": True, "pattern": "^[\\w.-]+@[\\w.-]+\\.\\w+$"}},
+                {"id": "f-income", "type": "number", "label": "Annual Income", "placeholder": "e.g. 85000", "order": 2, "section": "sec-applicant", "validation": {"required": True, "minValue": 0}},
+                {"id": "f-loan-type", "type": "select", "label": "Loan Type", "order": 0, "section": "sec-loan", "validation": {"required": True, "options": ["Mortgage", "Personal", "Commercial", "Auto"]}},
+                {"id": "f-amount", "type": "number", "label": "Loan Amount", "placeholder": "Requested amount", "order": 1, "section": "sec-loan", "validation": {"required": True, "minValue": 1000, "maxValue": 10000000}},
+                {"id": "f-purpose", "type": "textarea", "label": "Loan Purpose", "placeholder": "Describe the purpose of the loan", "order": 2, "section": "sec-loan", "validation": {"required": False}},
+                {"id": "f-commercial-entity", "type": "text", "label": "Business Entity Name", "order": 3, "section": "sec-loan", "validation": {"required": False}, "visibleWhen": {"f-loan-type": "Commercial"}},
+                {"id": "f-terms", "type": "checkbox", "label": "I agree to the terms and conditions", "order": 4, "section": "sec-loan", "validation": {"required": True}},
+            ],
+            "version": 1,
+            "is_active": True,
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+    ]
+    await db.case_forms.insert_many(form_definitions)
+
+    # ─── Phase 2: Approval Routing Rules ────────
+    routing_rules = [
+        {
+            "_id": "rule-high-value",
+            "name": "High Value Loan VP Approval",
+            "case_type_id": "ct-loan",
+            "conditions": [
+                {"field": "loanAmount", "operator": "gt", "value": 100000},
+            ],
+            "approver_user_ids": ["user-1", "user-admin"],
+            "mode": "sequential",
+            "priority": 10,
+            "is_active": True,
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+        {
+            "_id": "rule-commercial",
+            "name": "Commercial Loan Extra Approval",
+            "case_type_id": "ct-loan",
+            "conditions": [
+                {"field": "loanType", "operator": "eq", "value": "Commercial"},
+                {"field": "loanAmount", "operator": "gte", "value": 250000},
+            ],
+            "approver_user_ids": ["user-admin"],
+            "mode": "sequential",
+            "priority": 20,
+            "is_active": True,
+            "created_at": "2025-01-15T00:00:00.000Z",
+        },
+    ]
+    await db.approval_routing_rules.insert_many(routing_rules)
+
+    # ─── Phase 2: Documents (metadata only) ─────
+    documents = [
+        {
+            "_id": "doc-1",
+            "case_id": "case-1",
+            "task_id": None,
+            "file_name": "w2_john_doe_2024.pdf",
+            "file_type": "application/pdf",
+            "file_size": 245760,
+            "version": 1,
+            "uploaded_by": "user-2",
+            "tags": ["w2", "income", "verification"],
+            "storage_path": "uploads/doc-1.pdf",
+            "current": True,
+            "created_at": "2025-06-03T10:30:00Z",
+        },
+        {
+            "_id": "doc-2",
+            "case_id": "case-3",
+            "task_id": None,
+            "file_name": "acme_corp_financials_2024.pdf",
+            "file_type": "application/pdf",
+            "file_size": 1048576,
+            "version": 1,
+            "uploaded_by": "user-1",
+            "tags": ["financials", "commercial"],
+            "storage_path": "uploads/doc-2.pdf",
+            "current": True,
+            "created_at": "2025-05-11T14:00:00Z",
+        },
+    ]
+    await db.documents.insert_many(documents)

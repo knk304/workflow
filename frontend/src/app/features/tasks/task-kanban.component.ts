@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -18,6 +18,7 @@ import { Store } from '@ngrx/store';
 import { selectKanbanBoard } from '../../state/tasks/tasks.selectors';
 import * as TasksActions from '../../state/tasks/tasks.actions';
 import { Task, KanbanBoard } from '../../core/models';
+import { WebSocketService } from '../../core/services/websocket.service';
 
 @Component({
   selector: 'app-task-kanban',
@@ -267,7 +268,15 @@ export class TaskKanbanComponent implements OnInit {
   priorityFilter = '';
   selectedTask: Task | null = null;
 
-  constructor(private store: Store) {}
+  constructor(private store: Store, private wsService: WebSocketService) {
+    // Listen for live task updates via WebSocket
+    effect(() => {
+      const msg = this.wsService.lastMessage();
+      if (msg?.type === 'task_updated') {
+        this.store.dispatch(TasksActions.loadKanbanBoard({}));
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.store.select(selectKanbanBoard).subscribe(board => {
@@ -310,6 +319,12 @@ export class TaskKanbanComponent implements OnInit {
           status: newStatus,
         })
       );
+
+      // Broadcast task update via WebSocket
+      this.wsService.send({
+        type: 'task_updated',
+        data: { taskId: task.id, status: newStatus },
+      });
     }
   }
 

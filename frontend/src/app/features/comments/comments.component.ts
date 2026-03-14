@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -10,11 +10,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Comment, Mention, User } from '../../core/models';
 import * as CommentsActions from '../../state/comments/comments.actions';
 import { selectComments, selectCommentsLoading } from '../../state/comments/comments.selectors';
 import { selectUser } from '../../state/auth/auth.selectors';
+import { WebSocketService } from '../../core/services/websocket.service';
 
 @Component({
   selector: 'app-comments',
@@ -193,13 +195,14 @@ import { selectUser } from '../../state/auth/auth.selectors';
     .comments-container { max-width: 800px; }
   `],
 })
-export class CommentsComponent implements OnInit, OnChanges {
+export class CommentsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() caseId: string = '';
   @Input() taskId: string = '';
 
   comments$: Observable<Comment[]>;
   isLoading$: Observable<boolean>;
   currentUser: User | null = null;
+  private destroy$ = new Subject<void>();
 
   commentForm: FormGroup;
   editCommentForm: FormGroup;
@@ -210,7 +213,8 @@ export class CommentsComponent implements OnInit, OnChanges {
 
   constructor(
     private formBuilder: FormBuilder,
-    private store: Store
+    private store: Store,
+    private wsService: WebSocketService,
   ) {
     this.comments$ = this.store.select(selectComments);
     this.isLoading$ = this.store.select(selectCommentsLoading);
@@ -224,10 +228,18 @@ export class CommentsComponent implements OnInit, OnChanges {
     this.replyForm = this.formBuilder.group({
       text: ['', [Validators.required, Validators.minLength(1)]],
     });
+
+    // Listen for live comment updates via WebSocket
+    effect(() => {
+      const msg = this.wsService.lastMessage();
+      if (msg?.type === 'comment_added' && this.caseId) {
+        this.loadComments();
+      }
+    });
   }
 
   ngOnInit(): void {
-    this.store.select(selectUser).subscribe((user) => {
+    this.store.select(selectUser).pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUser = user;
     });
     this.loadComments();
@@ -237,6 +249,11 @@ export class CommentsComponent implements OnInit, OnChanges {
     if (changes['caseId'] || changes['taskId']) {
       this.loadComments();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadComments(): void {
@@ -273,6 +290,12 @@ export class CommentsComponent implements OnInit, OnChanges {
         },
       })
     );
+
+    // Broadcast comment via WebSocket for real-time updates
+    this.wsService.send({
+      type: 'comment_added',
+      data: { text: commentText, userName: this.currentUser.name },
+    });
 
     this.commentForm.reset();
     this.showCommentForm = false;

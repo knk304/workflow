@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -94,6 +94,12 @@ import {
             <mat-form-field appearance="outline" class="mr-4 !mt-4" subscriptSizing="dynamic">
               <input matInput [(ngModel)]="workflowName" placeholder="Workflow name" class="!text-sm">
             </mat-form-field>
+            <button mat-icon-button matTooltip="Undo" (click)="undo()" [disabled]="!canUndo()">
+              <mat-icon>undo</mat-icon>
+            </button>
+            <button mat-icon-button matTooltip="Redo" (click)="redo()" [disabled]="!canRedo()">
+              <mat-icon>redo</mat-icon>
+            </button>
             <button mat-icon-button matTooltip="Save" (click)="saveWorkflow()">
               <mat-icon>save</mat-icon>
             </button>
@@ -104,6 +110,9 @@ import {
               <mat-icon>delete</mat-icon>
             </button>
             <span class="flex-1"></span>
+            @if (autoSaveStatus()) {
+              <span class="text-xs text-gray-400 mr-3">{{ autoSaveStatus() }}</span>
+            }
             @if (validationResult()) {
               <mat-chip-set>
                 @if (validationResult()!.valid) {
@@ -248,7 +257,7 @@ import {
     :host { display: block; height: calc(100vh - 64px); }
   `],
 })
-export class WorkflowDesignerComponent implements OnInit {
+export class WorkflowDesignerComponent implements OnInit, OnDestroy {
   workflows$ = this.store.select(selectWorkflowsList);
 
   selectedWorkflowId = signal<string | null>(null);
@@ -258,10 +267,20 @@ export class WorkflowDesignerComponent implements OnInit {
   selectedNodeId = signal<string | null>(null);
   connectingFrom = signal<string | null>(null);
   validationResult = signal<WorkflowValidationResult | null>(null);
+  autoSaveStatus = signal<string>('');
   workflowName = '';
 
   private dragTarget: WorkflowNode | null = null;
   private dragOffset = { x: 0, y: 0 };
+
+  // Undo/Redo
+  private undoStack: { nodes: WorkflowNode[]; edges: WorkflowEdge[] }[] = [];
+  private redoStack: { nodes: WorkflowNode[]; edges: WorkflowEdge[] }[] = [];
+  canUndo = signal(false);
+  canRedo = signal(false);
+
+  // Auto-save
+  private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   nodeTypes = [
     { type: 'start' as NodeType, label: 'Start', icon: '▶' },
@@ -329,6 +348,7 @@ export class WorkflowDesignerComponent implements OnInit {
 
   addNode(type: NodeType): void {
     if (!this.editingWorkflow()) return;
+    this.pushUndoState();
     const node: WorkflowNode = {
       id: `n-${Date.now()}`,
       type,
@@ -344,6 +364,7 @@ export class WorkflowDesignerComponent implements OnInit {
       // Complete connection
       const sourceId = this.connectingFrom()!;
       if (sourceId !== node.id) {
+        this.pushUndoState();
         const edge: WorkflowEdge = {
           id: `e-${Date.now()}`,
           source: sourceId,
@@ -398,6 +419,7 @@ export class WorkflowDesignerComponent implements OnInit {
   deleteNode(): void {
     const nodeId = this.selectedNodeId();
     if (!nodeId) return;
+    this.pushUndoState();
     this.canvasNodes.update(nodes => nodes.filter(n => n.id !== nodeId));
     this.canvasEdges.update(edges => edges.filter(e => e.source !== nodeId && e.target !== nodeId));
     this.selectedNodeId.set(null);
@@ -499,5 +521,65 @@ export class WorkflowDesignerComponent implements OnInit {
     this.canvasNodes.set([]);
     this.canvasEdges.set([]);
     this.snackBar.open('Workflow deleted', 'OK', { duration: 2000 });
+  }
+
+  // ─── Undo / Redo ──────────────────────────────
+  private pushUndoState(): void {
+    this.undoStack.push({
+      nodes: this.canvasNodes().map(n => ({ ...n, position: { ...n.position } })),
+      edges: this.canvasEdges().map(e => ({ ...e })),
+    });
+    this.redoStack = [];
+    this.canUndo.set(true);
+    this.canRedo.set(false);
+    this.scheduleAutoSave();
+  }
+
+  undo(): void {
+    if (!this.undoStack.length) return;
+    this.redoStack.push({
+      nodes: this.canvasNodes().map(n => ({ ...n, position: { ...n.position } })),
+      edges: this.canvasEdges().map(e => ({ ...e })),
+    });
+    const state = this.undoStack.pop()!;
+    this.canvasNodes.set(state.nodes);
+    this.canvasEdges.set(state.edges);
+    this.canUndo.set(this.undoStack.length > 0);
+    this.canRedo.set(true);
+  }
+
+  redo(): void {
+    if (!this.redoStack.length) return;
+    this.undoStack.push({
+      nodes: this.canvasNodes().map(n => ({ ...n, position: { ...n.position } })),
+      edges: this.canvasEdges().map(e => ({ ...e })),
+    });
+    const state = this.redoStack.pop()!;
+    this.canvasNodes.set(state.nodes);
+    this.canvasEdges.set(state.edges);
+    this.canUndo.set(true);
+    this.canRedo.set(this.redoStack.length > 0);
+  }
+
+  // ─── Auto-save (debounced 3 s) ─────────────────
+  private scheduleAutoSave(): void {
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+    this.autoSaveStatus.set('Unsaved changes...');
+    this.autoSaveTimer = setTimeout(() => {
+      const wf = this.editingWorkflow();
+      if (wf?.id) {
+        const definition = { nodes: this.canvasNodes(), edges: this.canvasEdges() };
+        this.store.dispatch(WorkflowsActions.updateWorkflow({
+          id: wf.id,
+          updates: { name: this.workflowName, definition },
+        }));
+        this.autoSaveStatus.set('Auto-saved');
+        setTimeout(() => this.autoSaveStatus.set(''), 2000);
+      }
+    }, 3000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
   }
 }

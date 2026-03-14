@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
@@ -15,12 +15,14 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
-import { of, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { of, Observable, Subject } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
 import { selectCasesList } from '../../state/cases/cases.selectors';
 import { Case, Task } from '../../core/models';
 import { CommentsComponent } from '../comments/comments.component';
 import { AuditLogComponent } from '../audit/audit-log.component';
+import { WebSocketService } from '../../core/services/websocket.service';
+import { selectUser } from '../../state/auth/auth.selectors';
 
 @Component({
   selector: 'app-case-detail',
@@ -79,6 +81,19 @@ import { AuditLogComponent } from '../audit/audit-log.component';
               </div>
             </div>
             <div class="flex items-center gap-3">
+              <!-- Presence Indicator -->
+              @if (wsService.connected()) {
+                <div class="flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full">
+                  <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                  <span class="text-xs text-green-700 font-medium">Live</span>
+                  @for (viewer of wsService.presenceUsers(); track viewer.id) {
+                    <div class="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold -ml-1 ring-2 ring-white"
+                         [matTooltip]="viewer.name">
+                      {{ viewer.name.charAt(0) }}
+                    </div>
+                  }
+                </div>
+              }
               <span class="wf-badge" [ngClass]="statusBadge(caseData.status)">
                 <span class="w-2 h-2 rounded-full inline-block" [ngClass]="statusDot(caseData.status)"></span>
                 {{ caseData.status | uppercase }}
@@ -450,10 +465,11 @@ import { AuditLogComponent } from '../audit/audit-log.component';
     }
   `],
 })
-export class CaseDetailComponent implements OnInit {
+export class CaseDetailComponent implements OnInit, OnDestroy {
   case$!: Observable<Case | undefined>;
   detailsForm: FormGroup;
   tasks: Task[] = [];
+  private destroy$ = new Subject<void>();
 
   stages = [
     { name: 'intake', order: 1 },
@@ -466,7 +482,8 @@ export class CaseDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private store: Store,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    public wsService: WebSocketService,
   ) {
     this.detailsForm = this.formBuilder.group({
       applicantName: [''],
@@ -487,12 +504,28 @@ export class CaseDetailComponent implements OnInit {
     );
 
     // Subscribe to populate form and tasks
-    this.case$.subscribe(selectedCase => {
+    this.case$.pipe(takeUntil(this.destroy$)).subscribe(selectedCase => {
       if (selectedCase) {
         this.updateForm(selectedCase);
         this.tasks = selectedCase.tasks || [];
       }
     });
+
+    // Connect WebSocket for live collaboration
+    if (caseId) {
+      this.store.select(selectUser).pipe(takeUntil(this.destroy$)).subscribe(user => {
+        if (user) {
+          // In production the token comes from the auth store; use user id as placeholder for mock
+          this.wsService.connect(caseId, user.id);
+        }
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.wsService.disconnect();
   }
 
   updateForm(case_: Case): void {

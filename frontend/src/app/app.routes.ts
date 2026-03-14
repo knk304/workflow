@@ -12,6 +12,7 @@ import { ApprovalsComponent } from './features/approvals/approvals.component';
 import { DocumentsComponent } from './features/documents/documents.component';
 import { SLADashboardComponent } from './features/sla/sla-dashboard.component';
 import { FormBuilderComponent } from './features/forms/form-builder.component';
+import { FormRendererPageComponent } from './features/forms/form-renderer-page.component';
 
 export const routes: Routes = [
   // Auth Routes (public)
@@ -81,6 +82,11 @@ export const routes: Routes = [
         path: 'forms',
         component: FormBuilderComponent,
         data: { title: 'Form Builder' },
+      },
+      {
+        path: 'forms/:formId/fill',
+        component: FormRendererPageComponent,
+        data: { title: 'Fill Form' },
       },
       {
         path: 'admin',

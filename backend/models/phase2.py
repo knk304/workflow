@@ -95,3 +95,35 @@ class SLADefinitionResponse(BaseModel):
     escalation_enabled: bool
     escalate_to_role: str
     created_at: str
+
+
+# ─── Approval Routing Rules ──────────────────────
+class ApprovalRoutingOperator(str, Enum):
+    eq = "eq"
+    neq = "neq"
+    gt = "gt"
+    gte = "gte"
+    lt = "lt"
+    lte = "lte"
+    contains = "contains"
+
+
+class ApprovalRoutingCondition(BaseModel):
+    field: str
+    operator: ApprovalRoutingOperator
+    value: str | int | float | bool
+
+
+class ApprovalRoutingRule(BaseModel):
+    name: str
+    case_type_id: str
+    conditions: list[ApprovalRoutingCondition]
+    approver_user_ids: list[str]
+    mode: ApprovalMode = ApprovalMode.sequential
+    priority: int = 0
+    is_active: bool = True
+
+
+class ApprovalRoutingRuleResponse(ApprovalRoutingRule):
+    id: str
+    created_at: str

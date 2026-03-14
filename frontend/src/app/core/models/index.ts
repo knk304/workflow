@@ -347,6 +347,7 @@ export interface FormField {
   order: number;
   section: string;
   visibleWhen?: Record<string, any>;
+  editableRoles?: string[];
 }
 
 export interface FormSection {

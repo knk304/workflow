@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import asyncio
 
 from config import get_settings
 from database import connect_db, close_db
 from seed import seed_all
+from routes.sla import check_sla_breaches
 
 from routes.auth import router as auth_router
 from routes.users import router as users_router
@@ -29,8 +31,24 @@ from routes.websocket import router as ws_router
 async def lifespan(app: FastAPI):
     await connect_db()
     await seed_all()
+
+    # Start SLA background checker (every 15 minutes)
+    sla_task = asyncio.create_task(_sla_scheduler())
     yield
+    sla_task.cancel()
     await close_db()
+
+
+async def _sla_scheduler():
+    """Run SLA breach checks every 15 minutes."""
+    while True:
+        try:
+            await asyncio.sleep(900)  # 15 minutes
+            await check_sla_breaches()
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            pass  # Log error but keep running
 
 
 app = FastAPI(
