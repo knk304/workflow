@@ -105,6 +105,7 @@ class CaseTypeResponse(BaseModel):
     transitions: list[dict[str, Any]] = []
     fieldsSchema: dict[str, Any] = {}
     workflowId: Optional[str] = None
+    stageFormMap: dict[str, str] = {}
 
 
 class CaseTypeCreate(BaseModel):

@@ -20,12 +20,13 @@ class NodePosition(BaseModel):
 
 
 class WorkflowNode(BaseModel):
+    model_config = {"populate_by_name": True}
     id: str
     type: NodeType
     label: str
     position: NodePosition = NodePosition()
-    assignee_role: Optional[str] = None
-    form_id: Optional[str] = None
+    assignee_role: Optional[str] = Field(default=None, alias="assigneeRole")
+    form_id: Optional[str] = Field(default=None, alias="formId")
     config: dict[str, Any] = {}
 
 
@@ -43,16 +44,18 @@ class WorkflowDefinition(BaseModel):
 
 
 class WorkflowCreate(BaseModel):
+    model_config = {"populate_by_name": True}
     name: str = Field(..., min_length=1, max_length=200)
     description: str = ""
-    case_type: Optional[str] = None
+    case_type: Optional[str] = Field(default=None, alias="caseTypeId")
     definition: WorkflowDefinition = WorkflowDefinition()
 
 
 class WorkflowUpdate(BaseModel):
+    model_config = {"populate_by_name": True}
     name: Optional[str] = None
     description: Optional[str] = None
-    case_type: Optional[str] = None
+    case_type: Optional[str] = Field(default=None, alias="caseTypeId")
     definition: Optional[WorkflowDefinition] = None
     is_active: Optional[bool] = None
 

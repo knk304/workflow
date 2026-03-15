@@ -15,25 +15,27 @@ router = APIRouter(prefix="/api/forms", tags=["forms"])
 # ---------- Models ----------
 
 class FieldValidation(BaseModel):
+    model_config = {"populate_by_name": True}
     required: bool = False
-    min_length: int | None = None
-    max_length: int | None = None
+    min_length: int | None = Field(default=None, alias="minLength")
+    max_length: int | None = Field(default=None, alias="maxLength")
     pattern: str | None = None
-    min_value: float | None = None
-    max_value: float | None = None
+    min_value: float | None = Field(default=None, alias="minValue")
+    max_value: float | None = Field(default=None, alias="maxValue")
     options: list[str] | None = None
 
 
 class FormField(BaseModel):
+    model_config = {"populate_by_name": True}
     id: str
     type: str  # text, textarea, number, date, select, checkbox, radio, file
     label: str
     placeholder: str = ""
-    default_value: str | None = None
+    default_value: str | None = Field(default=None, alias="defaultValue")
     validation: FieldValidation = FieldValidation()
     order: int = 0
     section: str = "default"
-    visible_when: dict | None = None  # conditional visibility
+    visible_when: dict | None = Field(default=None, alias="visibleWhen")  # conditional visibility
 
 
 class FormSection(BaseModel):
@@ -53,8 +55,9 @@ class FormDefinitionCreate(BaseModel):
 
 
 class FormSubmission(BaseModel):
-    form_id: str
-    case_id: str
+    model_config = {"populate_by_name": True}
+    form_id: str = Field(alias="formId")
+    case_id: str = Field(alias="caseId")
     data: dict
 
 
@@ -64,26 +67,26 @@ def _form_response(doc: dict) -> dict:
     return {
         "id": str(doc["_id"]),
         "name": doc["name"],
-        "case_type_id": doc.get("case_type_id"),
+        "caseTypeId": doc.get("case_type_id"),
         "stage": doc.get("stage"),
         "sections": doc.get("sections", []),
         "fields": doc["fields"],
         "description": doc.get("description", ""),
         "version": doc.get("version", 1),
-        "is_active": doc.get("is_active", True),
-        "created_at": doc["created_at"],
-        "updated_at": doc.get("updated_at"),
+        "isActive": doc.get("is_active", True),
+        "createdAt": doc["created_at"],
+        "updatedAt": doc.get("updated_at"),
     }
 
 
 def _submission_response(doc: dict) -> dict:
     return {
         "id": str(doc["_id"]),
-        "form_id": doc["form_id"],
-        "case_id": doc["case_id"],
+        "formId": doc["form_id"],
+        "caseId": doc["case_id"],
         "data": doc["data"],
-        "submitted_by": doc["submitted_by"],
-        "submitted_at": doc["submitted_at"],
+        "submittedBy": doc["submitted_by"],
+        "submittedAt": doc["submitted_at"],
     }
 
 
@@ -97,8 +100,8 @@ async def create_form_definition(body: FormDefinitionCreate, user: dict = Depend
         "name": body.name,
         "case_type_id": body.case_type_id,
         "stage": body.stage,
-        "sections": [s.model_dump() for s in body.sections],
-        "fields": [f.model_dump() for f in body.fields],
+        "sections": [s.model_dump(by_alias=True) for s in body.sections],
+        "fields": [f.model_dump(by_alias=True) for f in body.fields],
         "description": body.description,
         "version": 1,
         "is_active": True,
@@ -147,8 +150,8 @@ async def update_form_definition(form_id: str, body: FormDefinitionCreate, user:
         "name": body.name,
         "case_type_id": body.case_type_id,
         "stage": body.stage,
-        "sections": [s.model_dump() for s in body.sections],
-        "fields": [f.model_dump() for f in body.fields],
+        "sections": [s.model_dump(by_alias=True) for s in body.sections],
+        "fields": [f.model_dump(by_alias=True) for f in body.fields],
         "description": body.description,
         "version": doc.get("version", 1) + 1,
         "updated_at": now,

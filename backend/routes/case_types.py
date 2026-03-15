@@ -17,6 +17,7 @@ async def _build_response(db, doc: dict) -> CaseTypeResponse:
     workflow_id = doc.get("workflowId")
 
     # If linked to a workflow, derive stages from workflow task nodes
+    stage_form_map: dict[str, str] = {}
     if workflow_id:
         wf_doc = await find_by_id(db.workflows, workflow_id)
         if wf_doc:
@@ -27,6 +28,11 @@ async def _build_response(db, doc: dict) -> CaseTypeResponse:
             task_nodes = [n for n in nodes if n.get("type") in ("task", "subprocess")]
             task_nodes.sort(key=lambda n: n.get("position", {}).get("x", 0))
             stages = [n["label"] for n in task_nodes]
+            # Build stage → formId mapping (handle both camelCase and snake_case keys)
+            for n in task_nodes:
+                fid = n.get("formId") or n.get("form_id")
+                if fid:
+                    stage_form_map[n["label"]] = fid
             # Build transitions from edges between task nodes
             node_map = {n["id"]: n for n in nodes}
             derived_transitions = []
@@ -51,6 +57,7 @@ async def _build_response(db, doc: dict) -> CaseTypeResponse:
         transitions=transitions,
         fieldsSchema=doc.get("fieldsSchema", {}),
         workflowId=workflow_id,
+        stageFormMap=stage_form_map,
     )
 
 

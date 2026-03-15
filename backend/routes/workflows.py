@@ -15,19 +15,22 @@ from models.workflows import (
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
 
-def _to_response(doc: dict) -> WorkflowResponse:
-    return WorkflowResponse(
-        id=str(doc["_id"]),
-        name=doc["name"],
-        description=doc.get("description", ""),
-        case_type=doc.get("case_type") or doc.get("case_type_id"),
-        definition=WorkflowDefinition(**doc.get("definition", {})),
-        version=doc.get("version", 1),
-        is_active=doc.get("is_active", True),
-        created_by=doc.get("created_by", ""),
-        created_at=doc["created_at"],
-        updated_at=doc.get("updated_at", doc.get("created_at", "")),
-    )
+def _to_response(doc: dict) -> dict:
+    defn = doc.get("definition", {})
+    # Parse through Pydantic to normalize, then serialize with camelCase aliases
+    wd = WorkflowDefinition(**defn)
+    return {
+        "id": str(doc["_id"]),
+        "name": doc["name"],
+        "description": doc.get("description", ""),
+        "caseTypeId": doc.get("case_type") or doc.get("case_type_id") or "",
+        "definition": wd.model_dump(by_alias=True, mode="json"),
+        "version": doc.get("version", 1),
+        "isActive": doc.get("is_active", True),
+        "createdBy": doc.get("created_by", ""),
+        "createdAt": doc["created_at"],
+        "updatedAt": doc.get("updated_at", doc.get("created_at", "")),
+    }
 
 
 def _validate_definition(definition: WorkflowDefinition) -> list[ValError]:
@@ -94,7 +97,7 @@ def _validate_definition(definition: WorkflowDefinition) -> list[ValError]:
 
 # ---------- CRUD ----------
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=WorkflowResponse)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_workflow(body: WorkflowCreate, user: dict = Depends(get_current_user)):
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
@@ -102,7 +105,7 @@ async def create_workflow(body: WorkflowCreate, user: dict = Depends(get_current
         "name": body.name,
         "description": body.description,
         "case_type": body.case_type,
-        "definition": body.definition.model_dump(),
+        "definition": body.definition.model_dump(by_alias=True),
         "version": 1,
         "is_active": True,
         "created_by": str(user["_id"]),
@@ -114,7 +117,7 @@ async def create_workflow(body: WorkflowCreate, user: dict = Depends(get_current
     return _to_response(doc)
 
 
-@router.get("", response_model=list[WorkflowResponse])
+@router.get("")
 async def list_workflows(
     case_type: str | None = None,
     is_active: bool | None = None,
@@ -130,7 +133,7 @@ async def list_workflows(
     return [_to_response(doc) async for doc in cursor]
 
 
-@router.get("/{workflow_id}", response_model=WorkflowResponse)
+@router.get("/{workflow_id}")
 async def get_workflow(workflow_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
     doc = await find_by_id(db.workflows, workflow_id)
@@ -139,7 +142,7 @@ async def get_workflow(workflow_id: str, user: dict = Depends(get_current_user))
     return _to_response(doc)
 
 
-@router.patch("/{workflow_id}", response_model=WorkflowResponse)
+@router.patch("/{workflow_id}")
 async def update_workflow(
     workflow_id: str,
     body: WorkflowUpdate,
@@ -151,11 +154,16 @@ async def update_workflow(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found")
 
     updates: dict = {}
-    for field_name, value in body.model_dump(exclude_none=True).items():
-        if field_name == "definition" and value is not None:
-            updates["definition"] = value
-        else:
-            updates[field_name] = value
+    if body.name is not None:
+        updates["name"] = body.name
+    if body.description is not None:
+        updates["description"] = body.description
+    if body.case_type is not None:
+        updates["case_type"] = body.case_type
+    if body.definition is not None:
+        updates["definition"] = body.definition.model_dump(by_alias=True, mode="json")
+    if body.is_active is not None:
+        updates["is_active"] = body.is_active
 
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     updates["version"] = doc.get("version", 1) + 1
@@ -215,6 +223,6 @@ async def export_workflow(workflow_id: str, user: dict = Depends(get_current_use
     }
 
 
-@router.post("/import", status_code=status.HTTP_201_CREATED, response_model=WorkflowResponse)
+@router.post("/import", status_code=status.HTTP_201_CREATED)
 async def import_workflow(body: WorkflowCreate, user: dict = Depends(get_current_user)):
     return await create_workflow(body, user)

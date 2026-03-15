@@ -82,6 +82,7 @@ export interface CaseType {
   stages: string[];
   transitions: TransitionOption[];
   fieldsSchema: Record<string, FieldDefinition>;
+  stageFormMap?: Record<string, string>;
 }
 
 export interface FieldDefinition {

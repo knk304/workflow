@@ -85,6 +85,7 @@ async def seed_all():
             "name": "Loan Origination",
             "slug": "loan_origination",
             "description": "End-to-end loan processing workflow",
+            "workflowId": "wf-loan",
             "stages": ["intake", "documents", "underwriting", "approval", "disbursement"],
             "transitions": [
                 {"from": "intake", "action": "submit", "to": "documents", "roles": ["WORKER", "MANAGER"]},

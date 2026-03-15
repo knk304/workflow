@@ -502,7 +502,32 @@ export class CaseCreateComponent implements OnInit, OnDestroy {
 
     if (!ct) return;
 
-    // Try to load intake form from form definitions
+    // Determine intake stage (first stage in the list)
+    const intakeStage = ct.stages?.[0];
+
+    // Strategy 1: Use stageFormMap from workflow (preferred for dynamically created forms)
+    const intakeFormId = intakeStage && ct.stageFormMap?.[intakeStage];
+    if (intakeFormId) {
+      this.loadingForm.set(true);
+      this.dataService.getFormDefinitionById(intakeFormId).pipe(takeUntil(this.destroy$)).subscribe({
+        next: (form) => {
+          if (form) {
+            this.intakeFormDef.set(form);
+            this.buildFieldsFormFromDefinition(form);
+          } else {
+            this.buildLegacyFieldsForm(ct);
+          }
+          this.loadingForm.set(false);
+        },
+        error: () => {
+          this.buildLegacyFieldsForm(ct);
+          this.loadingForm.set(false);
+        },
+      });
+      return;
+    }
+
+    // Strategy 2: Query by case_type_id + stage (legacy seed data forms)
     this.loadingForm.set(true);
     this.dataService.getFormDefinitions(ct.id, 'intake').pipe(takeUntil(this.destroy$)).subscribe({
       next: (forms) => {
