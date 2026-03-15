@@ -106,6 +106,8 @@ async def get_kanban_board(
                 board.pending.append(resp)
             case "in_progress":
                 board.inProgress.append(resp)
+            case "review":
+                board.review.append(resp)
             case "completed":
                 board.done.append(resp)
             case "blocked":

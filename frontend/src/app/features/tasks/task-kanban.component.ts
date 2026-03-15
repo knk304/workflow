@@ -218,6 +218,7 @@ import { DataService } from '../../core/services/data.service';
                       <mat-select formControlName="status">
                         <mat-option value="pending">Pending</mat-option>
                         <mat-option value="in_progress">In Progress</mat-option>
+                        <mat-option value="review">Review</mat-option>
                         <mat-option value="completed">Completed</mat-option>
                         <mat-option value="blocked">Blocked</mat-option>
                       </mat-select>
@@ -391,7 +392,14 @@ export class TaskKanbanComponent implements OnInit {
   }
 
   getTasksForColumn(status: string): Task[] {
-    const tasks = this.kanbanBoard[status as keyof KanbanBoard] || [];
+    const keyMap: Record<string, keyof KanbanBoard> = {
+      pending: 'pending',
+      in_progress: 'inProgress',
+      review: 'review',
+      done: 'done',
+      blocked: 'blocked',
+    };
+    const tasks = this.kanbanBoard[keyMap[status] || status as keyof KanbanBoard] || [];
 
     let filtered = tasks;
 

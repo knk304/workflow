@@ -6,6 +6,7 @@ from enum import Enum
 class TaskStatus(str, Enum):
     pending = "pending"
     in_progress = "in_progress"
+    review = "review"
     completed = "completed"
     blocked = "blocked"
     cancelled = "cancelled"

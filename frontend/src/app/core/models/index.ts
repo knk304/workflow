@@ -33,7 +33,7 @@ export interface Case {
   id: string;
   type: string;
   caseType?: string; // Alias for type for compatibility
-  status: 'open' | 'pending' | 'resolved' | 'withdrawn';
+  status: 'open' | 'in_progress' | 'pending' | 'resolved' | 'withdrawn';
   stage: string;
   stageHistory?: StageHistory[]; // Alias for stages for compatibility
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -99,7 +99,7 @@ export interface Task {
   description: string;
   assigneeId?: string;
   teamId?: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'review' | 'completed' | 'blocked' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'critical';
   dueDate?: string;
   dependsOn: string[];

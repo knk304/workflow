@@ -5,6 +5,7 @@ from enum import Enum
 
 class CaseStatus(str, Enum):
     open = "open"
+    in_progress = "in_progress"
     pending = "pending"
     resolved = "resolved"
     withdrawn = "withdrawn"

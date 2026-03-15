@@ -206,6 +206,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                         <mat-label>Status</mat-label>
                         <mat-select formControlName="status" [disabled]="!editing()">
                           <mat-option value="open">Open</mat-option>
+                          <mat-option value="in_progress">In Progress</mat-option>
                           <mat-option value="pending">Pending</mat-option>
                           <mat-option value="resolved">Resolved</mat-option>
                           <mat-option value="withdrawn">Withdrawn</mat-option>
@@ -335,6 +336,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                                   <mat-select formControlName="status">
                                     <mat-option value="pending">Pending</mat-option>
                                     <mat-option value="in_progress">In Progress</mat-option>
+                                    <mat-option value="review">Review</mat-option>
                                     <mat-option value="completed">Completed</mat-option>
                                     <mat-option value="blocked">Blocked</mat-option>
                                   </mat-select>
@@ -1046,6 +1048,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusIcon(status: string): string {
     const icons: Record<string, string> = {
       open: 'folder_open',
+      in_progress: 'play_circle',
       pending: 'hourglass_empty',
       resolved: 'check_circle',
       withdrawn: 'cancel',
@@ -1056,6 +1059,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusColor(status: string): string {
     return {
       open: 'text-[#056DAE]',
+      in_progress: 'text-purple-600',
       pending: 'text-amber-600',
       resolved: 'text-emerald-600',
       withdrawn: 'text-red-600',
@@ -1065,6 +1069,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusBg(status: string): string {
     return {
       open: 'bg-[#EAF4FB]',
+      in_progress: 'bg-purple-50',
       pending: 'bg-amber-50',
       resolved: 'bg-emerald-50',
       withdrawn: 'bg-red-50',
@@ -1074,6 +1079,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusBadge(status: string): string {
     return {
       open: 'wf-badge--info',
+      in_progress: 'wf-badge--purple',
       pending: 'wf-badge--warning',
       resolved: 'wf-badge--success',
       withdrawn: 'wf-badge--danger',
@@ -1083,6 +1089,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusDot(status: string): string {
     return {
       open: 'bg-[#056DAE]',
+      in_progress: 'bg-purple-500',
       pending: 'bg-amber-500',
       resolved: 'bg-emerald-500',
       withdrawn: 'bg-red-500',
@@ -1115,6 +1122,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     const icons: Record<string, string> = {
       pending: 'schedule',
       in_progress: 'play_circle',
+      review: 'visibility',
       completed: 'check_circle',
       blocked: 'block',
     };
@@ -1125,6 +1133,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     return {
       pending: 'text-slate-500',
       in_progress: 'text-[#056DAE]',
+      review: 'text-orange-600',
       completed: 'text-emerald-600',
       blocked: 'text-red-600',
     }[status] || 'text-slate-500';
@@ -1134,6 +1143,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     return {
       pending: 'bg-slate-100',
       in_progress: 'bg-[#EAF4FB]',
+      review: 'bg-orange-50',
       completed: 'bg-emerald-50',
       blocked: 'bg-red-50',
     }[status] || 'bg-slate-100';
