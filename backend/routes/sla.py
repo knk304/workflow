@@ -94,13 +94,13 @@ async def sla_dashboard(user: dict = Depends(get_current_user)):
             "type": doc["type"],
             "stage": doc["stage"],
             "priority": doc["priority"],
-            "owner_id": doc["ownerId"],
-            "sla_target": target_str,
-            "percentage_elapsed": round(pct, 1),
-            "remaining_hours": round(remaining_hours, 1),
+            "ownerId": doc["ownerId"],
+            "slaTarget": target_str,
+            "percentageElapsed": round(pct, 1),
+            "remainingHours": round(remaining_hours, 1),
             "risk": risk,
             "escalated": sla.get("escalated", False),
-            "escalation_level": sla.get("escalationLevel", 0),
+            "escalationLevel": sla.get("escalationLevel", 0),
         })
 
     # Sort by risk severity
