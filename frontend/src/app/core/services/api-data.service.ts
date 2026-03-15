@@ -219,14 +219,34 @@ export class ApiDataService extends DataService {
   }
 
   // ─── Documents ──────────────────────────────────
+  private mapDoc(raw: any): Document {
+    return {
+      id: raw.id,
+      caseId: raw.case_id ?? raw.caseId ?? '',
+      filename: raw.file_name ?? raw.filename ?? '',
+      contentType: raw.file_type ?? raw.contentType ?? '',
+      sizeBytes: raw.file_size ?? raw.sizeBytes ?? 0,
+      version: raw.version ?? 1,
+      isCurrent: raw.current ?? raw.isCurrent ?? true,
+      uploadedBy: raw.uploaded_by ?? raw.uploadedBy ?? '',
+      uploadedAt: raw.created_at ?? raw.uploadedAt ?? '',
+      description: raw.description,
+      tags: raw.tags ?? [],
+    };
+  }
+
   getDocuments(caseId?: string): Observable<Document[]> {
     let params = new HttpParams();
     if (caseId) { params = params.set('case_id', caseId); }
-    return this.http.get<Document[]>(`${this.caseUrl}/documents`, { params });
+    return this.http.get<any[]>(`${this.caseUrl}/documents`, { params }).pipe(
+      map(docs => docs.map(d => this.mapDoc(d)))
+    );
   }
 
   getDocumentById(id: string): Observable<Document> {
-    return this.http.get<Document>(`${this.caseUrl}/documents/${id}`);
+    return this.http.get<any>(`${this.caseUrl}/documents/${id}`).pipe(
+      map(d => this.mapDoc(d))
+    );
   }
 
   uploadDocument(caseId: string, file: File, description?: string, tags?: string[]): Observable<Document> {
@@ -235,7 +255,9 @@ export class ApiDataService extends DataService {
     formData.append('case_id', caseId);
     if (description) formData.append('description', description);
     if (tags) formData.append('tags', tags.join(','));
-    return this.http.post<Document>(`${this.caseUrl}/documents`, formData);
+    return this.http.post<any>(`${this.caseUrl}/documents`, formData).pipe(
+      map(d => this.mapDoc(d))
+    );
   }
 
   deleteDocument(id: string): Observable<void> {
@@ -243,7 +265,9 @@ export class ApiDataService extends DataService {
   }
 
   getDocumentVersions(id: string): Observable<DocumentVersion[]> {
-    return this.http.get<DocumentVersion[]>(`${this.caseUrl}/documents/${id}/versions`);
+    return this.http.get<any[]>(`${this.caseUrl}/documents/${id}/versions`).pipe(
+      map(versions => versions.map(d => this.mapDoc(d) as any))
+    );
   }
 
   // ─── SLA ────────────────────────────────────────

@@ -283,6 +283,7 @@ export class DocumentsComponent implements OnInit {
   }
 
   getFileIcon(contentType: string): string {
+    if (!contentType) return 'insert_drive_file';
     if (contentType.includes('pdf')) return 'picture_as_pdf';
     if (contentType.includes('image')) return 'image';
     if (contentType.includes('spreadsheet') || contentType.includes('excel')) return 'table_chart';
@@ -291,6 +292,7 @@ export class DocumentsComponent implements OnInit {
   }
 
   getFileIconBg(contentType: string): string {
+    if (!contentType) return 'bg-[#EAF4FB]';
     if (contentType.includes('pdf')) return 'bg-red-50';
     if (contentType.includes('image')) return 'bg-purple-50';
     if (contentType.includes('spreadsheet') || contentType.includes('excel')) return 'bg-green-50';
@@ -298,6 +300,7 @@ export class DocumentsComponent implements OnInit {
   }
 
   getFileIconColor(contentType: string): string {
+    if (!contentType) return 'text-[#056DAE]';
     if (contentType.includes('pdf')) return 'text-red-500';
     if (contentType.includes('image')) return 'text-purple-500';
     if (contentType.includes('spreadsheet') || contentType.includes('excel')) return 'text-green-500';
