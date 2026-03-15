@@ -12,8 +12,9 @@ from models.cases import (
     TransitionRequest, SLAInfo, StageHistory, StageStatus,
 )
 from engine.lifecycle import (
-    get_next_stage, build_stage_entry, complete_current_stage,
-    WORKFLOW_DEFINITIONS, TransitionDeniedError,
+    get_next_stage, get_first_stage, get_available_transitions,
+    get_workflow_definition, build_stage_entry, complete_current_stage,
+    TransitionDeniedError,
 )
 
 router = APIRouter(prefix="/api/cases", tags=["cases"])
@@ -58,10 +59,7 @@ async def create_case(body: CaseCreate, user: dict = Depends(get_current_user)):
     now = datetime.now(timezone.utc).isoformat()
     sla_target = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
 
-    first_stage = "intake"
-    definition = WORKFLOW_DEFINITIONS.get(body.type)
-    if definition:
-        first_stage = definition["stages"][0]
+    first_stage = await get_first_stage(body.type)
 
     doc = {
         "type": body.type,
@@ -163,7 +161,7 @@ async def transition_stage(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
 
     try:
-        next_stage = get_next_stage(
+        next_stage = await get_next_stage(
             doc["type"], doc["stage"], body.action, user.get("role", "WORKER")
         )
     except TransitionDeniedError as exc:
@@ -174,9 +172,9 @@ async def transition_stage(
     stages.append(build_stage_entry(next_stage))
 
     new_status = doc["status"]
-    definition = WORKFLOW_DEFINITIONS.get(doc["type"], {})
-    all_stages = definition.get("stages", [])
-    if next_stage == all_stages[-1] if all_stages else False:
+    definition = await get_workflow_definition(doc["type"])
+    all_stages = definition.get("stages", []) if definition else []
+    if all_stages and next_stage == all_stages[-1]:
         new_status = "resolved"
 
     now = datetime.now(timezone.utc).isoformat()
@@ -198,3 +196,21 @@ async def transition_stage(
 
     updated = await find_by_id(db.cases, case_id)
     return _to_response(updated)
+
+
+# ---------- Available transitions ----------
+
+@router.get("/{case_id}/transitions")
+async def list_available_transitions(
+    case_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Return available stage transitions for the given case based on user role."""
+    db = get_db()
+    doc = await find_by_id(db.cases, case_id)
+    if not doc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
+
+    user_role = user.get("role", "WORKER")
+    transitions = await get_available_transitions(doc["type"], doc["stage"], user_role)
+    return transitions

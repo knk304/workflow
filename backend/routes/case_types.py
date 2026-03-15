@@ -17,8 +17,10 @@ async def list_case_types(user: dict = Depends(get_current_user)):
         results.append(CaseTypeResponse(
             id=str(doc["_id"]),
             name=doc["name"],
+            slug=doc.get("slug", ""),
             description=doc.get("description", ""),
             stages=doc.get("stages", []),
+            transitions=doc.get("transitions", []),
             fieldsSchema=doc.get("fieldsSchema", {}),
         ))
     return results

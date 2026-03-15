@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Any
 from enum import Enum
 
@@ -80,11 +80,20 @@ class TransitionRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class TransitionOption(BaseModel):
+    model_config = {"populate_by_name": True}
+    action: str
+    to: str
+    from_stage: Optional[str] = Field(default=None, alias="from")
+
+
 class CaseTypeResponse(BaseModel):
     id: str
     name: str
+    slug: str = ""
     description: str
     stages: list[str]
+    transitions: list[dict[str, Any]] = []
     fieldsSchema: dict[str, Any] = {}
 
 

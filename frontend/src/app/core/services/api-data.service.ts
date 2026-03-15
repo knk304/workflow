@@ -10,6 +10,7 @@ import {
   Document, DocumentVersion,
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
+  TransitionOption,
 } from '../models';
 import { DataService } from './data.service';
 import { environment } from '../../../environments/environment';
@@ -96,7 +97,11 @@ export class ApiDataService extends DataService {
   }
 
   transitionCase(caseId: string, action: string, notes?: string): Observable<Case> {
-    return this.http.post<Case>(`${this.caseUrl}/cases/${caseId}/stage`, { action, notes });
+    return this.http.patch<Case>(`${this.caseUrl}/cases/${caseId}/stage`, { action, notes });
+  }
+
+  getAvailableTransitions(caseId: string): Observable<TransitionOption[]> {
+    return this.http.get<TransitionOption[]>(`${this.caseUrl}/cases/${caseId}/transitions`);
   }
 
   // ─── Tasks ───────────────────────────────────────

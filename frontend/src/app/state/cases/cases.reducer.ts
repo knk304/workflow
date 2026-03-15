@@ -39,9 +39,20 @@ export const casesReducer = createReducer(
     isLoading: false,
     error,
   })),
+  on(CasesActions.loadCaseById, (state) => ({
+    ...state,
+    isLoading: true,
+    error: null,
+  })),
   on(CasesActions.loadCaseByIdSuccess, (state, { case: caseData }) => ({
     ...state,
     selected: caseData,
+    isLoading: false,
+  })),
+  on(CasesActions.loadCaseByIdFailure, (state, { error }) => ({
+    ...state,
+    isLoading: false,
+    error,
   })),
   on(CasesActions.selectCase, (state, { caseId }) => ({
     ...state,
@@ -52,10 +63,18 @@ export const casesReducer = createReducer(
     list: state.list.map((c) => (c.id === updatedCase.id ? updatedCase : c)),
     selected: state.selected?.id === updatedCase.id ? updatedCase : state.selected,
   })),
+  on(CasesActions.updateCaseFailure, (state, { error }) => ({
+    ...state,
+    error,
+  })),
   on(CasesActions.transitionCaseSuccess, (state, { case: transitionedCase }) => ({
     ...state,
     list: state.list.map((c) => (c.id === transitionedCase.id ? transitionedCase : c)),
     selected: state.selected?.id === transitionedCase.id ? transitionedCase : state.selected,
+  })),
+  on(CasesActions.transitionCaseFailure, (state, { error }) => ({
+    ...state,
+    error,
   })),
   on(CasesActions.clearError, (state) => ({
     ...state,

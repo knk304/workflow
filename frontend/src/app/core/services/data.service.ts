@@ -7,6 +7,7 @@ import {
   Document, DocumentVersion,
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
+  TransitionOption,
 } from '../models';
 
 export abstract class DataService {
@@ -33,6 +34,7 @@ export abstract class DataService {
   abstract createCase(caseData: Partial<Case>): Observable<Case>;
   abstract updateCase(caseId: string, updates: Partial<Case>): Observable<Case>;
   abstract transitionCase(caseId: string, action: string, notes?: string): Observable<Case>;
+  abstract getAvailableTransitions(caseId: string): Observable<TransitionOption[]>;
 
   // Tasks
   abstract getTasks(filters?: Record<string, string>): Observable<Task[]>;

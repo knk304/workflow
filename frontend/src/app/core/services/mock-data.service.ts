@@ -21,6 +21,7 @@ import {
   SLADefinition,
   FormDefinition,
   FormSubmission,
+  TransitionOption,
 } from '../models';
 import { DataService } from './data.service';
 
@@ -89,8 +90,18 @@ export class MockDataService extends DataService {
     {
       id: 'case-type-1',
       name: 'loan_origination',
+      slug: 'loan_origination',
       description: 'Personal or business loan application',
       stages: ['intake', 'documents', 'underwriting', 'approval', 'disbursement'],
+      transitions: [
+        { action: 'submit', from: 'intake', to: 'documents' },
+        { action: 'verify', from: 'documents', to: 'underwriting' },
+        { action: 'approve', from: 'underwriting', to: 'approval' },
+        { action: 'reject', from: 'underwriting', to: 'intake' },
+        { action: 'approve', from: 'approval', to: 'disbursement' },
+        { action: 'reject', from: 'approval', to: 'underwriting' },
+        { action: 'complete', from: 'disbursement', to: 'disbursement' },
+      ],
       fieldsSchema: {
         applicantName: {
           type: 'text',
@@ -125,8 +136,15 @@ export class MockDataService extends DataService {
     {
       id: 'case-type-2',
       name: 'support_ticket',
+      slug: 'support_ticket',
       description: 'Customer support request',
       stages: ['open', 'in_progress', 'waiting_info', 'resolved'],
+      transitions: [
+        { action: 'assign', from: 'open', to: 'in_progress' },
+        { action: 'request_info', from: 'in_progress', to: 'waiting_info' },
+        { action: 'resolve', from: 'in_progress', to: 'resolved' },
+        { action: 'respond', from: 'waiting_info', to: 'in_progress' },
+      ],
       fieldsSchema: {
         issueTitle: {
           type: 'text',
@@ -694,6 +712,25 @@ export class MockDataService extends DataService {
       return of(caseData).pipe(delay(500));
     }
     throw new Error('Case not found');
+  }
+
+  getAvailableTransitions(caseId: string): Observable<TransitionOption[]> {
+    const caseData = this.mockCases.find((c) => c.id === caseId);
+    if (!caseData) return of([]);
+    const mockTransitions: Record<string, TransitionOption[]> = {
+      intake: [{ action: 'submit', from: 'intake', to: 'documents' }],
+      documents: [{ action: 'verify', from: 'documents', to: 'underwriting' }],
+      underwriting: [
+        { action: 'approve', from: 'underwriting', to: 'approval' },
+        { action: 'reject', from: 'underwriting', to: 'intake' },
+      ],
+      approval: [
+        { action: 'approve', from: 'approval', to: 'disbursement' },
+        { action: 'reject', from: 'approval', to: 'underwriting' },
+      ],
+      disbursement: [{ action: 'complete', from: 'disbursement', to: 'disbursement' }],
+    };
+    return of(mockTransitions[caseData.stage] || []).pipe(delay(300));
   }
 
   createTask(task: Partial<Task>): Observable<Task> {

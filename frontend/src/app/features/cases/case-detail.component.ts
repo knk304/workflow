@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, effect, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, RouterLink, Router } from '@angular/router';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,7 +21,7 @@ import { map, takeUntil, switchMap } from 'rxjs/operators';
 import { selectCasesList, selectSelectedCase } from '../../state/cases/cases.selectors';
 import * as CasesActions from '../../state/cases/cases.actions';
 import * as TasksActions from '../../state/tasks/tasks.actions';
-import { Case, Task } from '../../core/models';
+import { Case, Task, TransitionOption, CaseType, FormDefinition, FormField } from '../../core/models';
 import { CommentsComponent } from '../comments/comments.component';
 import { AuditLogComponent } from '../audit/audit-log.component';
 import { WebSocketService } from '../../core/services/websocket.service';
@@ -35,6 +35,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    RouterLink,
     MatTabsModule,
     MatCardModule,
     MatButtonModule,
@@ -81,7 +82,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 <p class="text-slate-500 mt-0.5">
                   {{ caseData.fields['applicantName'] }}
                   <span class="mx-1.5 text-slate-300">|</span>
-                  <span class="wf-badge wf-badge--neutral">{{ caseData.caseType | uppercase }}</span>
+                  <span class="wf-badge wf-badge--neutral">{{ caseData.type | uppercase }}</span>
                 </p>
               </div>
             </div>
@@ -118,7 +119,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
               Case Journey
             </h3>
             <span class="text-xs font-semibold text-[#056DAE] bg-[#EAF4FB] px-3 py-1 rounded-full">
-              {{ getProgressPercentage(caseData.stageHistory ?? []) | number:'1.0-0' }}% Complete
+              {{ getProgressPercentage(caseData.stages) | number:'1.0-0' }}% Complete
             </span>
           </div>
 
@@ -127,14 +128,14 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
             <!-- Connector line behind circles -->
             <div class="absolute top-5 left-[5%] right-[5%] h-0.5 bg-slate-200 z-0"></div>
             <div class="absolute top-5 left-[5%] h-0.5 bg-[#056DAE] z-0 transition-all duration-500"
-                 [style.width.%]="getProgressPercentage(caseData.stageHistory ?? []) * 0.9"></div>
+                 [style.width.%]="getProgressPercentage(caseData.stages) * 0.9"></div>
 
             @for (stage of stages; track stage.name) {
               <div class="flex flex-col items-center z-10 flex-1">
                 <!-- Circle -->
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ring-4 ring-white"
-                     [ngClass]="stageCircleClass(caseData.stageHistory ?? [], stage.name)">
-                  @if (isStageCompleted(caseData.stageHistory ?? [], stage.name)) {
+                     [ngClass]="stageCircleClass(caseData.stages, stage.name)">
+                  @if (isStageCompleted(caseData.stages, stage.name)) {
                     <mat-icon class="text-lg">check</mat-icon>
                   } @else if (isStageActive(caseData.stage, stage.name)) {
                     <mat-icon class="text-lg animate-pulse">fiber_manual_record</mat-icon>
@@ -144,7 +145,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </div>
                 <!-- Label -->
                 <span class="text-[11px] font-semibold mt-2 text-center leading-tight"
-                      [ngClass]="isStageCompleted(caseData.stageHistory ?? [], stage.name) ? 'text-emerald-700' :
+                      [ngClass]="isStageCompleted(caseData.stages, stage.name) ? 'text-emerald-700' :
                                  isStageActive(caseData.stage, stage.name) ? 'text-[#003B70]' : 'text-slate-400'">
                   {{ stage.name | uppercase }}
                 </span>
@@ -156,7 +157,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
           <div class="mt-5">
             <mat-progress-bar
               mode="determinate"
-              [value]="getProgressPercentage(caseData.stageHistory ?? [])"
+              [value]="getProgressPercentage(caseData.stages)"
             ></mat-progress-bar>
           </div>
         </div>
@@ -176,46 +177,45 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </ng-template>
 
                 <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
-                  <form [formGroup]="detailsForm" class="space-y-5">
+                  <form [formGroup]="detailsForm" (ngSubmit)="saveChanges()" class="space-y-5">
+                    <!-- Dynamic fields from case data -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <mat-form-field class="w-full">
-                        <mat-label>Applicant Name</mat-label>
-                        <input matInput formControlName="applicantName" readonly />
-                        <mat-icon matIconPrefix>person</mat-icon>
-                      </mat-form-field>
-
-                      <mat-form-field class="w-full">
-                        <mat-label>Loan Amount</mat-label>
-                        <input matInput formControlName="loanAmount" readonly />
-                        <mat-icon matIconPrefix>payments</mat-icon>
-                      </mat-form-field>
-
-                      <mat-form-field class="w-full">
-                        <mat-label>Interest Rate</mat-label>
-                        <input matInput formControlName="interestRate" readonly />
-                        <mat-icon matIconPrefix>percent</mat-icon>
-                      </mat-form-field>
-
-                      <mat-form-field class="w-full">
-                        <mat-label>Loan Term (months)</mat-label>
-                        <input matInput formControlName="loanTerm" readonly />
-                        <mat-icon matIconPrefix>date_range</mat-icon>
-                      </mat-form-field>
+                      @for (field of dynamicFields; track field.key) {
+                        <mat-form-field class="w-full">
+                          <mat-label>{{ field.label }}</mat-label>
+                          @if (field.type === 'select' && field.options) {
+                            <mat-select [formControlName]="field.key" [disabled]="!editing()">
+                              @for (opt of field.options; track opt) {
+                                <mat-option [value]="opt">{{ opt }}</mat-option>
+                              }
+                            </mat-select>
+                          } @else if (field.type === 'number') {
+                            <input matInput type="number" [formControlName]="field.key" [readonly]="!editing()" />
+                          } @else if (field.type === 'textarea') {
+                            <textarea matInput [formControlName]="field.key" rows="3" [readonly]="!editing()"></textarea>
+                          } @else {
+                            <input matInput [formControlName]="field.key" [readonly]="!editing()" />
+                          }
+                          @if (field.icon) {
+                            <mat-icon matIconPrefix>{{ field.icon }}</mat-icon>
+                          }
+                        </mat-form-field>
+                      }
 
                       <mat-form-field class="w-full">
                         <mat-label>Status</mat-label>
-                        <mat-select formControlName="status">
+                        <mat-select formControlName="status" [disabled]="!editing()">
                           <mat-option value="open">Open</mat-option>
-                          <mat-option value="in_progress">In Progress</mat-option>
-                          <mat-option value="pending_review">Pending Review</mat-option>
-                          <mat-option value="closed">Closed</mat-option>
+                          <mat-option value="pending">Pending</mat-option>
+                          <mat-option value="resolved">Resolved</mat-option>
+                          <mat-option value="withdrawn">Withdrawn</mat-option>
                         </mat-select>
                         <mat-icon matIconPrefix>flag</mat-icon>
                       </mat-form-field>
 
                       <mat-form-field class="w-full">
                         <mat-label>Priority</mat-label>
-                        <mat-select formControlName="priority">
+                        <mat-select formControlName="priority" [disabled]="!editing()">
                           <mat-option value="critical">Critical</mat-option>
                           <mat-option value="high">High</mat-option>
                           <mat-option value="medium">Medium</mat-option>
@@ -227,20 +227,22 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
 
                     <mat-form-field class="w-full">
                       <mat-label>Notes</mat-label>
-                      <textarea matInput formControlName="notes" rows="4"></textarea>
+                      <textarea matInput formControlName="notes" rows="4" [readonly]="!editing()"></textarea>
                       <mat-icon matIconPrefix>notes</mat-icon>
                     </mat-form-field>
 
-                    <div class="flex gap-3 pt-2">
-                      <button mat-raised-button color="primary">
-                        <mat-icon>save</mat-icon>
-                        Save Changes
-                      </button>
-                      <button mat-stroked-button>
-                        <mat-icon>undo</mat-icon>
-                        Reset
-                      </button>
-                    </div>
+                    @if (editing()) {
+                      <div class="flex gap-3 pt-2">
+                        <button mat-raised-button color="primary" type="submit">
+                          <mat-icon>save</mat-icon>
+                          Save Changes
+                        </button>
+                        <button mat-stroked-button type="button" (click)="cancelEdit()">
+                          <mat-icon>undo</mat-icon>
+                          Cancel
+                        </button>
+                      </div>
+                    }
                   </form>
                 </div>
               </mat-tab>
@@ -396,7 +398,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </div>
                 <div class="px-5 py-3">
                   <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Type</p>
-                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.caseType | uppercase }}</p>
+                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.type | uppercase }}</p>
                 </div>
                 <div class="px-5 py-3">
                   <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Current Stage</p>
@@ -466,24 +468,58 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </h4>
               </div>
               <div class="p-4 space-y-2">
-                <button mat-stroked-button class="w-full justify-start">
-                  <mat-icon class="text-[#056DAE]">edit</mat-icon>
-                  <span class="ml-1">Edit Case</span>
+                <button mat-stroked-button class="w-full justify-start" (click)="toggleEdit()">
+                  <mat-icon class="text-[#056DAE]">{{ editing() ? 'edit_off' : 'edit' }}</mat-icon>
+                  <span class="ml-1">{{ editing() ? 'Cancel Edit' : 'Edit Case' }}</span>
                 </button>
-                <button mat-stroked-button class="w-full justify-start">
+                <button mat-stroked-button class="w-full justify-start" (click)="showTransitionPanel.set(!showTransitionPanel())">
                   <mat-icon class="text-purple-500">swap_horiz</mat-icon>
                   <span class="ml-1">Transition Stage</span>
                 </button>
-                <button mat-stroked-button class="w-full justify-start">
+                <button mat-stroked-button class="w-full justify-start" (click)="scrollToComments()">
                   <mat-icon class="text-cyan-500">chat_bubble_outline</mat-icon>
                   <span class="ml-1">Add Comment</span>
                 </button>
-                <button mat-stroked-button class="w-full justify-start text-red-600">
+                <button mat-stroked-button class="w-full justify-start text-red-600" (click)="closeCase()">
                   <mat-icon>archive</mat-icon>
                   <span class="ml-1">Close Case</span>
                 </button>
               </div>
             </div>
+
+            <!-- Transition Panel -->
+            @if (showTransitionPanel()) {
+              <div class="bg-white rounded-xl border border-purple-200 shadow-sm overflow-hidden animate-fade-in">
+                <div class="bg-purple-50 px-5 py-3 border-b border-purple-200">
+                  <h4 class="text-sm font-semibold text-purple-800 flex items-center gap-2">
+                    <mat-icon class="text-base text-purple-500">swap_horiz</mat-icon>
+                    Stage Transition
+                  </h4>
+                </div>
+                <div class="p-4 space-y-3">
+                  @if (availableTransitions().length > 0) {
+                    <p class="text-xs text-slate-500">Select an action to transition this case:</p>
+                    @for (t of availableTransitions(); track t.action) {
+                      <button mat-raised-button class="w-full" [color]="t.action === 'reject' ? 'warn' : 'primary'"
+                              (click)="performTransition(t.action, caseData.id)">
+                        <mat-icon>{{ t.action === 'reject' ? 'undo' : t.action === 'complete' ? 'check_circle' : 'arrow_forward' }}</mat-icon>
+                        <span class="ml-1 capitalize">{{ t.action }}</span>
+                        <span class="text-xs opacity-75 ml-1">(→ {{ t.to | uppercase }})</span>
+                      </button>
+                    }
+                    <mat-form-field class="w-full mt-2">
+                      <mat-label>Transition Notes (optional)</mat-label>
+                      <textarea matInput [(ngModel)]="transitionNotes" rows="2"></textarea>
+                    </mat-form-field>
+                  } @else {
+                    <div class="text-center py-4">
+                      <mat-icon class="text-3xl text-slate-200">block</mat-icon>
+                      <p class="text-slate-400 text-xs mt-2">No transitions available for your role at this stage.</p>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -519,19 +555,20 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   createTaskForm: FormGroup;
   tasks: Task[] = [];
   showCreateTask = signal(false);
+  showTransitionPanel = signal(false);
+  editing = signal(false);
+  availableTransitions = signal<TransitionOption[]>([]);
+  transitionNotes = '';
+  dynamicFields: { key: string; label: string; type: string; icon?: string; options?: string[] }[] = [];
   private caseId: string | null = null;
   private destroy$ = new Subject<void>();
+  private currentCase: Case | null = null;
 
-  stages = [
-    { name: 'intake', order: 1 },
-    { name: 'documents', order: 2 },
-    { name: 'underwriting', order: 3 },
-    { name: 'approval', order: 4 },
-    { name: 'disbursement', order: 5 },
-  ];
+  stages: { name: string; order: number }[] = [];
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private store: Store,
     private formBuilder: FormBuilder,
     private snackBar: MatSnackBar,
@@ -539,10 +576,6 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     public wsService: WebSocketService,
   ) {
     this.detailsForm = this.formBuilder.group({
-      applicantName: [''],
-      loanAmount: [''],
-      interestRate: [''],
-      loanTerm: [''],
       status: [''],
       priority: [''],
       notes: [''],
@@ -559,12 +592,10 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     const caseId = this.route.snapshot.paramMap.get('id');
     this.caseId = caseId;
 
-    // Ensure the case is fetched from the API (handles page refresh)
     if (caseId) {
       this.store.dispatch(CasesActions.loadCaseById({ id: caseId }));
     }
 
-    // Try the list first (already loaded), fall back to selected (loaded by ID)
     this.case$ = this.store.select(selectCasesList).pipe(
       map(cases => cases.find(c => c.id === caseId)),
       switchMap(found => found ? of(found) : this.store.select(selectSelectedCase).pipe(
@@ -572,19 +603,20 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
       )),
     );
 
-    // Subscribe to populate form
     this.case$.pipe(takeUntil(this.destroy$)).subscribe(selectedCase => {
       if (selectedCase) {
+        this.currentCase = selectedCase;
+        this.buildDynamicForm(selectedCase);
         this.updateForm(selectedCase);
+        this.loadStagesFromCaseType(selectedCase.type);
+        this.loadAvailableTransitions();
       }
     });
 
-    // Load tasks from tasks API
     if (caseId) {
       this.loadTasks(caseId);
     }
 
-    // Connect WebSocket for live collaboration
     if (caseId) {
       this.store.select(selectToken).pipe(takeUntil(this.destroy$)).subscribe(token => {
         if (token) {
@@ -600,6 +632,157 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     this.wsService.disconnect();
   }
 
+  // ─── Dynamic Form ────────────────────────────
+  private buildDynamicForm(case_: Case): void {
+    if (this.dynamicFields.length > 0) return; // Already built
+
+    const iconMap: Record<string, string> = {
+      applicantName: 'person', loanAmount: 'payments', loanType: 'category',
+      applicantIncome: 'account_balance', interestRate: 'percent', loanTerm: 'date_range',
+    };
+    const typeMap: Record<string, string> = {
+      loanAmount: 'number', applicantIncome: 'number', interestRate: 'number', loanTerm: 'number',
+    };
+
+    // Build form fields from case.fields keys
+    const fields = case_.fields || {};
+    this.dynamicFields = Object.keys(fields).map(key => ({
+      key,
+      label: this.formatLabel(key),
+      type: typeMap[key] || 'text',
+      icon: iconMap[key],
+    }));
+
+    // Also try to load form definitions from backend for richer metadata
+    this.dataService.getCaseTypes().pipe(takeUntil(this.destroy$)).subscribe(caseTypes => {
+      const ct = caseTypes.find(t => t.slug === case_.type);
+      if (ct?.fieldsSchema) {
+        this.dynamicFields = Object.entries(ct.fieldsSchema).map(([key, schema]) => ({
+          key,
+          label: (schema as any).label || this.formatLabel(key),
+          type: (schema as any).type === 'number' ? 'number' : (schema as any).type === 'select' ? 'select' : 'text',
+          icon: iconMap[key],
+          options: (schema as any).options,
+        }));
+      }
+    });
+
+    // Add controls for each dynamic field
+    for (const key of Object.keys(fields)) {
+      if (!this.detailsForm.contains(key)) {
+        this.detailsForm.addControl(key, new FormControl(fields[key] ?? ''));
+      }
+    }
+  }
+
+  private formatLabel(key: string): string {
+    return key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+  }
+
+  // ─── Dynamic Stages ─────────────────────────
+  private loadStagesFromCaseType(caseTypeSlug: string): void {
+    if (this.stages.length > 0) return;
+    this.dataService.getCaseTypes().pipe(takeUntil(this.destroy$)).subscribe(caseTypes => {
+      const ct = caseTypes.find(t => t.slug === caseTypeSlug);
+      if (ct) {
+        this.stages = ct.stages.map((name, i) => ({ name, order: i + 1 }));
+      }
+    });
+  }
+
+  // ─── Transitions ─────────────────────────────
+  private loadAvailableTransitions(): void {
+    if (!this.caseId) return;
+    this.dataService.getAvailableTransitions(this.caseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (transitions) => this.availableTransitions.set(transitions),
+        error: () => this.availableTransitions.set([]),
+      });
+  }
+
+  performTransition(action: string, caseId: string): void {
+    this.store.dispatch(CasesActions.transitionCase({
+      caseId,
+      action,
+      notes: this.transitionNotes || undefined,
+    }));
+    this.snackBar.open(`Transitioning: ${action}...`, 'OK', { duration: 3000 });
+    this.transitionNotes = '';
+    this.showTransitionPanel.set(false);
+    // Reload after transition
+    setTimeout(() => {
+      this.store.dispatch(CasesActions.loadCaseById({ id: caseId }));
+      this.loadAvailableTransitions();
+    }, 1000);
+  }
+
+  // ─── Edit / Save ─────────────────────────────
+  toggleEdit(): void {
+    if (this.editing()) {
+      this.cancelEdit();
+    } else {
+      this.editing.set(true);
+    }
+  }
+
+  cancelEdit(): void {
+    this.editing.set(false);
+    if (this.currentCase) {
+      this.updateForm(this.currentCase);
+    }
+  }
+
+  saveChanges(): void {
+    if (!this.caseId || !this.currentCase) return;
+    const formVal = this.detailsForm.value;
+
+    // Separate system fields from case fields
+    const { status, priority, notes, ...fieldValues } = formVal;
+    const updates: Partial<Case> = {};
+    if (status !== this.currentCase.status) updates.status = status;
+    if (priority !== this.currentCase.priority) updates.priority = priority;
+    if (notes !== (this.currentCase.notes || '')) updates.notes = notes;
+
+    // Check if any case fields changed
+    const changedFields: Record<string, any> = {};
+    for (const [key, val] of Object.entries(fieldValues)) {
+      if (this.currentCase.fields[key] !== val) {
+        changedFields[key] = val;
+      }
+    }
+    if (Object.keys(changedFields).length > 0) {
+      updates.fields = { ...this.currentCase.fields, ...changedFields };
+    }
+
+    if (Object.keys(updates).length === 0) {
+      this.snackBar.open('No changes to save', 'OK', { duration: 2000 });
+      return;
+    }
+
+    this.store.dispatch(CasesActions.updateCase({ caseId: this.caseId, updates }));
+    this.snackBar.open('Saving changes...', 'OK', { duration: 2000 });
+    this.editing.set(false);
+  }
+
+  // ─── Quick Actions ───────────────────────────
+  closeCase(): void {
+    if (!this.caseId) return;
+    this.store.dispatch(CasesActions.updateCase({
+      caseId: this.caseId,
+      updates: { status: 'withdrawn' as any },
+    }));
+    this.snackBar.open('Closing case...', 'OK', { duration: 2000 });
+  }
+
+  scrollToComments(): void {
+    const tabs = document.querySelector('mat-tab-group');
+    if (tabs) {
+      tabs.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  // ─── Tasks ───────────────────────────────────
   submitCreateTask(): void {
     if (this.createTaskForm.invalid || !this.caseId) return;
     const val = this.createTaskForm.value;
@@ -615,7 +798,6 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     this.snackBar.open('Creating task...', 'OK', { duration: 2000 });
     this.createTaskForm.reset({ priority: 'medium' });
     this.showCreateTask.set(false);
-    // Reload tasks from API after a short delay to allow the backend to persist
     setTimeout(() => this.loadTasks(this.caseId!), 1000);
   }
 
@@ -625,20 +807,25 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ─── Form Population ────────────────────────
   updateForm(case_: Case): void {
-    this.detailsForm.patchValue({
-      applicantName: case_.fields['applicantName'],
-      loanAmount: case_.fields['loanAmount'],
-      interestRate: case_.fields['interestRate'],
-      loanTerm: case_.fields['loanTerm'],
+    const patch: Record<string, any> = {
       status: case_.status,
       priority: case_.priority,
       notes: case_.notes || '',
-    });
+    };
+    // Populate dynamic field values
+    if (case_.fields) {
+      for (const [key, val] of Object.entries(case_.fields)) {
+        patch[key] = val;
+      }
+    }
+    this.detailsForm.patchValue(patch);
   }
 
+  // ─── Stage Journey Helpers ───────────────────
   isStageCompleted(stageHistory: any[], stageName: string): boolean {
-    return stageHistory.some(s => s.stage === stageName) || this.stages.findIndex(s => s.name === stageName) < this.stages.length;
+    return stageHistory.some(s => s.name === stageName && s.status === 'completed');
   }
 
   isStageActive(currentStage: string, stageName: string): boolean {
@@ -646,7 +833,8 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   }
 
   getProgressPercentage(stageHistory: any[]): number {
-    const completedCount = stageHistory.length;
+    if (this.stages.length === 0) return 0;
+    const completedCount = stageHistory.filter(s => s.status === 'completed').length;
     return (completedCount / this.stages.length) * 100;
   }
 
@@ -654,7 +842,8 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     if (this.isStageCompleted(stageHistory, stageName)) {
       return 'bg-emerald-500 text-white shadow-sm shadow-emerald-200';
     }
-    if (this.isStageActive(stageName, stageName)) {
+    const currentStage = this.currentCase?.stage;
+    if (currentStage && this.isStageActive(currentStage, stageName)) {
       return 'bg-[#056DAE] text-white shadow-sm shadow-[#a1d1ef]';
     }
     return 'bg-slate-100 text-slate-400';
@@ -663,9 +852,9 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusIcon(status: string): string {
     const icons: Record<string, string> = {
       open: 'folder_open',
-      in_progress: 'hourglass_empty',
-      closed: 'check_circle',
-      pending_review: 'pending_actions',
+      pending: 'hourglass_empty',
+      resolved: 'check_circle',
+      withdrawn: 'cancel',
     };
     return icons[status] || 'help';
   }
@@ -673,36 +862,36 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   statusColor(status: string): string {
     return {
       open: 'text-[#056DAE]',
-      in_progress: 'text-purple-600',
-      closed: 'text-emerald-600',
-      pending_review: 'text-amber-600',
+      pending: 'text-amber-600',
+      resolved: 'text-emerald-600',
+      withdrawn: 'text-red-600',
     }[status] || 'text-slate-600';
   }
 
   statusBg(status: string): string {
     return {
       open: 'bg-[#EAF4FB]',
-      in_progress: 'bg-purple-50',
-      closed: 'bg-emerald-50',
-      pending_review: 'bg-amber-50',
+      pending: 'bg-amber-50',
+      resolved: 'bg-emerald-50',
+      withdrawn: 'bg-red-50',
     }[status] || 'bg-slate-50';
   }
 
   statusBadge(status: string): string {
     return {
       open: 'wf-badge--info',
-      in_progress: 'wf-badge--purple',
-      closed: 'wf-badge--success',
-      pending_review: 'wf-badge--warning',
+      pending: 'wf-badge--warning',
+      resolved: 'wf-badge--success',
+      withdrawn: 'wf-badge--danger',
     }[status] || 'wf-badge--neutral';
   }
 
   statusDot(status: string): string {
     return {
       open: 'bg-[#056DAE]',
-      in_progress: 'bg-purple-500',
-      closed: 'bg-emerald-500',
-      pending_review: 'bg-amber-500',
+      pending: 'bg-amber-500',
+      resolved: 'bg-emerald-500',
+      withdrawn: 'bg-red-500',
     }[status] || 'bg-slate-500';
   }
 

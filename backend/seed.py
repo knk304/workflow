@@ -83,8 +83,18 @@ async def seed_all():
         {
             "_id": "ct-loan",
             "name": "Loan Origination",
+            "slug": "loan_origination",
             "description": "End-to-end loan processing workflow",
             "stages": ["intake", "documents", "underwriting", "approval", "disbursement"],
+            "transitions": [
+                {"from": "intake", "action": "submit", "to": "documents", "roles": ["WORKER", "MANAGER"]},
+                {"from": "documents", "action": "verify", "to": "underwriting", "roles": ["WORKER", "MANAGER"]},
+                {"from": "underwriting", "action": "approve", "to": "approval", "roles": ["MANAGER"]},
+                {"from": "underwriting", "action": "reject", "to": "intake", "roles": ["MANAGER"]},
+                {"from": "approval", "action": "approve", "to": "disbursement", "roles": ["MANAGER", "ADMIN"]},
+                {"from": "approval", "action": "reject", "to": "underwriting", "roles": ["MANAGER", "ADMIN"]},
+                {"from": "disbursement", "action": "complete", "to": "disbursement", "roles": ["WORKER", "MANAGER"]},
+            ],
             "fieldsSchema": {
                 "loanAmount": {"type": "number", "label": "Loan Amount"},
                 "loanType": {"type": "string", "label": "Loan Type"},

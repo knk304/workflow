@@ -67,11 +67,19 @@ export interface SLAInfo {
   escalationLevel: number;
 }
 
+export interface TransitionOption {
+  action: string;
+  from: string;
+  to: string;
+}
+
 export interface CaseType {
   id: string;
   name: string;
+  slug: string;
   description: string;
   stages: string[];
+  transitions: TransitionOption[];
   fieldsSchema: Record<string, FieldDefinition>;
 }
 
