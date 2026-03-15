@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id
 from models.cases import (
     CaseCreate, CaseUpdate, CaseResponse, CaseTypeResponse,
     TransitionRequest, SLAInfo, StageHistory, StageStatus,
@@ -116,7 +117,7 @@ async def list_cases(
 @router.get("/{case_id}", response_model=CaseResponse)
 async def get_case(case_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.cases.find_one({"_id": ObjectId(case_id)})
+    doc = await find_by_id(db.cases, case_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
     return _to_response(doc)
@@ -139,9 +140,9 @@ async def update_case(case_id: str, body: CaseUpdate, user: dict = Depends(get_c
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No fields to update")
 
     updates["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    await db.cases.update_one({"_id": ObjectId(case_id)}, {"$set": updates})
+    await update_by_id(db.cases, case_id, {"$set": updates})
 
-    doc = await db.cases.find_one({"_id": ObjectId(case_id)})
+    doc = await find_by_id(db.cases, case_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
     await _write_audit(db, case_id, "updated", user, changes)
@@ -157,7 +158,7 @@ async def transition_stage(
     user: dict = Depends(get_current_user),
 ):
     db = get_db()
-    doc = await db.cases.find_one({"_id": ObjectId(case_id)})
+    doc = await find_by_id(db.cases, case_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
 
@@ -179,8 +180,7 @@ async def transition_stage(
         new_status = "resolved"
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.cases.update_one(
-        {"_id": ObjectId(case_id)},
+    await update_by_id(db.cases, case_id,
         {"$set": {
             "stage": next_stage,
             "stages": stages,
@@ -196,5 +196,5 @@ async def transition_stage(
         "action": body.action,
     })
 
-    updated = await db.cases.find_one({"_id": ObjectId(case_id)})
+    updated = await find_by_id(db.cases, case_id)
     return _to_response(updated)

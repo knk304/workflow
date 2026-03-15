@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id, delete_by_id
 from models.phase2 import (
     ApprovalChainCreate, ApprovalChainResponse, ApprovalDecision,
     ApprovalDelegation, Approver, ApprovalStatus, ApprovalMode,
@@ -85,7 +86,7 @@ async def list_approvals(
 @router.get("/{approval_id}", response_model=ApprovalChainResponse)
 async def get_approval(approval_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    doc = await find_by_id(db.approval_chains, approval_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
     return _to_response(doc)
@@ -94,7 +95,7 @@ async def get_approval(approval_id: str, user: dict = Depends(get_current_user))
 @router.post("/{approval_id}/approve", response_model=ApprovalChainResponse)
 async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    doc = await find_by_id(db.approval_chains, approval_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
 
@@ -125,8 +126,7 @@ async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends
                 await _notify_approver(db, a["user_id"], doc["case_id"], approval_id)
                 break
 
-    await db.approval_chains.update_one(
-        {"_id": ObjectId(approval_id)},
+    await update_by_id(db.approval_chains, approval_id,
         {"$set": {"approvers": approvers, "status": chain_status, "completed_at": completed_at}},
     )
 
@@ -141,14 +141,14 @@ async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends
         "timestamp": now,
     })
 
-    updated_doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    updated_doc = await find_by_id(db.approval_chains, approval_id)
     return _to_response(updated_doc)
 
 
 @router.post("/{approval_id}/reject", response_model=ApprovalChainResponse)
 async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    doc = await find_by_id(db.approval_chains, approval_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
 
@@ -169,8 +169,7 @@ async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(
     if not updated:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not an active approver for this chain")
 
-    await db.approval_chains.update_one(
-        {"_id": ObjectId(approval_id)},
+    await update_by_id(db.approval_chains, approval_id,
         {"$set": {"approvers": approvers, "status": "rejected", "completed_at": now}},
     )
 
@@ -184,14 +183,14 @@ async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(
         "timestamp": now,
     })
 
-    updated_doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    updated_doc = await find_by_id(db.approval_chains, approval_id)
     return _to_response(updated_doc)
 
 
 @router.post("/{approval_id}/delegate", response_model=ApprovalChainResponse)
 async def delegate(approval_id: str, body: ApprovalDelegation, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    doc = await find_by_id(db.approval_chains, approval_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
 
@@ -212,14 +211,13 @@ async def delegate(approval_id: str, body: ApprovalDelegation, user: dict = Depe
     if not updated:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not an active approver for this chain")
 
-    await db.approval_chains.update_one(
-        {"_id": ObjectId(approval_id)},
+    await update_by_id(db.approval_chains, approval_id,
         {"$set": {"approvers": approvers}},
     )
 
     await _notify_approver(db, body.delegate_to, doc["case_id"], approval_id)
 
-    updated_doc = await db.approval_chains.find_one({"_id": ObjectId(approval_id)})
+    updated_doc = await find_by_id(db.approval_chains, approval_id)
     return _to_response(updated_doc)
 
 
@@ -315,7 +313,7 @@ async def create_routing_rule(body: ApprovalRoutingRule, user: dict = Depends(ge
 @router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_routing_rule(rule_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    result = await db.approval_routing_rules.delete_one({"_id": ObjectId(rule_id)})
+    result = await delete_by_id(db.approval_routing_rules, rule_id)
     if result.deleted_count == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Routing rule not found")
 

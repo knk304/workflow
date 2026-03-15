@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id
 from models.notifications import NotificationCreate, NotificationResponse
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
@@ -68,11 +69,10 @@ async def create_notification(body: NotificationCreate, user: dict = Depends(get
 async def mark_as_read(notification_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
-    await db.notifications.update_one(
-        {"_id": ObjectId(notification_id)},
+    await update_by_id(db.notifications, notification_id,
         {"$set": {"isRead": True, "readAt": now}},
     )
-    doc = await db.notifications.find_one({"_id": ObjectId(notification_id)})
+    doc = await find_by_id(db.notifications, notification_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Notification not found")
     return _to_response(doc)

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from auth_deps import get_current_user, require_roles
 from database import get_db
+from id_utils import find_by_id, update_by_id, delete_by_id
 from models.workflows import (
     WorkflowCreate, WorkflowUpdate, WorkflowResponse,
     WorkflowDefinition, WorkflowValidationResponse, ValidationError as ValError,
@@ -19,13 +20,13 @@ def _to_response(doc: dict) -> WorkflowResponse:
         id=str(doc["_id"]),
         name=doc["name"],
         description=doc.get("description", ""),
-        case_type=doc.get("case_type"),
+        case_type=doc.get("case_type") or doc.get("case_type_id"),
         definition=WorkflowDefinition(**doc.get("definition", {})),
         version=doc.get("version", 1),
         is_active=doc.get("is_active", True),
         created_by=doc.get("created_by", ""),
         created_at=doc["created_at"],
-        updated_at=doc["updated_at"],
+        updated_at=doc.get("updated_at", doc.get("created_at", "")),
     )
 
 
@@ -132,7 +133,7 @@ async def list_workflows(
 @router.get("/{workflow_id}", response_model=WorkflowResponse)
 async def get_workflow(workflow_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.workflows.find_one({"_id": ObjectId(workflow_id)})
+    doc = await find_by_id(db.workflows, workflow_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found")
     return _to_response(doc)
@@ -145,7 +146,7 @@ async def update_workflow(
     user: dict = Depends(get_current_user),
 ):
     db = get_db()
-    doc = await db.workflows.find_one({"_id": ObjectId(workflow_id)})
+    doc = await find_by_id(db.workflows, workflow_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found")
 
@@ -159,8 +160,8 @@ async def update_workflow(
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     updates["version"] = doc.get("version", 1) + 1
 
-    await db.workflows.update_one({"_id": ObjectId(workflow_id)}, {"$set": updates})
-    updated = await db.workflows.find_one({"_id": ObjectId(workflow_id)})
+    await update_by_id(db.workflows, workflow_id, {"$set": updates})
+    updated = await find_by_id(db.workflows, workflow_id)
     return _to_response(updated)
 
 
@@ -170,7 +171,7 @@ async def delete_workflow(
     user: dict = Depends(require_roles("ADMIN", "MANAGER")),
 ):
     db = get_db()
-    result = await db.workflows.delete_one({"_id": ObjectId(workflow_id)})
+    result = await delete_by_id(db.workflows, workflow_id)
     if result.deleted_count == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found")
 
@@ -180,7 +181,7 @@ async def delete_workflow(
 @router.post("/{workflow_id}/validate", response_model=WorkflowValidationResponse)
 async def validate_workflow(workflow_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.workflows.find_one({"_id": ObjectId(workflow_id)})
+    doc = await find_by_id(db.workflows, workflow_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found")
 
@@ -203,7 +204,7 @@ async def validate_workflow_inline(
 @router.get("/{workflow_id}/export")
 async def export_workflow(workflow_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.workflows.find_one({"_id": ObjectId(workflow_id)})
+    doc = await find_by_id(db.workflows, workflow_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found")
     return {

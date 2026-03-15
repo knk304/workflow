@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id
 from models.phase2 import DocumentResponse, DocumentVersionResponse
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -124,7 +125,7 @@ async def list_documents(
 @router.get("/{doc_id}", response_model=DocumentResponse)
 async def get_document(doc_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.documents.find_one({"_id": ObjectId(doc_id)})
+    doc = await find_by_id(db.documents, doc_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
     return _to_response(doc)
@@ -133,7 +134,7 @@ async def get_document(doc_id: str, user: dict = Depends(get_current_user)):
 @router.get("/{doc_id}/download")
 async def download_document(doc_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.documents.find_one({"_id": ObjectId(doc_id)})
+    doc = await find_by_id(db.documents, doc_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
 
@@ -151,7 +152,7 @@ async def download_document(doc_id: str, user: dict = Depends(get_current_user))
 @router.get("/{doc_id}/versions", response_model=DocumentVersionResponse)
 async def get_versions(doc_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.documents.find_one({"_id": ObjectId(doc_id)})
+    doc = await find_by_id(db.documents, doc_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
 
@@ -167,7 +168,7 @@ async def get_versions(doc_id: str, user: dict = Depends(get_current_user)):
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(doc_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.documents.find_one({"_id": ObjectId(doc_id)})
+    doc = await find_by_id(db.documents, doc_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
 
@@ -176,8 +177,7 @@ async def delete_document(doc_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the uploader or admin can delete")
 
     # Soft delete by marking not current (keep file for audit trail)
-    await db.documents.update_one(
-        {"_id": ObjectId(doc_id)},
+    await update_by_id(db.documents, doc_id,
         {"$set": {"current": False, "deleted_at": datetime.now(timezone.utc).isoformat()}},
     )
 

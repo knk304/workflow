@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id
 from models.tasks import (
     TaskCreate, TaskUpdate, TaskResponse,
     TaskStatus, KanbanBoardResponse, ChecklistItem,
@@ -117,7 +118,7 @@ async def get_kanban_board(
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.tasks.find_one({"_id": ObjectId(task_id)})
+    doc = await find_by_id(db.tasks, task_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
     return _to_response(doc)
@@ -147,8 +148,8 @@ async def update_task(task_id: str, body: TaskUpdate, user: dict = Depends(get_c
     elif updates.get("status") and updates["status"] != "completed":
         updates["completedAt"] = None
 
-    await db.tasks.update_one({"_id": ObjectId(task_id)}, {"$set": updates})
-    doc = await db.tasks.find_one({"_id": ObjectId(task_id)})
+    await update_by_id(db.tasks, task_id, {"$set": updates})
+    doc = await find_by_id(db.tasks, task_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
     return _to_response(doc)

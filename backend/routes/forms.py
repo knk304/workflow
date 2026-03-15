@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id
 
 router = APIRouter(prefix="/api/forms", tags=["forms"])
 
@@ -127,7 +128,7 @@ async def list_form_definitions(
 @router.get("/definitions/{form_id}")
 async def get_form_definition(form_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.case_forms.find_one({"_id": ObjectId(form_id)})
+    doc = await find_by_id(db.case_forms, form_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Form not found")
     return _form_response(doc)
@@ -136,7 +137,7 @@ async def get_form_definition(form_id: str, user: dict = Depends(get_current_use
 @router.patch("/definitions/{form_id}")
 async def update_form_definition(form_id: str, body: FormDefinitionCreate, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.case_forms.find_one({"_id": ObjectId(form_id)})
+    doc = await find_by_id(db.case_forms, form_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Form not found")
 
@@ -151,7 +152,7 @@ async def update_form_definition(form_id: str, body: FormDefinitionCreate, user:
         "version": doc.get("version", 1) + 1,
         "updated_at": now,
     }
-    await db.case_forms.update_one({"_id": ObjectId(form_id)}, {"$set": update})
+    await update_by_id(db.case_forms, form_id, {"$set": update})
     doc.update(update)
     return _form_response(doc)
 
@@ -159,8 +160,7 @@ async def update_form_definition(form_id: str, body: FormDefinitionCreate, user:
 @router.delete("/definitions/{form_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_form_definition(form_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    result = await db.case_forms.update_one(
-        {"_id": ObjectId(form_id)},
+    result = await update_by_id(db.case_forms, form_id,
         {"$set": {"is_active": False}},
     )
     if result.matched_count == 0:
@@ -173,7 +173,7 @@ async def delete_form_definition(form_id: str, user: dict = Depends(get_current_
 async def submit_form(body: FormSubmission, user: dict = Depends(get_current_user)):
     db = get_db()
     # Validate form exists
-    form_doc = await db.case_forms.find_one({"_id": ObjectId(body.form_id)})
+    form_doc = await find_by_id(db.case_forms, body.form_id)
     if not form_doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Form definition not found")
 
@@ -218,7 +218,7 @@ async def list_submissions(
 @router.get("/submissions/{submission_id}")
 async def get_submission(submission_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
-    doc = await db.form_submissions.find_one({"_id": ObjectId(submission_id)})
+    doc = await find_by_id(db.form_submissions, submission_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Submission not found")
     return _submission_response(doc)

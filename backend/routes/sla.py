@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 from auth_deps import get_current_user
 from database import get_db
+from id_utils import find_by_id, update_by_id
 from models.phase2 import SLADefinitionCreate, SLADefinitionResponse
 
 router = APIRouter(prefix="/api/sla", tags=["sla"])
@@ -122,13 +123,12 @@ async def sla_dashboard(user: dict = Depends(get_current_user)):
 async def acknowledge_sla(case_id: str, user: dict = Depends(get_current_user)):
     """Acknowledge SLA warning to suppress further alerts."""
     db = get_db()
-    doc = await db.cases.find_one({"_id": ObjectId(case_id)})
+    doc = await find_by_id(db.cases, case_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.cases.update_one(
-        {"_id": ObjectId(case_id)},
+    await update_by_id(db.cases, case_id,
         {"$set": {"sla.acknowledged_at": now, "sla.acknowledged_by": str(user["_id"])}},
     )
     return {"acknowledged": True, "case_id": case_id}
