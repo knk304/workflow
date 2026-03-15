@@ -91,7 +91,7 @@ import {
         <!-- Toolbar -->
         <mat-toolbar class="!bg-white border-b !h-12 !min-h-[48px]">
           @if (editingWorkflow()) {
-            <mat-form-field appearance="outline" class="mr-4 !mt-4" subscriptSizing="dynamic">
+            <mat-form-field class="mr-4 !mt-4">
               <input matInput [(ngModel)]="workflowName" placeholder="Workflow name" class="!text-sm">
             </mat-form-field>
             <button mat-icon-button matTooltip="Undo" (click)="undo()" [disabled]="!canUndo()">
@@ -214,11 +214,11 @@ import {
               </button>
             </div>
             <div class="grid grid-cols-3 gap-4">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Label</mat-label>
                 <input matInput [value]="getSelectedNode()?.label || ''" (input)="updateNodeLabel($event)">
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Type</mat-label>
                 <mat-select [value]="getSelectedNode()?.type" (selectionChange)="updateNodeType($event.value)">
                   @for (nt of nodeTypes; track nt.type) {
@@ -226,7 +226,7 @@ import {
                   }
                 </mat-select>
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Assignee Role</mat-label>
                 <mat-select [value]="getSelectedNode()?.assigneeRole || ''" (selectionChange)="updateNodeRole($event.value)">
                   <mat-option value="">None</mat-option>

@@ -64,11 +64,11 @@ import {
           <mat-card-content class="p-4">
             <h3 class="font-semibold mb-3">Create Approval Chain</h3>
             <div class="grid grid-cols-3 gap-4">
-              <mat-form-field appearance="outline">
+              <mat-form-field>
                 <mat-label>Case ID</mat-label>
                 <input matInput [(ngModel)]="newCaseId" placeholder="CASE-2026-00001">
               </mat-form-field>
-              <mat-form-field appearance="outline">
+              <mat-form-field>
                 <mat-label>Mode</mat-label>
                 <mat-select [(ngModel)]="newMode">
                   <mat-option value="sequential">Sequential</mat-option>
@@ -163,11 +163,11 @@ import {
             <!-- Delegation input -->
             @if (selectedChainId() === chain.id) {
               <div class="mt-4 flex items-center gap-3">
-                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-form-field>
                   <mat-label>Delegate To (User ID)</mat-label>
                   <input matInput [(ngModel)]="delegateToId">
                 </mat-form-field>
-                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-form-field>
                   <mat-label>Comment</mat-label>
                   <input matInput [(ngModel)]="delegateComment">
                 </mat-form-field>

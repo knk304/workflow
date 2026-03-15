@@ -50,7 +50,7 @@ import {
           <p class="text-gray-500">Manage case documents and file attachments</p>
         </div>
         <div class="flex items-center gap-3">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-64">
+          <mat-form-field class="!w-64">
             <mat-icon matPrefix>search</mat-icon>
             <input matInput placeholder="Search documents..." [(ngModel)]="searchTerm"
                    (ngModelChange)="filterDocuments()">
@@ -78,11 +78,11 @@ import {
             </button>
 
             <div class="mt-4 grid grid-cols-2 gap-4 max-w-md mx-auto">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Case ID</mat-label>
                 <input matInput [(ngModel)]="uploadCaseId" placeholder="CASE-2026-00001">
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Description</mat-label>
                 <input matInput [(ngModel)]="uploadDescription" placeholder="Optional description">
               </mat-form-field>

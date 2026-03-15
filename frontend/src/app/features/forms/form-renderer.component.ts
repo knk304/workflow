@@ -53,7 +53,7 @@ import { DataService } from '../../core/services/data.service';
                     <div class="mb-4">
                       @switch (field.type) {
                         @case ('text') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput [formControlName]="field.id"
                                    [placeholder]="field.placeholder || ''">
@@ -72,7 +72,7 @@ import { DataService } from '../../core/services/data.service';
                           </mat-form-field>
                         }
                         @case ('textarea') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <textarea matInput [formControlName]="field.id"
                                       [placeholder]="field.placeholder || ''" rows="3"></textarea>
@@ -82,7 +82,7 @@ import { DataService } from '../../core/services/data.service';
                           </mat-form-field>
                         }
                         @case ('number') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput type="number" [formControlName]="field.id"
                                    [placeholder]="field.placeholder || ''">
@@ -98,7 +98,7 @@ import { DataService } from '../../core/services/data.service';
                           </mat-form-field>
                         }
                         @case ('date') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput type="date" [formControlName]="field.id">
                             @if (form.get(field.id)?.hasError('required')) {
@@ -107,7 +107,7 @@ import { DataService } from '../../core/services/data.service';
                           </mat-form-field>
                         }
                         @case ('select') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <mat-select [formControlName]="field.id">
                               @for (opt of field.validation.options || []; track opt) {
@@ -166,7 +166,7 @@ import { DataService } from '../../core/services/data.service';
                 <div class="mb-4">
                   @switch (field.type) {
                     @case ('text') {
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>{{ field.label }}</mat-label>
                         <input matInput [formControlName]="field.id"
                                [placeholder]="field.placeholder || ''">
@@ -176,27 +176,27 @@ import { DataService } from '../../core/services/data.service';
                       </mat-form-field>
                     }
                     @case ('textarea') {
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>{{ field.label }}</mat-label>
                         <textarea matInput [formControlName]="field.id"
                                   [placeholder]="field.placeholder || ''" rows="3"></textarea>
                       </mat-form-field>
                     }
                     @case ('number') {
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>{{ field.label }}</mat-label>
                         <input matInput type="number" [formControlName]="field.id"
                                [placeholder]="field.placeholder || ''">
                       </mat-form-field>
                     }
                     @case ('date') {
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>{{ field.label }}</mat-label>
                         <input matInput type="date" [formControlName]="field.id">
                       </mat-form-field>
                     }
                     @case ('select') {
-                      <mat-form-field appearance="outline" class="w-full">
+                      <mat-form-field class="w-full">
                         <mat-label>{{ field.label }}</mat-label>
                         <mat-select [formControlName]="field.id">
                           @for (opt of field.validation.options || []; track opt) {

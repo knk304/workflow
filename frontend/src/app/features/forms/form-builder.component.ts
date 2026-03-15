@@ -87,15 +87,15 @@ import { DataService } from '../../core/services/data.service';
           <!-- Form Settings Bar -->
           <div class="bg-white border-b p-4">
             <div class="grid grid-cols-4 gap-4">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Form Name</mat-label>
                 <input matInput [(ngModel)]="formName">
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Case Type ID</mat-label>
                 <input matInput [(ngModel)]="formCaseTypeId">
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-form-field>
                 <mat-label>Stage</mat-label>
                 <input matInput [(ngModel)]="formStage" placeholder="Optional">
               </mat-form-field>
@@ -125,11 +125,11 @@ import { DataService } from '../../core/services/data.service';
                       <!-- Field config -->
                       <div class="flex-1">
                         <div class="grid grid-cols-4 gap-3">
-                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-form-field>
                             <mat-label>Label</mat-label>
                             <input matInput [(ngModel)]="field.label">
                           </mat-form-field>
-                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-form-field>
                             <mat-label>Type</mat-label>
                             <mat-select [(ngModel)]="field.type">
                               @for (ft of fieldTypes; track ft.type) {
@@ -137,11 +137,11 @@ import { DataService } from '../../core/services/data.service';
                               }
                             </mat-select>
                           </mat-form-field>
-                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-form-field>
                             <mat-label>Placeholder</mat-label>
                             <input matInput [(ngModel)]="field.placeholder">
                           </mat-form-field>
-                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-form-field>
                             <mat-label>Section</mat-label>
                             <input matInput [(ngModel)]="field.section">
                           </mat-form-field>
@@ -151,27 +151,27 @@ import { DataService } from '../../core/services/data.service';
                         <div class="flex items-center gap-4 mt-2">
                           <mat-checkbox [(ngModel)]="field.validation.required">Required</mat-checkbox>
                           @if (field.type === 'text' || field.type === 'textarea') {
-                            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-24">
+                            <mat-form-field class="!w-24">
                               <mat-label>Min Len</mat-label>
                               <input matInput type="number" [(ngModel)]="field.validation.minLength">
                             </mat-form-field>
-                            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-24">
+                            <mat-form-field class="!w-24">
                               <mat-label>Max Len</mat-label>
                               <input matInput type="number" [(ngModel)]="field.validation.maxLength">
                             </mat-form-field>
                           }
                           @if (field.type === 'number') {
-                            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-24">
+                            <mat-form-field class="!w-24">
                               <mat-label>Min</mat-label>
                               <input matInput type="number" [(ngModel)]="field.validation.minValue">
                             </mat-form-field>
-                            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-24">
+                            <mat-form-field class="!w-24">
                               <mat-label>Max</mat-label>
                               <input matInput type="number" [(ngModel)]="field.validation.maxValue">
                             </mat-form-field>
                           }
                           @if (field.type === 'select' || field.type === 'radio') {
-                            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-48">
+                            <mat-form-field class="!w-48">
                               <mat-label>Options (comma-separated)</mat-label>
                               <input matInput [value]="field.validation.options?.join(', ') || ''"
                                      (input)="updateOptions(field, $event)">
@@ -207,31 +207,31 @@ import { DataService } from '../../core/services/data.service';
                     <div class="mb-4">
                       @switch (field.type) {
                         @case ('text') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput [placeholder]="field.placeholder || ''">
                           </mat-form-field>
                         }
                         @case ('textarea') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <textarea matInput [placeholder]="field.placeholder || ''" rows="3"></textarea>
                           </mat-form-field>
                         }
                         @case ('number') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput type="number" [placeholder]="field.placeholder || ''">
                           </mat-form-field>
                         }
                         @case ('date') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput type="date">
                           </mat-form-field>
                         }
                         @case ('select') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <mat-select>
                               @for (opt of field.validation.options || []; track opt) {
@@ -244,7 +244,7 @@ import { DataService } from '../../core/services/data.service';
                           <mat-checkbox>{{ field.label }}</mat-checkbox>
                         }
                         @default {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.label }}</mat-label>
                             <input matInput [placeholder]="field.placeholder || ''">
                           </mat-form-field>

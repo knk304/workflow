@@ -62,7 +62,7 @@ import { DataService } from '../../core/services/data.service';
             <mat-step [stepControl]="caseInfoForm">
               <ng-template matStepLabel>Case Information</ng-template>
               <form [formGroup]="caseInfoForm" class="mt-4 space-y-4">
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field class="w-full">
                   <mat-label>Case Type</mat-label>
                   <mat-select formControlName="type" (selectionChange)="onCaseTypeChange($event.value)">
                     @for (ct of caseTypes(); track ct.id) {
@@ -74,7 +74,7 @@ import { DataService } from '../../core/services/data.service';
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field class="w-full">
                   <mat-label>Priority</mat-label>
                   <mat-select formControlName="priority">
                     <mat-option value="low">Low</mat-option>
@@ -84,7 +84,7 @@ import { DataService } from '../../core/services/data.service';
                   </mat-select>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field class="w-full">
                   <mat-label>Notes (optional)</mat-label>
                   <textarea matInput formControlName="notes" rows="3"
                             placeholder="Add any initial notes or context"></textarea>
@@ -111,7 +111,7 @@ import { DataService } from '../../core/services/data.service';
                     <div>
                       @switch (field.def.type) {
                         @case ('text') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.def.label }}</mat-label>
                             <input matInput [formControlName]="field.key"
                                    [placeholder]="field.def.placeholder || ''">
@@ -121,14 +121,14 @@ import { DataService } from '../../core/services/data.service';
                           </mat-form-field>
                         }
                         @case ('textarea') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.def.label }}</mat-label>
                             <textarea matInput [formControlName]="field.key"
                                       [placeholder]="field.def.placeholder || ''" rows="3"></textarea>
                           </mat-form-field>
                         }
                         @case ('number') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.def.label }}</mat-label>
                             <input matInput type="number" [formControlName]="field.key"
                                    [placeholder]="field.def.placeholder || ''">
@@ -138,13 +138,13 @@ import { DataService } from '../../core/services/data.service';
                           </mat-form-field>
                         }
                         @case ('date') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.def.label }}</mat-label>
                             <input matInput type="date" [formControlName]="field.key">
                           </mat-form-field>
                         }
                         @case ('select') {
-                          <mat-form-field appearance="outline" class="w-full">
+                          <mat-form-field class="w-full">
                             <mat-label>{{ field.def.label }}</mat-label>
                             <mat-select [formControlName]="field.key">
                               @for (opt of field.def.options || []; track opt) {
