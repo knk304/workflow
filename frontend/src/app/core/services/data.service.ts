@@ -14,9 +14,15 @@ export abstract class DataService {
   abstract getUsers(): Observable<User[]>;
   abstract getUserById(id: string): Observable<User | undefined>;
   abstract getCurrentUser(): Observable<User>;
+  abstract createUser(user: { email: string; password: string; name: string; role: string; teamIds: string[] }): Observable<User>;
+  abstract updateUser(id: string, updates: { name?: string; role?: string; teamIds?: string[] }): Observable<User>;
+  abstract deleteUser(id: string): Observable<void>;
 
   // Teams
   abstract getTeams(): Observable<Team[]>;
+  abstract createTeam(team: { name: string; description?: string; memberIds: string[] }): Observable<Team>;
+  abstract updateTeam(id: string, updates: { name?: string; description?: string; memberIds?: string[] }): Observable<Team>;
+  abstract deleteTeam(id: string): Observable<void>;
 
   // Case Types
   abstract getCaseTypes(): Observable<CaseType[]>;

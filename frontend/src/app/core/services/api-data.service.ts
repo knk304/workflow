@@ -38,9 +38,33 @@ export class ApiDataService extends DataService {
     return this.http.get<User>(`${this.authUrl}/auth/me`);
   }
 
+  createUser(user: { email: string; password: string; name: string; role: string; teamIds: string[] }): Observable<User> {
+    return this.http.post<User>(`${this.authUrl}/users`, user);
+  }
+
+  updateUser(id: string, updates: { name?: string; role?: string; teamIds?: string[] }): Observable<User> {
+    return this.http.put<User>(`${this.authUrl}/users/${id}`, updates);
+  }
+
+  deleteUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.authUrl}/users/${id}`);
+  }
+
   // ─── Teams ───────────────────────────────────────
   getTeams(): Observable<Team[]> {
     return this.http.get<Team[]>(`${this.authUrl}/teams`);
+  }
+
+  createTeam(team: { name: string; description?: string; memberIds: string[] }): Observable<Team> {
+    return this.http.post<Team>(`${this.authUrl}/teams`, team);
+  }
+
+  updateTeam(id: string, updates: { name?: string; description?: string; memberIds?: string[] }): Observable<Team> {
+    return this.http.put<Team>(`${this.authUrl}/teams/${id}`, updates);
+  }
+
+  deleteTeam(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.authUrl}/teams/${id}`);
   }
 
   // ─── Case Types ──────────────────────────────────

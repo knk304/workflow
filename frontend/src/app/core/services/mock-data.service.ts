@@ -514,8 +514,42 @@ export class MockDataService extends DataService {
     return of(this.mockUsers[0]).pipe(delay(200)); // Returns Alice as current user
   }
 
+  createUser(user: { email: string; password: string; name: string; role: string; teamIds: string[] }): Observable<User> {
+    const newUser: User = { id: `user-${Date.now()}`, email: user.email, name: user.name, role: user.role as any, teamIds: user.teamIds, createdAt: new Date().toISOString() };
+    this.mockUsers.push(newUser);
+    return of(newUser).pipe(delay(300));
+  }
+
+  updateUser(id: string, updates: { name?: string; role?: string; teamIds?: string[] }): Observable<User> {
+    const u = this.mockUsers.find(u => u.id === id);
+    if (u) { Object.assign(u, updates); }
+    return of(u!).pipe(delay(300));
+  }
+
+  deleteUser(id: string): Observable<void> {
+    this.mockUsers = this.mockUsers.filter(u => u.id !== id);
+    return of(void 0).pipe(delay(300));
+  }
+
   getTeams(): Observable<Team[]> {
     return of([...this.mockTeams]).pipe(delay(300));
+  }
+
+  createTeam(team: { name: string; description?: string; memberIds: string[] }): Observable<Team> {
+    const newTeam: Team = { id: `team-${Date.now()}`, name: team.name, description: team.description, memberIds: team.memberIds, createdAt: new Date().toISOString() };
+    this.mockTeams.push(newTeam);
+    return of(newTeam).pipe(delay(300));
+  }
+
+  updateTeam(id: string, updates: { name?: string; description?: string; memberIds?: string[] }): Observable<Team> {
+    const t = this.mockTeams.find(t => t.id === id);
+    if (t) { Object.assign(t, updates); }
+    return of(t!).pipe(delay(300));
+  }
+
+  deleteTeam(id: string): Observable<void> {
+    this.mockTeams = this.mockTeams.filter(t => t.id !== id);
+    return of(void 0).pipe(delay(300));
   }
 
   getCaseTypes(): Observable<CaseType[]> {
