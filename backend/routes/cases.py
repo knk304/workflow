@@ -9,7 +9,7 @@ from database import get_db
 from id_utils import find_by_id, update_by_id
 from models.cases import (
     CaseCreate, CaseUpdate, CaseResponse, CaseTypeResponse,
-    TransitionRequest, SLAInfo, StageHistory, StageStatus,
+    TransitionRequest, SLAInfo, StageHistory, StageStatus, AssignedUser,
 )
 from engine.lifecycle import (
     get_next_stage, get_first_stage, get_available_transitions,
@@ -20,7 +20,20 @@ from engine.lifecycle import (
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
 
-def _to_response(doc: dict) -> CaseResponse:
+async def _to_response(doc: dict) -> CaseResponse:
+    db = get_db()
+    # Resolve owner user for assignedTo
+    assigned_to = None
+    owner_id = doc.get("ownerId")
+    if owner_id:
+        owner = await db.users.find_one({"_id": owner_id})
+        if owner:
+            assigned_to = AssignedUser(
+                id=str(owner["_id"]),
+                name=owner.get("name", owner.get("email", "Unknown")),
+                email=owner.get("email", ""),
+                role=owner.get("role", ""),
+            )
     return CaseResponse(
         id=str(doc["_id"]),
         type=doc["type"],
@@ -29,6 +42,7 @@ def _to_response(doc: dict) -> CaseResponse:
         priority=doc["priority"],
         ownerId=doc["ownerId"],
         teamId=doc["teamId"],
+        assignedTo=assigned_to,
         fields=doc.get("fields", {}),
         stages=[StageHistory(**s) for s in doc.get("stages", [])],
         sla=SLAInfo(**doc["sla"]),
@@ -88,7 +102,7 @@ async def create_case(body: CaseCreate, user: dict = Depends(get_current_user)):
     result = await db.cases.insert_one(doc)
     doc["_id"] = result.inserted_id
     await _write_audit(db, str(result.inserted_id), "created", user)
-    return _to_response(doc)
+    return await _to_response(doc)
 
 
 @router.get("", response_model=list[CaseResponse])
@@ -112,7 +126,10 @@ async def list_cases(
     if teamId:
         query["teamId"] = teamId
     cursor = db.cases.find(query).sort("updatedAt", -1).skip(skip).limit(limit)
-    return [_to_response(doc) async for doc in cursor]
+    results = []
+    async for doc in cursor:
+        results.append(await _to_response(doc))
+    return results
 
 
 @router.get("/{case_id}", response_model=CaseResponse)
@@ -121,7 +138,7 @@ async def get_case(case_id: str, user: dict = Depends(get_current_user)):
     doc = await find_by_id(db.cases, case_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
-    return _to_response(doc)
+    return await _to_response(doc)
 
 
 @router.patch("/{case_id}", response_model=CaseResponse)
@@ -147,7 +164,7 @@ async def update_case(case_id: str, body: CaseUpdate, user: dict = Depends(get_c
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
     await _write_audit(db, case_id, "updated", user, changes)
-    return _to_response(doc)
+    return await _to_response(doc)
 
 
 # ---------- Stage transition ----------
@@ -198,7 +215,7 @@ async def transition_stage(
     })
 
     updated = await find_by_id(db.cases, case_id)
-    return _to_response(updated)
+    return await _to_response(updated)
 
 
 # ---------- Available transitions ----------

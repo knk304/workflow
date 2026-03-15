@@ -596,11 +596,13 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
       this.store.dispatch(CasesActions.loadCaseById({ id: caseId }));
     }
 
-    this.case$ = this.store.select(selectCasesList).pipe(
-      map(cases => cases.find(c => c.id === caseId)),
-      switchMap(found => found ? of(found) : this.store.select(selectSelectedCase).pipe(
-        map(c => c ?? undefined)
-      )),
+    this.case$ = this.store.select(selectSelectedCase).pipe(
+      switchMap(selected => {
+        if (selected && selected.id === caseId) return of(selected);
+        return this.store.select(selectCasesList).pipe(
+          map(cases => cases.find(c => c.id === caseId))
+        );
+      }),
     );
 
     this.case$.pipe(takeUntil(this.destroy$)).subscribe(selectedCase => {
@@ -710,11 +712,6 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     this.snackBar.open(`Transitioning: ${action}...`, 'OK', { duration: 3000 });
     this.transitionNotes = '';
     this.showTransitionPanel.set(false);
-    // Reload after transition
-    setTimeout(() => {
-      this.store.dispatch(CasesActions.loadCaseById({ id: caseId }));
-      this.loadAvailableTransitions();
-    }, 1000);
   }
 
   // ─── Edit / Save ─────────────────────────────

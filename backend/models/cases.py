@@ -58,6 +58,13 @@ class CaseUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class AssignedUser(BaseModel):
+    id: str
+    name: str
+    email: str
+    role: str = ""
+
+
 class CaseResponse(BaseModel):
     id: str
     type: str
@@ -66,6 +73,7 @@ class CaseResponse(BaseModel):
     priority: Priority
     ownerId: str
     teamId: str
+    assignedTo: Optional[AssignedUser] = None
     fields: dict[str, Any] = {}
     stages: list[StageHistory] = []
     sla: SLAInfo
