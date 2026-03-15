@@ -295,9 +295,10 @@ export class ApiDataService extends DataService {
   }
 
   // ─── Forms ──────────────────────────────────────
-  getFormDefinitions(caseTypeId?: string): Observable<FormDefinition[]> {
+  getFormDefinitions(caseTypeId?: string, stage?: string): Observable<FormDefinition[]> {
     let params = new HttpParams();
     if (caseTypeId) { params = params.set('case_type_id', caseTypeId); }
+    if (stage) { params = params.set('stage', stage); }
     return this.http.get<FormDefinition[]>(`${this.caseUrl}/forms/definitions`, { params });
   }
 

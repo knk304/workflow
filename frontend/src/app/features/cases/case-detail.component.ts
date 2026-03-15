@@ -80,7 +80,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
               <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ caseData.id }}</h1>
                 <p class="text-slate-500 mt-0.5">
-                  {{ caseData.fields['applicantName'] }}
+                  {{ getPrimaryFieldValue(caseData) }}
                   <span class="mx-1.5 text-slate-300">|</span>
                   <span class="wf-badge wf-badge--neutral">{{ caseData.type | uppercase }}</span>
                 </p>
@@ -780,43 +780,108 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   private buildDynamicForm(case_: Case): void {
     if (this.dynamicFields.length > 0) return; // Already built
 
+    const fields = case_.fields || {};
+
+    // First try to load FormDefinition for this case type (gives proper labels/types)
+    this.dataService.getCaseTypes().pipe(takeUntil(this.destroy$)).subscribe(caseTypes => {
+      const ct = caseTypes.find(t => t.slug === case_.type);
+      if (ct) {
+        this.dataService.getFormDefinitions(ct.id).pipe(takeUntil(this.destroy$)).subscribe(forms => {
+          const formDef = forms.find(f => f.stage === 'intake' && f.isActive !== false);
+          if (formDef && formDef.fields.length > 0) {
+            // Use FormDefinition for labels, types, icons
+            this.dynamicFields = formDef.fields
+              .sort((a, b) => a.order - b.order)
+              .filter(f => fields[f.id] !== undefined)
+              .map(f => ({
+                key: f.id,
+                label: f.label,
+                type: f.type === 'select' ? 'select' : f.type === 'number' ? 'number' : f.type === 'textarea' ? 'textarea' : 'text',
+                icon: this.guessFieldIcon(f.id, f.label),
+                options: f.validation?.options,
+              }));
+            // Also add any case fields not in the form definition
+            for (const key of Object.keys(fields)) {
+              if (!this.dynamicFields.some(d => d.key === key)) {
+                this.dynamicFields.push({ key, label: this.formatLabel(key), type: typeof fields[key] === 'number' ? 'number' : 'text' });
+              }
+            }
+          } else {
+            // Fall back to fieldsSchema or raw keys
+            this.buildDynamicFieldsFromSchema(ct, fields);
+          }
+          this.addDynamicControls(fields);
+        });
+      } else {
+        this.buildDynamicFieldsFallback(fields);
+        this.addDynamicControls(fields);
+      }
+    });
+
+    // Initial fallback from raw keys (shows immediately, then updated from API)
+    this.buildDynamicFieldsFallback(fields);
+    this.addDynamicControls(fields);
+  }
+
+  private buildDynamicFieldsFromSchema(ct: CaseType, fields: Record<string, any>): void {
     const iconMap: Record<string, string> = {
       applicantName: 'person', loanAmount: 'payments', loanType: 'category',
       applicantIncome: 'account_balance', interestRate: 'percent', loanTerm: 'date_range',
     };
-    const typeMap: Record<string, string> = {
-      loanAmount: 'number', applicantIncome: 'number', interestRate: 'number', loanTerm: 'number',
-    };
+    if (ct.fieldsSchema && Object.keys(ct.fieldsSchema).length > 0) {
+      this.dynamicFields = Object.entries(ct.fieldsSchema).map(([key, schema]) => ({
+        key,
+        label: (schema as any).label || this.formatLabel(key),
+        type: (schema as any).type === 'number' ? 'number' : (schema as any).type === 'select' ? 'select' : 'text',
+        icon: iconMap[key],
+        options: (schema as any).options,
+      }));
+    } else {
+      this.buildDynamicFieldsFallback(fields);
+    }
+  }
 
-    // Build form fields from case.fields keys
-    const fields = case_.fields || {};
+  private buildDynamicFieldsFallback(fields: Record<string, any>): void {
     this.dynamicFields = Object.keys(fields).map(key => ({
       key,
       label: this.formatLabel(key),
-      type: typeMap[key] || 'text',
-      icon: iconMap[key],
+      type: typeof fields[key] === 'number' ? 'number' : 'text',
+      icon: this.guessFieldIcon(key, key),
     }));
+  }
 
-    // Also try to load form definitions from backend for richer metadata
-    this.dataService.getCaseTypes().pipe(takeUntil(this.destroy$)).subscribe(caseTypes => {
-      const ct = caseTypes.find(t => t.slug === case_.type);
-      if (ct?.fieldsSchema) {
-        this.dynamicFields = Object.entries(ct.fieldsSchema).map(([key, schema]) => ({
-          key,
-          label: (schema as any).label || this.formatLabel(key),
-          type: (schema as any).type === 'number' ? 'number' : (schema as any).type === 'select' ? 'select' : 'text',
-          icon: iconMap[key],
-          options: (schema as any).options,
-        }));
-      }
-    });
-
-    // Add controls for each dynamic field
+  private addDynamicControls(fields: Record<string, any>): void {
     for (const key of Object.keys(fields)) {
       if (!this.detailsForm.contains(key)) {
         this.detailsForm.addControl(key, new FormControl(fields[key] ?? ''));
       }
     }
+  }
+
+  private guessFieldIcon(id: string, label: string): string {
+    const lbl = (id + ' ' + label).toLowerCase();
+    if (lbl.includes('name') || lbl.includes('applicant')) return 'person';
+    if (lbl.includes('amount') || lbl.includes('loan') && lbl.includes('amount')) return 'payments';
+    if (lbl.includes('type') || lbl.includes('category')) return 'category';
+    if (lbl.includes('income') || lbl.includes('salary')) return 'account_balance';
+    if (lbl.includes('email')) return 'email';
+    if (lbl.includes('date')) return 'event';
+    if (lbl.includes('purpose')) return 'description';
+    return '';
+  }
+
+  getPrimaryFieldValue(caseData: Case): string {
+    if (!caseData?.fields) return '';
+    // Try common name-like keys first
+    const nameKeys = ['applicantName', 'f-name', 'name', 'fullName', 'clientName'];
+    for (const key of nameKeys) {
+      if (caseData.fields[key]) return String(caseData.fields[key]);
+    }
+    // Fall back to first string field value
+    for (const val of Object.values(caseData.fields)) {
+      if (typeof val === 'string' && val.length > 0 && val.length < 100) return val;
+    }
+    return caseData.type;
   }
 
   private formatLabel(key: string): string {

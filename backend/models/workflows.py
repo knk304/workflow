@@ -25,6 +25,7 @@ class WorkflowNode(BaseModel):
     label: str
     position: NodePosition = NodePosition()
     assignee_role: Optional[str] = None
+    form_id: Optional[str] = None
     config: dict[str, Any] = {}
 
 

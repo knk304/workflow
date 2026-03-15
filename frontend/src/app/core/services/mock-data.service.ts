@@ -1063,9 +1063,10 @@ export class MockDataService extends DataService {
   }
 
   // Forms
-  getFormDefinitions(caseTypeId?: string): Observable<FormDefinition[]> {
+  getFormDefinitions(caseTypeId?: string, stage?: string): Observable<FormDefinition[]> {
     let forms = [...this.mockFormDefinitions];
     if (caseTypeId) forms = forms.filter(f => f.caseTypeId === caseTypeId);
+    if (stage) forms = forms.filter(f => f.stage === stage);
     return of(forms).pipe(delay(300));
   }
 

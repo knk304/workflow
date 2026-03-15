@@ -396,7 +396,7 @@ async def seed_all():
             "definition": {
                 "nodes": [
                     {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}},
-                    {"id": "n-intake", "type": "task", "label": "Intake Review", "position": {"x": 220, "y": 200}, "assigneeRole": "WORKER"},
+                    {"id": "n-intake", "type": "task", "label": "Intake Review", "position": {"x": 220, "y": 200}, "assigneeRole": "WORKER", "formId": "form-loan-intake"},
                     {"id": "n-docs", "type": "task", "label": "Document Collection", "position": {"x": 400, "y": 200}, "assigneeRole": "WORKER"},
                     {"id": "n-uw", "type": "task", "label": "Underwriting", "position": {"x": 580, "y": 200}, "assigneeRole": "WORKER"},
                     {"id": "n-decision", "type": "decision", "label": "Approval?", "position": {"x": 760, "y": 200}},

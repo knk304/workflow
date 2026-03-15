@@ -20,7 +20,9 @@ import {
   WorkflowEdge,
   NodeType,
   WorkflowValidationResult,
+  FormDefinition,
 } from '../../core/models';
+import { DataService } from '../../core/services/data.service';
 import * as WorkflowsActions from '../../state/workflows/workflows.actions';
 import {
   selectWorkflowsList,
@@ -187,6 +189,12 @@ import {
                   @if (node.assigneeRole) {
                     <div class="text-xs text-[#056DAE] mt-1">{{ node.assigneeRole }}</div>
                   }
+                  @if (node.formId) {
+                    <div class="text-xs mt-1 flex items-center justify-center gap-0.5 text-emerald-600">
+                      <mat-icon class="!text-xs !w-3 !h-3">dynamic_form</mat-icon>
+                      {{ getFormName(node.formId) }}
+                    </div>
+                  }
                 </div>
               </div>
             }
@@ -213,7 +221,7 @@ import {
                 <mat-icon>delete_outline</mat-icon>
               </button>
             </div>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-4 gap-4">
               <mat-form-field>
                 <mat-label>Label</mat-label>
                 <input matInput [value]="getSelectedNode()?.label || ''" (input)="updateNodeLabel($event)">
@@ -235,6 +243,23 @@ import {
                   <mat-option value="WORKER">Worker</mat-option>
                 </mat-select>
               </mat-form-field>
+              @if (isFormLinkableNode()) {
+                <mat-form-field>
+                  <mat-label>Linked Form</mat-label>
+                  <mat-select [value]="getSelectedNode()?.formId || ''" (selectionChange)="updateNodeFormId($event.value)">
+                    <mat-option value="">None</mat-option>
+                    @for (form of availableForms(); track form.id) {
+                      <mat-option [value]="form.id">
+                        {{ form.name }}
+                        @if (form.stage) {
+                          <span class="text-xs text-gray-400 ml-1">({{ form.stage }})</span>
+                        }
+                      </mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Select a form to present at this workflow step</mat-hint>
+                </mat-form-field>
+              }
             </div>
 
             <!-- Validation errors -->
@@ -268,6 +293,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
   connectingFrom = signal<string | null>(null);
   validationResult = signal<WorkflowValidationResult | null>(null);
   autoSaveStatus = signal<string>('');
+  availableForms = signal<FormDefinition[]>([]);
   workflowName = '';
 
   private dragTarget: WorkflowNode | null = null;
@@ -294,6 +320,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
   constructor(
     private store: Store,
     private snackBar: MatSnackBar,
+    private dataService: DataService,
   ) {}
 
   ngOnInit(): void {
@@ -301,6 +328,11 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
 
     this.store.select(selectWorkflowValidation).subscribe(result => {
       if (result) this.validationResult.set(result);
+    });
+
+    // Load all form definitions for linking
+    this.dataService.getFormDefinitions().subscribe(forms => {
+      this.availableForms.set(forms);
     });
   }
 
@@ -446,6 +478,23 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
     this.canvasNodes.update(nodes =>
       nodes.map(n => n.id === this.selectedNodeId() ? { ...n, assigneeRole: role || undefined } : n)
     );
+  }
+
+  updateNodeFormId(formId: string): void {
+    this.pushUndoState();
+    this.canvasNodes.update(nodes =>
+      nodes.map(n => n.id === this.selectedNodeId() ? { ...n, formId: formId || undefined } : n)
+    );
+  }
+
+  isFormLinkableNode(): boolean {
+    const node = this.getSelectedNode();
+    return !!node && (node.type === 'task' || node.type === 'subprocess');
+  }
+
+  getFormName(formId: string): string {
+    const form = this.availableForms().find(f => f.id === formId);
+    return form?.name || 'Unknown form';
   }
 
   getNodeCenter(nodeId: string): { x: number; y: number } {

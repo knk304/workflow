@@ -200,6 +200,7 @@ export interface WorkflowNode {
   label: string;
   position: NodePosition;
   assigneeRole?: string;
+  formId?: string;
   config?: Record<string, any>;
 }
 

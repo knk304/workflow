@@ -87,7 +87,7 @@ export abstract class DataService {
   abstract acknowledgeSLA(caseId: string): Observable<any>;
 
   // Forms
-  abstract getFormDefinitions(caseTypeId?: string): Observable<FormDefinition[]>;
+  abstract getFormDefinitions(caseTypeId?: string, stage?: string): Observable<FormDefinition[]>;
   abstract getFormDefinitionById(id: string): Observable<FormDefinition>;
   abstract createFormDefinition(form: Partial<FormDefinition>): Observable<FormDefinition>;
   abstract updateFormDefinition(id: string, form: Partial<FormDefinition>): Observable<FormDefinition>;
