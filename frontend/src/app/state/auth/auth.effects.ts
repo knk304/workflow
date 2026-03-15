@@ -25,8 +25,9 @@ export class AuthEffects {
     () =>
       this.actions$.pipe(
         ofType(AuthActions.loginSuccess),
-        tap(({ token }) => {
+        tap(({ user, token }) => {
           localStorage.setItem('auth_token', token);
+          localStorage.setItem('auth_user', JSON.stringify(user));
           this.router.navigate(['/dashboard']);
         })
       ),
@@ -49,8 +50,9 @@ export class AuthEffects {
     () =>
       this.actions$.pipe(
         ofType(AuthActions.registerSuccess),
-        tap(({ token }) => {
+        tap(({ user, token }) => {
           localStorage.setItem('auth_token', token);
+          localStorage.setItem('auth_user', JSON.stringify(user));
           this.router.navigate(['/dashboard']);
         })
       ),
@@ -75,6 +77,38 @@ export class AuthEffects {
         ofType(AuthActions.logoutSuccess),
         tap(() => {
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          this.router.navigate(['/login']);
+        })
+      ),
+    { dispatch: false }
+  );
+
+  getCurrentUser$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AuthActions.getCurrentUser),
+      switchMap(() =>
+        this.authService.getCurrentUser().pipe(
+          map((user) => {
+            if (user) {
+              localStorage.setItem('auth_user', JSON.stringify(user));
+              return AuthActions.getCurrentUserSuccess({ user });
+            }
+            return AuthActions.getCurrentUserFailure();
+          }),
+          catchError(() => of(AuthActions.getCurrentUserFailure()))
+        )
+      )
+    )
+  );
+
+  getCurrentUserFailure$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(AuthActions.getCurrentUserFailure),
+        tap(() => {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
           this.router.navigate(['/login']);
         })
       ),

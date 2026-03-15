@@ -12,12 +12,25 @@ export interface AuthState {
   error: string | null;
 }
 
-const initialState: AuthState = {
-  user: null,
-  token: null,
-  isLoading: false,
-  error: null,
-};
+function loadInitialState(): AuthState {
+  try {
+    const token = localStorage.getItem('auth_token');
+    const userJson = localStorage.getItem('auth_user');
+    if (token && userJson) {
+      return {
+        user: JSON.parse(userJson),
+        token,
+        isLoading: false,
+        error: null,
+      };
+    }
+  } catch {
+    // Corrupted data – fall through to defaults
+  }
+  return { user: null, token: null, isLoading: false, error: null };
+}
+
+const initialState: AuthState = loadInitialState();
 
 export const authReducer = createReducer(
   initialState,
@@ -73,6 +86,12 @@ export const authReducer = createReducer(
   on(AuthActions.getCurrentUserSuccess, (state, { user }) => ({
     ...state,
     user,
+  })),
+  on(AuthActions.getCurrentUserFailure, () => ({
+    user: null,
+    token: null,
+    isLoading: false,
+    error: null,
   })),
   on(AuthActions.clearError, (state) => ({
     ...state,

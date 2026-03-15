@@ -34,4 +34,6 @@ export const getCurrentUserSuccess = createAction(
   props<{ user: User }>()
 );
 
+export const getCurrentUserFailure = createAction('[Auth] Get Current User Failure');
+
 export const clearError = createAction('[Auth] Clear Error');
