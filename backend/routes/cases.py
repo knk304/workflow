@@ -61,13 +61,16 @@ async def create_case(body: CaseCreate, user: dict = Depends(get_current_user)):
 
     first_stage = await get_first_stage(body.type)
 
+    owner_id = body.ownerId or str(user["_id"])
+    team_id = body.teamId or (user.get("team_ids", [""])[0] if user.get("team_ids") else "")
+
     doc = {
         "type": body.type,
         "status": "open",
         "stage": first_stage,
         "priority": body.priority.value,
-        "ownerId": body.ownerId,
-        "teamId": body.teamId,
+        "ownerId": owner_id,
+        "teamId": team_id,
         "fields": body.fields,
         "stages": [build_stage_entry(first_stage)],
         "sla": {

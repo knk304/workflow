@@ -66,7 +66,7 @@ import { DataService } from '../../core/services/data.service';
                   <mat-label>Case Type</mat-label>
                   <mat-select formControlName="type" (selectionChange)="onCaseTypeChange($event.value)">
                     @for (ct of caseTypes(); track ct.id) {
-                      <mat-option [value]="ct.name">{{ ct.description }}</mat-option>
+                      <mat-option [value]="ct.slug">{{ ct.description }}</mat-option>
                     }
                   </mat-select>
                   @if (caseInfoForm.get('type')?.hasError('required')) {
@@ -157,6 +157,13 @@ import { DataService } from '../../core/services/data.service';
                           <mat-checkbox [formControlName]="field.key">
                             {{ field.def.label }}
                           </mat-checkbox>
+                        }
+                        @default {
+                          <mat-form-field class="w-full">
+                            <mat-label>{{ field.def.label }}</mat-label>
+                            <input matInput [formControlName]="field.key"
+                                   [placeholder]="field.def.placeholder || ''">
+                          </mat-form-field>
                         }
                       }
                     </div>
@@ -273,8 +280,8 @@ export class CaseCreateComponent implements OnInit {
 
   private submitting = false;
 
-  onCaseTypeChange(typeName: string): void {
-    const ct = this.caseTypes().find(t => t.name === typeName);
+  onCaseTypeChange(typeSlug: string): void {
+    const ct = this.caseTypes().find(t => t.slug === typeSlug);
     this.selectedCaseType.set(ct || null);
     this.buildFieldsForm(ct);
   }

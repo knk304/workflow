@@ -43,8 +43,8 @@ class SLAInfo(BaseModel):
 class CaseCreate(BaseModel):
     type: str
     priority: Priority = Priority.medium
-    ownerId: str
-    teamId: str
+    ownerId: Optional[str] = None
+    teamId: Optional[str] = None
     fields: dict[str, Any] = {}
     notes: Optional[str] = None
 
