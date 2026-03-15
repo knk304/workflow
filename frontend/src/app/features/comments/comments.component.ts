@@ -55,7 +55,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
 
       <!-- Add Comment Form -->
       @if (showCommentForm) {
-        <div class="bg-blue-50 rounded-lg p-4 space-y-3">
+        <div class="bg-[#EAF4FB] rounded-lg p-4 space-y-3">
           <form [formGroup]="commentForm" (ngSubmit)="onAddComment()">
             <mat-form-field class="w-full">
               <mat-label>Add a comment...</mat-label>
@@ -90,7 +90,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
                 <!-- Comment Header -->
                 <div class="flex items-center justify-between mb-2">
                   <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                    <div class="w-8 h-8 rounded-full bg-[#056DAE] text-white flex items-center justify-center font-bold text-sm">
                       {{ comment.userAvatar || comment.userName.charAt(0) }}
                     </div>
                     <div>
@@ -139,7 +139,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
 
                 <!-- Reply button -->
                 <div class="flex gap-4 text-xs text-gray-600">
-                  <button class="hover:text-blue-600 flex items-center gap-1" (click)="toggleReplyForm(comment.id)">
+                  <button class="hover:text-[#056DAE] flex items-center gap-1" (click)="toggleReplyForm(comment.id)">
                     <mat-icon class="text-sm">reply</mat-icon>
                     <span>Reply</span>
                   </button>

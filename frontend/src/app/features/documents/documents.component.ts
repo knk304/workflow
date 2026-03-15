@@ -62,8 +62,8 @@ import {
       <mat-card class="mb-6">
         <mat-card-content class="p-6">
           <div class="border-2 border-dashed rounded-lg p-8 text-center transition-colors"
-               [class.border-blue-400]="isDragOver()"
-               [class.bg-blue-50]="isDragOver()"
+               [class.border-[#056DAE]]="isDragOver()"
+               [class.bg-[#EAF4FB]]="isDragOver()"
                [class.border-gray-300]="!isDragOver()"
                (dragover)="onDragOver($event)"
                (dragleave)="isDragOver.set(false)"
@@ -294,14 +294,14 @@ export class DocumentsComponent implements OnInit {
     if (contentType.includes('pdf')) return 'bg-red-50';
     if (contentType.includes('image')) return 'bg-purple-50';
     if (contentType.includes('spreadsheet') || contentType.includes('excel')) return 'bg-green-50';
-    return 'bg-blue-50';
+    return 'bg-[#EAF4FB]';
   }
 
   getFileIconColor(contentType: string): string {
     if (contentType.includes('pdf')) return 'text-red-500';
     if (contentType.includes('image')) return 'text-purple-500';
     if (contentType.includes('spreadsheet') || contentType.includes('excel')) return 'text-green-500';
-    return 'text-blue-500';
+    return 'text-[#056DAE]';
   }
 
   formatSize(bytes: number): string {

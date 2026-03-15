@@ -32,12 +32,12 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
               <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Open Cases</p>
               <p class="text-3xl font-bold text-slate-900 mt-2">{{ openCases.length }}</p>
             </div>
-            <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
-              <mat-icon class="text-blue-500">folder_open</mat-icon>
+            <div class="w-11 h-11 rounded-xl bg-[#EAF4FB] flex items-center justify-center">
+              <mat-icon class="text-[#056DAE]">folder_open</mat-icon>
             </div>
           </div>
           <div class="mt-3 flex items-center gap-1 text-xs text-slate-400">
-            <mat-icon class="text-sm text-blue-400">trending_up</mat-icon>
+            <mat-icon class="text-sm text-[#056DAE]">trending_up</mat-icon>
             Active workload
           </div>
         </div>
@@ -100,10 +100,10 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
-              <mat-icon class="text-base text-indigo-400">folder_open</mat-icon>
+              <mat-icon class="text-base text-[#056DAE]">folder_open</mat-icon>
               Recent Cases
             </h3>
-            <a routerLink="/cases" class="text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition-colors">
+            <a routerLink="/cases" class="text-xs text-[#056DAE] font-semibold hover:text-[#003B70] transition-colors">
               View All
             </a>
           </div>
@@ -136,7 +136,7 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
               <mat-icon class="text-base text-emerald-400">task_alt</mat-icon>
               My Recent Tasks
             </h3>
-            <a routerLink="/tasks" class="text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition-colors">
+            <a routerLink="/tasks" class="text-xs text-[#056DAE] font-semibold hover:text-[#003B70] transition-colors">
               View All
             </a>
           </div>
@@ -231,7 +231,7 @@ export class DashboardComponent implements OnInit {
   statusColor(status: string): string {
     const colors: Record<string, string> = {
       pending: 'text-slate-500',
-      in_progress: 'text-blue-600',
+      in_progress: 'text-[#056DAE]',
       completed: 'text-emerald-600',
       blocked: 'text-red-600',
       cancelled: 'text-slate-400',
@@ -242,7 +242,7 @@ export class DashboardComponent implements OnInit {
   statusBgColor(status: string): string {
     return {
       pending: 'bg-slate-100',
-      in_progress: 'bg-blue-50',
+      in_progress: 'bg-[#EAF4FB]',
       completed: 'bg-emerald-50',
       blocked: 'bg-red-50',
       cancelled: 'bg-slate-50',

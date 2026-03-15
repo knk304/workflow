@@ -155,7 +155,7 @@ import { Case } from '../../core/models';
           <ng-container matColumnDef="id">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Case ID</th>
             <td mat-cell *matCellDef="let case">
-              <a [routerLink]="['/cases', case.id]" class="text-blue-600 hover:underline">
+              <a [routerLink]="['/cases', case.id]" class="text-[#056DAE] hover:underline">
                 {{ case.id }}
               </a>
             </td>
@@ -437,7 +437,7 @@ export class CaseListComponent implements OnInit {
 
   statusColor(status: string): string {
     const colors: Record<string, string> = {
-      open: 'text-blue-600',
+      open: 'text-[#056DAE]',
       in_progress: 'text-purple-600',
       closed: 'text-green-600',
       pending_review: 'text-orange-600',
@@ -447,7 +447,7 @@ export class CaseListComponent implements OnInit {
 
   stageClass(stage: string): string {
     const classes: Record<string, string> = {
-      intake: 'bg-blue-100 text-blue-800',
+      intake: 'bg-[#d0e8f7] text-[#003B70]',
       documents: 'bg-purple-100 text-purple-800',
       underwriting: 'bg-yellow-100 text-yellow-800',
       approval: 'bg-orange-100 text-orange-800',

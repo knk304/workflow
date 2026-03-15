@@ -27,12 +27,12 @@ import * as AuthActions from '../../state/auth/auth.actions';
     MatProgressSpinnerModule,
   ],
   template: `
-    <div class="login-container min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
-      <mat-card class="w-full max-w-md shadow-2xl">
-        <mat-card-header class="bg-blue-600 text-white p-6 mb-6">
-          <div class="text-center">
-            <h1 class="text-3xl font-bold">Workflow Platform</h1>
-            <p class="text-sm mt-2">Case & Task Management System</p>
+    <div class="login-container min-h-screen bg-gradient-to-br from-[#056DAE] to-[#003B70] flex items-center justify-center p-4">
+      <mat-card class="w-full max-w-md shadow-2xl overflow-hidden !rounded-lg">
+        <mat-card-header class="login-header bg-[#003B70] p-6 mb-6">
+          <div class="text-center w-full p-5">
+            <h1 class="text-2xl font-bold text-white">Workflow Platform</h1>
+            <p class="text-sm mt-2 text-white/80">Case & Task Management System</p>
           </div>
         </mat-card-header>
 
@@ -104,7 +104,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
             </button>
 
             <!-- Demo Credentials -->
-            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+            <div class="bg-[#EAF4FB] border-l-4 border-[#056DAE] p-4 mb-4">
               <p class="text-sm font-bold text-gray-700">Demo Credentials:</p>
                 <p class="text-xs text-gray-600 mt-1">Email: alice&#64;example.com</p>
               <p class="text-xs text-gray-600">Password: demo123</p>
@@ -114,7 +114,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
           <!-- Register Link -->
           <div class="text-center text-sm text-gray-600 mt-4">
             Don't have an account?
-            <a routerLink="/register" class="text-blue-600 font-bold hover:underline">
+            <a routerLink="/register" class="text-[#056DAE] font-bold hover:underline">
               Sign up here
             </a>
           </div>
@@ -126,6 +126,14 @@ import * as AuthActions from '../../state/auth/auth.actions';
     `
       mat-spinner {
         display: inline-block;
+      }
+      .login-header {
+        border-radius: 0 !important;
+        margin: -16px -16px 0 -16px;
+      }
+      .login-header .mdc-card__header,
+      .login-header .mat-mdc-card-header {
+        padding: 0;
       }
     `,
   ],

@@ -36,7 +36,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
     DragDropModule,
   ],
   template: `
-    <div class="kanban-container p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+    <div class="kanban-container p-6 bg-gradient-to-br from-[#EAF4FB] to-[#F5F7FA] min-h-screen">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-4xl font-bold text-gray-800">Task Kanban Board</h1>
@@ -124,7 +124,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
                       <div class="flex items-center gap-2">
                         @if (task.assigneeId) {
                           <div
-                            class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold"
+                            class="w-6 h-6 rounded-full bg-[#056DAE] text-white flex items-center justify-center text-xs font-bold"
                             [title]="task.assigneeId"
                           >
                             {{ task.assigneeId.charAt(0) }}
@@ -342,7 +342,7 @@ export class TaskKanbanComponent implements OnInit {
   columnHeaderClass(status: string): string {
     const classes: Record<string, string> = {
       pending: 'bg-gray-500',
-      in_progress: 'bg-blue-500',
+      in_progress: 'bg-[#056DAE]',
       review: 'bg-orange-500',
       done: 'bg-green-500',
       blocked: 'bg-red-500',

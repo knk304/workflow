@@ -62,9 +62,9 @@ import {
         <div class="flex-1 overflow-y-auto p-2">
           @for (wf of workflows$ | async; track wf.id) {
             <div class="p-3 mb-2 rounded cursor-pointer transition-colors"
-                 [class.bg-blue-50]="selectedWorkflowId() === wf.id"
+                 [class.bg-[#EAF4FB]]="selectedWorkflowId() === wf.id"
                  [class.border-l-4]="selectedWorkflowId() === wf.id"
-                 [class.border-blue-500]="selectedWorkflowId() === wf.id"
+                 [class.border-[#056DAE]]="selectedWorkflowId() === wf.id"
                  [class.hover:bg-gray-50]="selectedWorkflowId() !== wf.id"
                  (click)="selectWorkflow(wf)">
               <div class="font-medium text-sm">{{ wf.name }}</div>
@@ -178,14 +178,14 @@ import {
                    (click)="selectNode(node, $event)"
                    (mousedown)="startDrag(node, $event)">
                 <div class="rounded-lg shadow-md border-2 min-w-[140px] p-3 text-center transition-all"
-                     [class.border-blue-500]="selectedNodeId() === node.id"
+                     [class.border-[#056DAE]]="selectedNodeId() === node.id"
                      [class.border-gray-200]="selectedNodeId() !== node.id"
                      [ngClass]="getNodeStyle(node.type)">
                   <div class="text-lg mb-1">{{ getNodeIcon(node.type) }}</div>
                   <div class="text-sm font-medium">{{ node.label }}</div>
                   <div class="text-xs text-gray-500 mt-1">{{ node.type }}</div>
                   @if (node.assigneeRole) {
-                    <div class="text-xs text-blue-600 mt-1">{{ node.assigneeRole }}</div>
+                    <div class="text-xs text-[#056DAE] mt-1">{{ node.assigneeRole }}</div>
                   }
                 </div>
               </div>
@@ -193,7 +193,7 @@ import {
 
             <!-- Connection mode indicator -->
             @if (connectingFrom()) {
-              <div class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg text-sm z-50">
+              <div class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-[#003B70] text-white px-4 py-2 rounded-full shadow-lg text-sm z-50">
                 Click a target node to connect · Press Escape to cancel
               </div>
             }
@@ -465,7 +465,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
       task: 'bg-white',
       decision: 'bg-yellow-50 border-yellow-300',
       parallel: 'bg-purple-50 border-purple-300',
-      subprocess: 'bg-blue-50 border-blue-300',
+      subprocess: 'bg-[#EAF4FB] border-[#0A8AD2]',
     };
     return styles[type] || 'bg-white';
   }

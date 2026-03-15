@@ -134,7 +134,7 @@ export class AuditLogComponent implements OnInit, OnChanges {
   actionBgClass(action: string): string {
     const classes: Record<string, string> = {
       created: 'bg-green-100',
-      updated: 'bg-blue-100',
+      updated: 'bg-[#d0e8f7]',
       assigned: 'bg-purple-100',
       transitioned: 'bg-orange-100',
       deleted: 'bg-red-100',
@@ -145,7 +145,7 @@ export class AuditLogComponent implements OnInit, OnChanges {
   actionIconClass(action: string): string {
     const classes: Record<string, string> = {
       created: 'text-green-600',
-      updated: 'text-blue-600',
+      updated: 'text-[#056DAE]',
       assigned: 'text-purple-600',
       transitioned: 'text-orange-600',
       deleted: 'text-red-600',

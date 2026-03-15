@@ -38,8 +38,8 @@ import { User, Team } from '../../core/models';
         <mat-card class="!shadow-sm">
           <mat-card-content class="!p-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <mat-icon class="text-blue-600">people</mat-icon>
+              <div class="w-10 h-10 rounded-lg bg-[#d0e8f7] flex items-center justify-center">
+                <mat-icon class="text-[#056DAE]">people</mat-icon>
               </div>
               <div>
                 <p class="text-2xl font-bold text-gray-900">{{ users.length }}</p>
@@ -106,7 +106,7 @@ import { User, Team } from '../../core/models';
                 <th mat-header-cell *matHeaderCellDef class="!pl-4">User</th>
                 <td mat-cell *matCellDef="let user" class="!pl-4">
                   <div class="flex items-center gap-3 py-2">
-                    <div class="w-9 h-9 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-sm">
+                    <div class="w-9 h-9 rounded-full bg-[#056DAE] text-white flex items-center justify-center font-bold text-sm">
                       {{ user.avatar || user.name.charAt(0) }}
                     </div>
                     <div>
@@ -167,7 +167,7 @@ import { User, Team } from '../../core/models';
               <div class="border border-gray-200 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-2">
                   <h3 class="font-semibold text-gray-900">{{ team.name }}</h3>
-                  <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                  <span class="text-xs bg-[#EAF4FB] text-[#003B70] px-2 py-0.5 rounded">
                     {{ team.memberIds.length }} members
                   </span>
                 </div>
@@ -223,7 +223,7 @@ export class AdminUsersComponent implements OnInit {
   roleClass(role: string): string {
     const classes: Record<string, string> = {
       ADMIN: 'bg-purple-100 text-purple-800',
-      MANAGER: 'bg-blue-100 text-blue-800',
+      MANAGER: 'bg-[#d0e8f7] text-[#003B70]',
       WORKER: 'bg-green-100 text-green-800',
       VIEWER: 'bg-gray-100 text-gray-800',
     };

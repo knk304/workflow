@@ -131,7 +131,7 @@ import { DataService } from '../../core/services/data.service';
                               @for (opt of field.validation.options || []; track opt) {
                                 <label class="flex items-center gap-2 cursor-pointer">
                                   <input type="radio" [formControlName]="field.id" [value]="opt"
-                                         class="text-blue-600">
+                                         class="text-[#056DAE]">
                                   <span class="text-sm">{{ opt }}</span>
                                 </label>
                               }
@@ -149,8 +149,8 @@ import { DataService } from '../../core/services/data.service';
                                           file:mr-4 file:py-2 file:px-4
                                           file:rounded-md file:border-0
                                           file:text-sm file:font-semibold
-                                          file:bg-blue-50 file:text-blue-700
-                                          hover:file:bg-blue-100">
+                                          file:bg-[#EAF4FB] file:text-[#003B70]
+                                          hover:file:bg-[#d0e8f7]">
                           </div>
                         }
                       }
@@ -225,7 +225,7 @@ import { DataService } from '../../core/services/data.service';
                       <div class="mb-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
                         <input type="file" (change)="onFileSelected(field.id, $event)"
-                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700">
+                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-[#EAF4FB] file:text-[#003B70]">
                       </div>
                     }
                   }

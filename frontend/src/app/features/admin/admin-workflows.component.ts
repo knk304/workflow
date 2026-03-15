@@ -44,8 +44,8 @@ import { Workflow, CaseType } from '../../core/models';
         <mat-card class="!shadow-sm">
           <mat-card-content class="!p-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <mat-icon class="text-blue-600">account_tree</mat-icon>
+              <div class="w-10 h-10 rounded-lg bg-[#d0e8f7] flex items-center justify-center">
+                <mat-icon class="text-[#056DAE]">account_tree</mat-icon>
               </div>
               <div>
                 <p class="text-2xl font-bold text-gray-900">{{ workflows.length }}</p>
@@ -113,7 +113,7 @@ import { Workflow, CaseType } from '../../core/models';
                               [ngClass]="wf.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'">
                           {{ wf.isActive ? 'Active' : 'Inactive' }}
                         </span>
-                        <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                        <span class="text-xs bg-[#EAF4FB] text-[#003B70] px-2 py-0.5 rounded-full">
                           v{{ wf.version }}
                         </span>
                       </div>
@@ -139,7 +139,7 @@ import { Workflow, CaseType } from '../../core/models';
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
-                    <a mat-icon-button matTooltip="Open in Designer" routerLink="/workflows" class="text-gray-400 hover:text-indigo-600">
+                    <a mat-icon-button matTooltip="Open in Designer" routerLink="/workflows" class="text-gray-400 hover:text-[#056DAE]">
                       <mat-icon>edit</mat-icon>
                     </a>
                   </div>

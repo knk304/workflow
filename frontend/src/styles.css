@@ -10,13 +10,13 @@
 
 /* CSS Custom Properties – Design Tokens */
 :root {
-  /* Brand palette */
-  --wf-primary: #4f46e5;
-  --wf-primary-light: #818cf8;
-  --wf-primary-dark: #3730a3;
-  --wf-accent: #06b6d4;
-  --wf-accent-light: #67e8f9;
-  --wf-warn: #ef4444;
+  /* Brand palette – Citibank */
+  --wf-primary: #056DAE;
+  --wf-primary-light: #0A8AD2;
+  --wf-primary-dark: #003B70;
+  --wf-accent: #E31837;
+  --wf-accent-light: #FF4D63;
+  --wf-warn: #E31837;
 
   /* Neutrals */
   --wf-bg: #f8fafc;
@@ -30,7 +30,7 @@
   --wf-success: #10b981;
   --wf-warning: #f59e0b;
   --wf-danger: #ef4444;
-  --wf-info: #3b82f6;
+  --wf-info: #056DAE;
 
   /* Shadows */
   --wf-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -134,11 +134,11 @@ a:hover {
   border-radius: var(--wf-radius) !important;
   font-weight: 600;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 8px rgb(79 70 229 / 0.3) !important;
+  box-shadow: 0 2px 8px rgb(5 109 174 / 0.3) !important;
   transition: box-shadow var(--wf-transition), transform var(--wf-transition);
 }
 .mat-mdc-raised-button.mat-primary:hover {
-  box-shadow: 0 4px 14px rgb(79 70 229 / 0.4) !important;
+  box-shadow: 0 4px 14px rgb(5 109 174 / 0.4) !important;
   transform: translateY(-1px);
 }
 .mat-mdc-outlined-button,
@@ -170,7 +170,7 @@ a:hover {
   background: var(--wf-surface) !important;
 }
 .mat-mdc-list-item.active {
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.04) 100%) !important;
+  background: linear-gradient(135deg, rgba(5, 109, 174, 0.08) 0%, rgba(5, 109, 174, 0.04) 100%) !important;
   border-right: 3px solid var(--wf-primary);
 }
 .mat-mdc-list-item.active .mat-icon {
@@ -190,7 +190,7 @@ a:hover {
   border-color: var(--wf-primary) !important;
 }
 .mat-mdc-progress-bar .mdc-linear-progress__buffer-bar {
-  background-color: #e0e7ff !important;
+  background-color: #d0e8f7 !important;
 }
 
 /* ===== Material Overrides – Table ===== */
@@ -242,7 +242,7 @@ a:hover {
 .wf-badge--success { background: #d1fae5; color: #065f46; }
 .wf-badge--warning { background: #fef3c7; color: #92400e; }
 .wf-badge--danger  { background: #fee2e2; color: #991b1b; }
-.wf-badge--info    { background: #dbeafe; color: #1e40af; }
+.wf-badge--info    { background: #d0e8f7; color: #003B70; }
 .wf-badge--neutral { background: #f1f5f9; color: #475569; }
 .wf-badge--purple  { background: #ede9fe; color: #5b21b6; }
 

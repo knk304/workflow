@@ -52,7 +52,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
       <div class="case-detail-container animate-fade-in">
         <!-- Breadcrumb & Back -->
         <div class="flex items-center gap-2 mb-6 text-sm text-slate-500">
-          <a routerLink="/cases" class="hover:text-indigo-600 transition-colors flex items-center gap-1">
+          <a routerLink="/cases" class="hover:text-[#056DAE] transition-colors flex items-center gap-1">
             <mat-icon class="text-base">arrow_back</mat-icon>
             Cases
           </a>
@@ -87,7 +87,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
                   <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                   <span class="text-xs text-green-700 font-medium">Live</span>
                   @for (viewer of wsService.presenceUsers(); track viewer.id) {
-                    <div class="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold -ml-1 ring-2 ring-white"
+                    <div class="w-6 h-6 rounded-full bg-[#056DAE] text-white flex items-center justify-center text-[10px] font-bold -ml-1 ring-2 ring-white"
                          [matTooltip]="viewer.name">
                       {{ viewer.name.charAt(0) }}
                     </div>
@@ -109,10 +109,10 @@ import { selectUser } from '../../state/auth/auth.selectors';
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-              <mat-icon class="text-indigo-500">route</mat-icon>
+              <mat-icon class="text-[#056DAE]">route</mat-icon>
               Case Journey
             </h3>
-            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+            <span class="text-xs font-semibold text-[#056DAE] bg-[#EAF4FB] px-3 py-1 rounded-full">
               {{ getProgressPercentage(caseData.stageHistory ?? []) | number:'1.0-0' }}% Complete
             </span>
           </div>
@@ -121,7 +121,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
           <div class="flex items-start justify-between relative">
             <!-- Connector line behind circles -->
             <div class="absolute top-5 left-[5%] right-[5%] h-0.5 bg-slate-200 z-0"></div>
-            <div class="absolute top-5 left-[5%] h-0.5 bg-indigo-500 z-0 transition-all duration-500"
+            <div class="absolute top-5 left-[5%] h-0.5 bg-[#056DAE] z-0 transition-all duration-500"
                  [style.width.%]="getProgressPercentage(caseData.stageHistory ?? []) * 0.9"></div>
 
             @for (stage of stages; track stage.name) {
@@ -140,7 +140,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
                 <!-- Label -->
                 <span class="text-[11px] font-semibold mt-2 text-center leading-tight"
                       [ngClass]="isStageCompleted(caseData.stageHistory ?? [], stage.name) ? 'text-emerald-700' :
-                                 isStageActive(caseData.stage, stage.name) ? 'text-indigo-700' : 'text-slate-400'">
+                                 isStageActive(caseData.stage, stage.name) ? 'text-[#003B70]' : 'text-slate-400'">
                   {{ stage.name | uppercase }}
                 </span>
               </div>
@@ -247,7 +247,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
                     <mat-icon>task_alt</mat-icon>
                     <span>Tasks</span>
                     @if (tasks.length > 0) {
-                      <span class="ml-1 bg-indigo-100 text-indigo-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      <span class="ml-1 bg-[#d0e8f7] text-[#003B70] text-[11px] font-bold px-2 py-0.5 rounded-full">
                         {{ tasks.length }}
                       </span>
                     }
@@ -258,7 +258,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
                   @if (tasks.length > 0) {
                     <div class="space-y-3">
                       @for (task of tasks; track task.id) {
-                        <div class="group flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-200 cursor-pointer">
+                        <div class="group flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-[#a1d1ef] hover:bg-[#EAF4FB]/30 transition-all duration-200 cursor-pointer">
                           <!-- Status Icon -->
                           <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                                [ngClass]="taskStatusBg(task.status)">
@@ -283,7 +283,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
                             </div>
                           </div>
                           <!-- Arrow -->
-                          <mat-icon class="text-slate-300 group-hover:text-indigo-400 transition-colors">
+                          <mat-icon class="text-slate-300 group-hover:text-[#056DAE] transition-colors">
                             chevron_right
                           </mat-icon>
                         </div>
@@ -359,7 +359,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
                 <div class="px-5 py-3">
                   <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Assigned To</p>
                   <div class="flex items-center gap-2 mt-1">
-                    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                    <div class="w-6 h-6 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-xs font-bold">
                       {{ (caseData.assignedTo?.name || 'U').charAt(0) }}
                     </div>
                     <span class="text-sm text-slate-800">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
@@ -419,7 +419,7 @@ import { selectUser } from '../../state/auth/auth.selectors';
               </div>
               <div class="p-4 space-y-2">
                 <button mat-stroked-button class="w-full justify-start">
-                  <mat-icon class="text-indigo-500">edit</mat-icon>
+                  <mat-icon class="text-[#056DAE]">edit</mat-icon>
                   <span class="ml-1">Edit Case</span>
                 </button>
                 <button mat-stroked-button class="w-full justify-start">
@@ -558,7 +558,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
       return 'bg-emerald-500 text-white shadow-sm shadow-emerald-200';
     }
     if (this.isStageActive(stageName, stageName)) {
-      return 'bg-indigo-500 text-white shadow-sm shadow-indigo-200';
+      return 'bg-[#056DAE] text-white shadow-sm shadow-[#a1d1ef]';
     }
     return 'bg-slate-100 text-slate-400';
   }
@@ -575,7 +575,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
   statusColor(status: string): string {
     return {
-      open: 'text-blue-600',
+      open: 'text-[#056DAE]',
       in_progress: 'text-purple-600',
       closed: 'text-emerald-600',
       pending_review: 'text-amber-600',
@@ -584,7 +584,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
   statusBg(status: string): string {
     return {
-      open: 'bg-blue-50',
+      open: 'bg-[#EAF4FB]',
       in_progress: 'bg-purple-50',
       closed: 'bg-emerald-50',
       pending_review: 'bg-amber-50',
@@ -602,7 +602,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
   statusDot(status: string): string {
     return {
-      open: 'bg-blue-500',
+      open: 'bg-[#056DAE]',
       in_progress: 'bg-purple-500',
       closed: 'bg-emerald-500',
       pending_review: 'bg-amber-500',
@@ -611,7 +611,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
   stageColor(stage: string): string {
     const colors: Record<string, string> = {
-      intake: 'text-blue-600',
+      intake: 'text-[#056DAE]',
       documents: 'text-purple-600',
       underwriting: 'text-amber-600',
       approval: 'text-orange-600',
@@ -644,7 +644,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   taskStatusColor(status: string): string {
     return {
       pending: 'text-slate-500',
-      in_progress: 'text-blue-600',
+      in_progress: 'text-[#056DAE]',
       completed: 'text-emerald-600',
       blocked: 'text-red-600',
     }[status] || 'text-slate-500';
@@ -653,7 +653,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   taskStatusBg(status: string): string {
     return {
       pending: 'bg-slate-100',
-      in_progress: 'bg-blue-50',
+      in_progress: 'bg-[#EAF4FB]',
       completed: 'bg-emerald-50',
       blocked: 'bg-red-50',
     }[status] || 'bg-slate-100';
@@ -670,7 +670,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
   auditLogBorder(action: string): string {
     return {
-      create: 'border-blue-400',
+      create: 'border-[#056DAE]',
       update: 'border-amber-400',
       transition: 'border-purple-400',
       comment: 'border-emerald-400',
@@ -679,7 +679,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
   auditDotColor(action: string): string {
     return {
-      create: 'bg-blue-400 ring-blue-100',
+      create: 'bg-[#056DAE] ring-[#d0e8f7]',
       update: 'bg-amber-400 ring-amber-100',
       transition: 'bg-purple-400 ring-purple-100',
       comment: 'bg-emerald-400 ring-emerald-100',

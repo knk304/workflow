@@ -27,12 +27,12 @@ import * as AuthActions from '../../state/auth/auth.actions';
     MatProgressSpinnerModule,
   ],
   template: `
-    <div class="register-container min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
-      <mat-card class="w-full max-w-md shadow-2xl">
-        <mat-card-header class="bg-blue-600 text-white p-6 mb-6">
-          <div class="text-center">
-            <h1 class="text-3xl font-bold">Create Account</h1>
-            <p class="text-sm mt-2">Join the Workflow Platform</p>
+    <div class="register-container min-h-screen bg-gradient-to-br from-[#056DAE] to-[#003B70] flex items-center justify-center p-4">
+      <mat-card class="w-full max-w-md shadow-2xl overflow-hidden !rounded-lg">
+        <mat-card-header class="register-header bg-[#003B70] p-6 mb-6">
+          <div class="text-center w-full">
+            <h1 class="text-3xl font-bold text-white">Create Account</h1>
+            <p class="text-sm mt-2 text-white/80">Join the Workflow Platform</p>
           </div>
         </mat-card-header>
 
@@ -119,7 +119,7 @@ import * as AuthActions from '../../state/auth/auth.actions';
           <!-- Login Link -->
           <div class="text-center text-sm text-gray-600 mt-4">
             Already have an account?
-            <a routerLink="/login" class="text-blue-600 font-bold hover:underline">
+            <a routerLink="/login" class="text-[#056DAE] font-bold hover:underline">
               Sign in here
             </a>
           </div>
@@ -127,6 +127,18 @@ import * as AuthActions from '../../state/auth/auth.actions';
       </mat-card>
     </div>
   `,
+  styles: [
+    `
+      .register-header {
+        border-radius: 0 !important;
+        margin: -16px -16px 0 -16px;
+      }
+      .register-header .mdc-card__header,
+      .register-header .mat-mdc-card-header {
+        padding: 0;
+      }
+    `,
+  ],
 })
 export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;

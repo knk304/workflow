@@ -55,9 +55,9 @@ import { DataService } from '../../core/services/data.service';
         <div class="flex-1 overflow-y-auto p-2">
           @for (form of forms(); track form.id) {
             <div class="p-3 mb-2 rounded cursor-pointer transition-colors"
-                 [class.bg-blue-50]="selectedFormId() === form.id"
+                 [class.bg-[#EAF4FB]]="selectedFormId() === form.id"
                  [class.border-l-4]="selectedFormId() === form.id"
-                 [class.border-blue-500]="selectedFormId() === form.id"
+                 [class.border-[#056DAE]]="selectedFormId() === form.id"
                  [class.hover:bg-gray-50]="selectedFormId() !== form.id"
                  (click)="selectForm(form)">
               <div class="font-medium text-sm">{{ form.name }}</div>

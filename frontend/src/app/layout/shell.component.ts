@@ -178,17 +178,17 @@ import * as NotificationsActions from '@state/notifications/notifications.action
         border-radius: 8px !important;
       }
       .nav-item:hover {
-        background-color: rgba(79, 70, 229, 0.04) !important;
+        background-color: rgba(5, 109, 174, 0.04) !important;
       }
       .nav-item.active {
-        background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%) !important;
-        border-right: 3px solid #4f46e5;
+        background: linear-gradient(135deg, rgba(5, 109, 174, 0.1) 0%, rgba(5, 109, 174, 0.05) 100%) !important;
+        border-right: 3px solid #056DAE;
       }
       .nav-item.active .mat-icon {
-        color: #4f46e5 !important;
+        color: #056DAE !important;
       }
       .nav-item.active .mdc-list-item__primary-text {
-        color: #4f46e5 !important;
+        color: #056DAE !important;
         font-weight: 600 !important;
       }
     `,

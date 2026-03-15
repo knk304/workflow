@@ -36,8 +36,8 @@ import { User, Team } from '../../core/models';
         <mat-card class="!shadow-sm">
           <mat-card-content class="!p-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <mat-icon class="text-blue-600">groups</mat-icon>
+              <div class="w-10 h-10 rounded-lg bg-[#d0e8f7] flex items-center justify-center">
+                <mat-icon class="text-[#056DAE]">groups</mat-icon>
               </div>
               <div>
                 <p class="text-2xl font-bold text-gray-900">{{ teams.length }}</p>
@@ -86,8 +86,8 @@ import { User, Team } from '../../core/models';
               <mat-card-header class="!p-4 border-b border-gray-100">
                 <div class="flex items-center justify-between w-full">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <mat-icon class="text-indigo-600">groups</mat-icon>
+                    <div class="w-10 h-10 rounded-lg bg-[#d0e8f7] flex items-center justify-center">
+                      <mat-icon class="text-[#056DAE]">groups</mat-icon>
                     </div>
                     <div>
                       <mat-card-title class="!text-base !font-semibold">{{ team.name }}</mat-card-title>
@@ -96,7 +96,7 @@ import { User, Team } from '../../core/models';
                       }
                     </div>
                   </div>
-                  <span class="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium">
+                  <span class="text-xs bg-[#EAF4FB] text-[#003B70] px-2.5 py-1 rounded-full font-medium">
                     {{ team.memberIds.length }} {{ team.memberIds.length === 1 ? 'member' : 'members' }}
                   </span>
                 </div>
@@ -111,7 +111,7 @@ import { User, Team } from '../../core/models';
                       @if (member) {
                         <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50">
                           <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-xs">
+                            <div class="w-8 h-8 rounded-full bg-[#056DAE] text-white flex items-center justify-center font-bold text-xs">
                               {{ member.avatar || member.name.charAt(0) }}
                             </div>
                             <div>
@@ -204,7 +204,7 @@ export class AdminTeamsComponent implements OnInit {
   roleClass(role: string): string {
     const classes: Record<string, string> = {
       ADMIN: 'bg-purple-100 text-purple-800',
-      MANAGER: 'bg-blue-100 text-blue-800',
+      MANAGER: 'bg-[#d0e8f7] text-[#003B70]',
       WORKER: 'bg-green-100 text-green-800',
       VIEWER: 'bg-gray-100 text-gray-800',
     };

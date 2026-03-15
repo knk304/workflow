@@ -96,7 +96,7 @@ import {
                     '!bg-yellow-100 !text-yellow-800': chain.status === 'pending',
                     '!bg-green-100 !text-green-800': chain.status === 'approved',
                     '!bg-red-100 !text-red-800': chain.status === 'rejected',
-                    '!bg-blue-100 !text-blue-800': chain.status === 'delegated'
+                    '!bg-[#d0e8f7] !text-[#003B70]': chain.status === 'delegated'
                   }">{{ chain.status | uppercase }}</mat-chip>
                 </div>
                 <p class="text-sm text-gray-500 mt-1">
@@ -114,7 +114,7 @@ import {
                        'border-green-300 bg-green-50': approver.status === 'approved',
                        'border-red-300 bg-red-50': approver.status === 'rejected',
                        'border-yellow-300 bg-yellow-50': approver.status === 'pending',
-                       'border-blue-300 bg-blue-50': approver.status === 'delegated'
+                       'border-[#0A8AD2] bg-[#EAF4FB]': approver.status === 'delegated'
                      }">
                   <div class="flex-1">
                     <div class="font-medium text-sm">{{ approver.userName || approver.userId }}</div>
@@ -123,7 +123,7 @@ import {
                         'text-green-600': approver.status === 'approved',
                         'text-red-600': approver.status === 'rejected',
                         'text-yellow-600': approver.status === 'pending',
-                        'text-blue-600': approver.status === 'delegated'
+                        'text-[#056DAE]': approver.status === 'delegated'
                       }">{{ getStatusIcon(approver.status) }}</mat-icon>
                       <span class="text-xs">{{ approver.status }}</span>
                     </div>
@@ -146,7 +146,7 @@ import {
                               (click)="reject(chain.id)">
                         <mat-icon>cancel</mat-icon>
                       </button>
-                      <button mat-icon-button matTooltip="Delegate" class="!text-blue-600"
+                      <button mat-icon-button matTooltip="Delegate" class="!text-[#056DAE]"
                               (click)="selectedChainId.set(chain.id)">
                         <mat-icon>forward</mat-icon>
                       </button>
