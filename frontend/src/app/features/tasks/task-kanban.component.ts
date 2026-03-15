@@ -1,13 +1,15 @@
-import { Component, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import {
   CdkDragDrop,
   copyArrayItem,
@@ -17,8 +19,9 @@ import {
 import { Store } from '@ngrx/store';
 import { selectKanbanBoard } from '../../state/tasks/tasks.selectors';
 import * as TasksActions from '../../state/tasks/tasks.actions';
-import { Task, KanbanBoard } from '../../core/models';
+import { Task, KanbanBoard, User } from '../../core/models';
 import { WebSocketService } from '../../core/services/websocket.service';
+import { DataService } from '../../core/services/data.service';
 
 @Component({
   selector: 'app-task-kanban',
@@ -26,13 +29,16 @@ import { WebSocketService } from '../../core/services/websocket.service';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatSelectModule,
     MatFormFieldModule,
+    MatInputModule,
     MatChipsModule,
     MatBadgeModule,
+    MatSnackBarModule,
     DragDropModule,
   ],
   template: `
@@ -181,27 +187,108 @@ import { WebSocketService } from '../../core/services/websocket.service';
         }
       </div>
 
-      <!-- Task Detail Modal (simplified - full modal implementation would go here) -->
+      <!-- Task Edit Modal -->
       @if (selectedTask) {
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" (click)="selectedTask = null">
-          <mat-card class="w-full max-w-md" (click)="$event.stopPropagation()">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" (click)="closeModal()">
+          <mat-card class="w-full max-w-lg" (click)="$event.stopPropagation()">
             <mat-card-header>
-              <mat-card-title>{{ selectedTask.title }}</mat-card-title>
+              <mat-card-title class="flex items-center gap-2">
+                <mat-icon class="text-[#056DAE]">edit</mat-icon>
+                @if (editingKanbanTask()) {
+                  Edit Task
+                } @else {
+                  Task Details
+                }
+              </mat-card-title>
             </mat-card-header>
-            <mat-card-content class="space-y-4">
-              <p>{{ selectedTask.description }}</p>
-              <div>
-                <p class="text-sm font-semibold text-gray-600">Status</p>
-                <p class="text-lg">{{ selectedTask.status | uppercase }}</p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-600">Due</p>
-                <p class="text-lg">{{ selectedTask.dueDate | date: 'medium' }}</p>
-              </div>
+            <mat-card-content>
+              @if (editingKanbanTask()) {
+                <form [formGroup]="editTaskForm" (ngSubmit)="saveKanbanTaskEdit()" class="space-y-4 mt-4">
+                  <mat-form-field class="w-full">
+                    <mat-label>Title</mat-label>
+                    <input matInput formControlName="title">
+                  </mat-form-field>
+                  <mat-form-field class="w-full">
+                    <mat-label>Description</mat-label>
+                    <textarea matInput formControlName="description" rows="3"></textarea>
+                  </mat-form-field>
+                  <div class="grid grid-cols-2 gap-4">
+                    <mat-form-field>
+                      <mat-label>Status</mat-label>
+                      <mat-select formControlName="status">
+                        <mat-option value="pending">Pending</mat-option>
+                        <mat-option value="in_progress">In Progress</mat-option>
+                        <mat-option value="completed">Completed</mat-option>
+                        <mat-option value="blocked">Blocked</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field>
+                      <mat-label>Priority</mat-label>
+                      <mat-select formControlName="priority">
+                        <mat-option value="low">Low</mat-option>
+                        <mat-option value="medium">Medium</mat-option>
+                        <mat-option value="high">High</mat-option>
+                        <mat-option value="critical">Critical</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <mat-form-field class="w-full">
+                    <mat-label>Due Date</mat-label>
+                    <input matInput type="date" formControlName="dueDate">
+                  </mat-form-field>
+                  <mat-form-field class="w-full">
+                    <mat-label>Assign To</mat-label>
+                    <mat-select formControlName="assigneeId">
+                      <mat-option value="">Unassigned</mat-option>
+                      @for (u of allUsers; track u.id) {
+                        <mat-option [value]="u.id">{{ u.name }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </form>
+              } @else {
+                <div class="space-y-4 mt-4">
+                  <p class="text-gray-700">{{ selectedTask.description }}</p>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase">Status</p>
+                      <p class="text-sm font-medium mt-1">{{ selectedTask.status | uppercase }}</p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase">Priority</p>
+                      <span class="text-xs px-2 py-1 rounded-full font-semibold mt-1 inline-block"
+                            [ngClass]="priorityBadgeClass(selectedTask.priority)">
+                        {{ selectedTask.priority | uppercase }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    @if (selectedTask.dueDate) {
+                      <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase">Due Date</p>
+                        <p class="text-sm mt-1">{{ selectedTask.dueDate | date: 'mediumDate' }}</p>
+                      </div>
+                    }
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase">Assigned To</p>
+                      <p class="text-sm mt-1">{{ getUserName(selectedTask.assigneeId) }}</p>
+                    </div>
+                  </div>
+                </div>
+              }
             </mat-card-content>
-            <mat-card-actions>
-              <button mat-button (click)="selectedTask = null">Close</button>
-              <button mat-raised-button color="primary">Edit</button>
+            <mat-card-actions class="flex justify-end gap-2 px-4 pb-4">
+              @if (editingKanbanTask()) {
+                <button mat-stroked-button (click)="editingKanbanTask.set(false)">Cancel</button>
+                <button mat-raised-button color="primary" (click)="saveKanbanTaskEdit()" [disabled]="editTaskForm.invalid">
+                  <mat-icon>save</mat-icon> Save
+                </button>
+              } @else {
+                <button mat-button (click)="closeModal()">Close</button>
+                <button mat-raised-button color="primary" (click)="startKanbanTaskEdit()">
+                  <mat-icon>edit</mat-icon> Edit
+                </button>
+              }
             </mat-card-actions>
           </mat-card>
         </div>
@@ -267,8 +354,19 @@ export class TaskKanbanComponent implements OnInit {
   viewFilter = 'all';
   priorityFilter = '';
   selectedTask: Task | null = null;
+  editingKanbanTask = signal(false);
+  editTaskForm: FormGroup;
+  allUsers: User[] = [];
 
-  constructor(private store: Store, private wsService: WebSocketService) {
+  constructor(private store: Store, private wsService: WebSocketService, private fb: FormBuilder, private snackBar: MatSnackBar, private dataService: DataService) {
+    this.editTaskForm = this.fb.group({
+      title: ['', Validators.required],
+      description: [''],
+      status: [''],
+      priority: ['medium'],
+      dueDate: [''],
+      assigneeId: [''],
+    });
     // Listen for live task updates via WebSocket
     effect(() => {
       const msg = this.wsService.lastMessage();
@@ -285,6 +383,10 @@ export class TaskKanbanComponent implements OnInit {
       if (board) {
         this.kanbanBoard = board;
       }
+    });
+
+    this.dataService.getUsers().subscribe(users => {
+      this.allUsers = users;
     });
   }
 
@@ -332,6 +434,52 @@ export class TaskKanbanComponent implements OnInit {
 
   editTask(task: Task): void {
     this.selectedTask = task;
+    this.editingKanbanTask.set(false);
+  }
+
+  closeModal(): void {
+    this.selectedTask = null;
+    this.editingKanbanTask.set(false);
+  }
+
+  startKanbanTaskEdit(): void {
+    if (!this.selectedTask) return;
+    this.editTaskForm.patchValue({
+      title: this.selectedTask.title,
+      description: this.selectedTask.description,
+      status: this.selectedTask.status,
+      priority: this.selectedTask.priority,
+      dueDate: this.selectedTask.dueDate ? this.selectedTask.dueDate.substring(0, 10) : '',
+      assigneeId: this.selectedTask.assigneeId || '',
+    });
+    this.editingKanbanTask.set(true);
+  }
+
+  saveKanbanTaskEdit(): void {
+    if (!this.selectedTask || this.editTaskForm.invalid) return;
+    const val = this.editTaskForm.value;
+    const orig = this.selectedTask;
+    const updates: Partial<Task> = {};
+
+    if (val.title !== orig.title) updates.title = val.title;
+    if (val.description !== orig.description) updates.description = val.description;
+    if (val.status !== orig.status) updates.status = val.status;
+    if (val.priority !== orig.priority) updates.priority = val.priority;
+    const origDate = orig.dueDate ? orig.dueDate.substring(0, 10) : '';
+    if (val.dueDate !== origDate) updates.dueDate = val.dueDate || undefined;
+    if ((val.assigneeId || '') !== (orig.assigneeId || '')) updates.assigneeId = val.assigneeId || undefined;
+
+    if (Object.keys(updates).length === 0) {
+      this.snackBar.open('No changes to save', 'OK', { duration: 2000 });
+      this.closeModal();
+      return;
+    }
+
+    this.store.dispatch(TasksActions.updateTask({ taskId: orig.id, updates }));
+    this.snackBar.open('Saving task...', 'OK', { duration: 2000 });
+    this.closeModal();
+    // Reload kanban board after save
+    setTimeout(() => this.store.dispatch(TasksActions.loadKanbanBoard({})), 1000);
   }
 
   resetFilters(): void {
@@ -402,5 +550,11 @@ export class TaskKanbanComponent implements OnInit {
   getChecklistCompletedCount(task: Task): number {
     if (!task.checklist) return 0;
     return task.checklist.filter(item => item.checked).length;
+  }
+
+  getUserName(userId: string | undefined): string {
+    if (!userId) return 'Unassigned';
+    const user = this.allUsers.find(u => u.id === userId);
+    return user?.name || userId;
   }
 }

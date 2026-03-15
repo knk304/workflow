@@ -21,7 +21,7 @@ import { map, takeUntil, switchMap } from 'rxjs/operators';
 import { selectCasesList, selectSelectedCase } from '../../state/cases/cases.selectors';
 import * as CasesActions from '../../state/cases/cases.actions';
 import * as TasksActions from '../../state/tasks/tasks.actions';
-import { Case, Task, TransitionOption, CaseType, FormDefinition, FormField } from '../../core/models';
+import { Case, Task, TransitionOption, CaseType, FormDefinition, FormField, User } from '../../core/models';
 import { CommentsComponent } from '../comments/comments.component';
 import { AuditLogComponent } from '../audit/audit-log.component';
 import { WebSocketService } from '../../core/services/websocket.service';
@@ -275,7 +275,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                           <mat-label>Description</mat-label>
                           <textarea matInput formControlName="description" rows="2" placeholder="Task description"></textarea>
                         </mat-form-field>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-3 gap-4">
                           <mat-form-field>
                             <mat-label>Priority</mat-label>
                             <mat-select formControlName="priority">
@@ -288,6 +288,15 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                           <mat-form-field>
                             <mat-label>Due Date</mat-label>
                             <input matInput type="date" formControlName="dueDate">
+                          </mat-form-field>
+                          <mat-form-field>
+                            <mat-label>Assign To</mat-label>
+                            <mat-select formControlName="assigneeId">
+                              <mat-option value="">Unassigned</mat-option>
+                              @for (u of allUsers; track u.id) {
+                                <mat-option [value]="u.id">{{ u.name }}</mat-option>
+                              }
+                            </mat-select>
                           </mat-form-field>
                         </div>
                         <div class="flex justify-end gap-3">
@@ -308,35 +317,100 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                     </div>
                     <div class="space-y-3">
                       @for (task of tasks; track task.id) {
-                        <div class="group flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-[#a1d1ef] hover:bg-[#EAF4FB]/30 transition-all duration-200 cursor-pointer">
-                          <!-- Status Icon -->
-                          <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                               [ngClass]="taskStatusBg(task.status)">
-                            <mat-icon class="text-lg" [ngClass]="taskStatusColor(task.status)">
-                              {{ taskStatusIcon(task.status) }}
+                        @if (editingTask()?.id === task.id) {
+                          <!-- Inline Edit Form -->
+                          <div class="p-4 rounded-lg border-2 border-[#056DAE] bg-[#EAF4FB]/30 animate-fade-in">
+                            <form [formGroup]="editTaskForm" (ngSubmit)="saveTaskEdit(task.id)" class="space-y-3">
+                              <mat-form-field class="w-full">
+                                <mat-label>Title</mat-label>
+                                <input matInput formControlName="title">
+                              </mat-form-field>
+                              <mat-form-field class="w-full">
+                                <mat-label>Description</mat-label>
+                                <textarea matInput formControlName="description" rows="2"></textarea>
+                              </mat-form-field>
+                              <div class="grid grid-cols-2 gap-3">
+                                <mat-form-field>
+                                  <mat-label>Status</mat-label>
+                                  <mat-select formControlName="status">
+                                    <mat-option value="pending">Pending</mat-option>
+                                    <mat-option value="in_progress">In Progress</mat-option>
+                                    <mat-option value="completed">Completed</mat-option>
+                                    <mat-option value="blocked">Blocked</mat-option>
+                                  </mat-select>
+                                </mat-form-field>
+                                <mat-form-field>
+                                  <mat-label>Priority</mat-label>
+                                  <mat-select formControlName="priority">
+                                    <mat-option value="low">Low</mat-option>
+                                    <mat-option value="medium">Medium</mat-option>
+                                    <mat-option value="high">High</mat-option>
+                                    <mat-option value="critical">Critical</mat-option>
+                                  </mat-select>
+                                </mat-form-field>
+                              </div>
+                              <div class="grid grid-cols-2 gap-3">
+                                <mat-form-field>
+                                  <mat-label>Due Date</mat-label>
+                                  <input matInput type="date" formControlName="dueDate">
+                                </mat-form-field>
+                                <mat-form-field>
+                                  <mat-label>Assign To</mat-label>
+                                  <mat-select formControlName="assigneeId">
+                                    <mat-option value="">Unassigned</mat-option>
+                                    @for (u of allUsers; track u.id) {
+                                      <mat-option [value]="u.id">{{ u.name }}</mat-option>
+                                    }
+                                  </mat-select>
+                                </mat-form-field>
+                              </div>
+                              <div class="flex justify-end gap-3">
+                                <button mat-stroked-button type="button" (click)="cancelTaskEdit()">Cancel</button>
+                                <button mat-raised-button color="primary" type="submit" [disabled]="editTaskForm.invalid">
+                                  <mat-icon>save</mat-icon> Save
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+                        } @else {
+                          <div class="group flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-[#a1d1ef] hover:bg-[#EAF4FB]/30 transition-all duration-200 cursor-pointer"
+                               (click)="startEditTask(task)">
+                            <!-- Status Icon -->
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                 [ngClass]="taskStatusBg(task.status)">
+                              <mat-icon class="text-lg" [ngClass]="taskStatusColor(task.status)">
+                                {{ taskStatusIcon(task.status) }}
+                              </mat-icon>
+                            </div>
+                            <!-- Content -->
+                            <div class="flex-1 min-w-0">
+                              <h4 class="font-semibold text-slate-800 text-sm">{{ task.title }}</h4>
+                              <p class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</p>
+                              <div class="flex items-center gap-2 mt-2">
+                                @if (task.assigneeId) {
+                                  <span class="inline-flex items-center gap-1 text-[11px] text-slate-600 bg-[#EAF4FB] px-2 py-0.5 rounded-full">
+                                    <mat-icon class="text-xs">person</mat-icon>
+                                    {{ getUserName(task.assigneeId) }}
+                                  </span>
+                                }
+                                @if (task.dueDate) {
+                                  <span class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full">
+                                    <mat-icon class="text-xs">schedule</mat-icon>
+                                    {{ task.dueDate | date: 'mediumDate' }}
+                                  </span>
+                                }
+                                <span class="wf-badge text-[10px]" [ngClass]="priorityBadgeClass(task.priority)">
+                                  {{ task.priority | uppercase }}
+                                </span>
+                              </div>
+                            </div>
+                            <!-- Edit Icon -->
+                            <mat-icon class="text-slate-300 group-hover:text-[#056DAE] transition-colors"
+                                      matTooltip="Click to edit">
+                              edit
                             </mat-icon>
                           </div>
-                          <!-- Content -->
-                          <div class="flex-1 min-w-0">
-                            <h4 class="font-semibold text-slate-800 text-sm">{{ task.title }}</h4>
-                            <p class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</p>
-                            <div class="flex items-center gap-2 mt-2">
-                              @if (task.dueDate) {
-                                <span class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full">
-                                  <mat-icon class="text-xs">schedule</mat-icon>
-                                  {{ task.dueDate | date: 'mediumDate' }}
-                                </span>
-                              }
-                              <span class="wf-badge text-[10px]" [ngClass]="priorityBadgeClass(task.priority)">
-                                {{ task.priority | uppercase }}
-                              </span>
-                            </div>
-                          </div>
-                          <!-- Arrow -->
-                          <mat-icon class="text-slate-300 group-hover:text-[#056DAE] transition-colors">
-                            chevron_right
-                          </mat-icon>
-                        </div>
+                        }
                       }
                     </div>
                   } @else {
@@ -412,7 +486,11 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                     <div class="w-6 h-6 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-xs font-bold">
                       {{ (caseData.assignedTo?.name || 'U').charAt(0) }}
                     </div>
-                    <span class="text-sm text-slate-800">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
+                    <span class="text-sm text-slate-800 flex-1">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
+                    <button mat-icon-button class="w-7 h-7" matTooltip="Change Assignee"
+                            (click)="showAssigneePanel.set(!showAssigneePanel())">
+                      <mat-icon class="text-base text-slate-400 hover:text-[#056DAE]">swap_horiz</mat-icon>
+                    </button>
                   </div>
                 </div>
                 <div class="px-5 py-3">
@@ -476,6 +554,10 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                   <mat-icon class="text-purple-500">swap_horiz</mat-icon>
                   <span class="ml-1">Transition Stage</span>
                 </button>
+                <button mat-stroked-button class="w-full justify-start" (click)="showAssigneePanel.set(!showAssigneePanel())">
+                  <mat-icon class="text-amber-500">person_add</mat-icon>
+                  <span class="ml-1">Change Assignee</span>
+                </button>
                 <button mat-stroked-button class="w-full justify-start" (click)="scrollToComments()">
                   <mat-icon class="text-cyan-500">chat_bubble_outline</mat-icon>
                   <span class="ml-1">Add Comment</span>
@@ -520,6 +602,46 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </div>
               </div>
             }
+
+            <!-- Assignee Panel -->
+            @if (showAssigneePanel()) {
+              <div class="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden animate-fade-in">
+                <div class="bg-amber-50 px-5 py-3 border-b border-amber-200">
+                  <h4 class="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                    <mat-icon class="text-base text-amber-500">person_add</mat-icon>
+                    Change Assignee
+                  </h4>
+                </div>
+                <div class="p-4 space-y-3">
+                  @if (allUsers.length > 0) {
+                    <p class="text-xs text-slate-500">Select a user to assign this case to:</p>
+                    <div class="max-h-48 overflow-y-auto space-y-1">
+                      @for (u of allUsers; track u.id) {
+                        <button class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[#EAF4FB] transition-colors"
+                                [ngClass]="{'bg-[#EAF4FB] ring-1 ring-[#056DAE]': caseData.assignedTo?.id === u.id}"
+                                (click)="changeAssignee(u.id, caseData.id)">
+                          <div class="w-8 h-8 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {{ u.name.charAt(0) }}
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-800 truncate">{{ u.name }}</p>
+                            <p class="text-[11px] text-slate-400 truncate">{{ u.email }} · {{ u.role }}</p>
+                          </div>
+                          @if (caseData.assignedTo?.id === u.id) {
+                            <mat-icon class="text-[#056DAE] text-base flex-shrink-0">check_circle</mat-icon>
+                          }
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="text-center py-4">
+                      <mat-icon class="text-3xl text-slate-200">group_off</mat-icon>
+                      <p class="text-slate-400 text-xs mt-2">No users available.</p>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -556,10 +678,14 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   tasks: Task[] = [];
   showCreateTask = signal(false);
   showTransitionPanel = signal(false);
+  showAssigneePanel = signal(false);
   editing = signal(false);
+  editingTask = signal<Task | null>(null);
   availableTransitions = signal<TransitionOption[]>([]);
   transitionNotes = '';
   dynamicFields: { key: string; label: string; type: string; icon?: string; options?: string[] }[] = [];
+  allUsers: User[] = [];
+  editTaskForm!: FormGroup;
   private caseId: string | null = null;
   private destroy$ = new Subject<void>();
   private currentCase: Case | null = null;
@@ -585,6 +711,15 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
       description: [''],
       priority: ['medium'],
       dueDate: [''],
+      assigneeId: [''],
+    });
+    this.editTaskForm = this.formBuilder.group({
+      title: ['', Validators.required],
+      description: [''],
+      status: [''],
+      priority: ['medium'],
+      dueDate: [''],
+      assigneeId: [''],
     });
   }
 
@@ -618,6 +753,11 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     if (caseId) {
       this.loadTasks(caseId);
     }
+
+    // Load users for assignee picker
+    this.dataService.getUsers().pipe(takeUntil(this.destroy$)).subscribe(users => {
+      this.allUsers = users;
+    });
 
     if (caseId) {
       this.store.select(selectToken).pipe(takeUntil(this.destroy$)).subscribe(token => {
@@ -772,6 +912,16 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     this.snackBar.open('Closing case...', 'OK', { duration: 2000 });
   }
 
+  changeAssignee(userId: string, caseId: string): void {
+    this.store.dispatch(CasesActions.updateCase({
+      caseId,
+      updates: { ownerId: userId } as any,
+    }));
+    const user = this.allUsers.find(u => u.id === userId);
+    this.snackBar.open(`Reassigning to ${user?.name || userId}...`, 'OK', { duration: 2000 });
+    this.showAssigneePanel.set(false);
+  }
+
   scrollToComments(): void {
     const tabs = document.querySelector('mat-tab-group');
     if (tabs) {
@@ -790,12 +940,59 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
         description: val.description || '',
         priority: val.priority || 'medium',
         dueDate: val.dueDate || undefined,
+        assigneeId: val.assigneeId || undefined,
       },
     }));
     this.snackBar.open('Creating task...', 'OK', { duration: 2000 });
     this.createTaskForm.reset({ priority: 'medium' });
     this.showCreateTask.set(false);
     setTimeout(() => this.loadTasks(this.caseId!), 1000);
+  }
+
+  startEditTask(task: Task): void {
+    this.editingTask.set(task);
+    this.editTaskForm.patchValue({
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      dueDate: task.dueDate ? task.dueDate.substring(0, 10) : '',
+      assigneeId: task.assigneeId || '',
+    });
+  }
+
+  cancelTaskEdit(): void {
+    this.editingTask.set(null);
+    this.editTaskForm.reset();
+  }
+
+  saveTaskEdit(taskId: string): void {
+    if (this.editTaskForm.invalid) return;
+    const val = this.editTaskForm.value;
+    const updates: Partial<Task> = {};
+    const orig = this.editingTask();
+    if (!orig) return;
+
+    if (val.title !== orig.title) updates.title = val.title;
+    if (val.description !== orig.description) updates.description = val.description;
+    if (val.status !== orig.status) updates.status = val.status;
+    if (val.priority !== orig.priority) updates.priority = val.priority;
+    const origDate = orig.dueDate ? orig.dueDate.substring(0, 10) : '';
+    if (val.dueDate !== origDate) updates.dueDate = val.dueDate || undefined;
+    if ((val.assigneeId || '') !== (orig.assigneeId || '')) updates.assigneeId = val.assigneeId || undefined;
+
+    if (Object.keys(updates).length === 0) {
+      this.snackBar.open('No changes to save', 'OK', { duration: 2000 });
+      this.editingTask.set(null);
+      return;
+    }
+
+    this.store.dispatch(TasksActions.updateTask({ taskId, updates }));
+    this.snackBar.open('Saving task...', 'OK', { duration: 2000 });
+    this.editingTask.set(null);
+    if (this.caseId) {
+      setTimeout(() => this.loadTasks(this.caseId!), 1000);
+    }
   }
 
   private loadTasks(caseId: string): void {
@@ -973,5 +1170,10 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     if (daysRemaining < 1) return 'text-red-600';
     if (daysRemaining < 3) return 'text-amber-600';
     return 'text-emerald-600';
+  }
+
+  getUserName(userId: string): string {
+    const user = this.allUsers.find(u => u.id === userId);
+    return user?.name || userId;
   }
 }
