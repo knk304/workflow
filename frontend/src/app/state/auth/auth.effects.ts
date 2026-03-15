@@ -25,8 +25,8 @@ export class AuthEffects {
     () =>
       this.actions$.pipe(
         ofType(AuthActions.loginSuccess),
-        tap(() => {
-          localStorage.setItem('auth_token', 'mock-token');
+        tap(({ token }) => {
+          localStorage.setItem('auth_token', token);
           this.router.navigate(['/dashboard']);
         })
       ),
@@ -49,8 +49,8 @@ export class AuthEffects {
     () =>
       this.actions$.pipe(
         ofType(AuthActions.registerSuccess),
-        tap(() => {
-          localStorage.setItem('auth_token', 'mock-token');
+        tap(({ token }) => {
+          localStorage.setItem('auth_token', token);
           this.router.navigate(['/dashboard']);
         })
       ),

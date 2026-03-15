@@ -198,6 +198,10 @@ workflow/
 | `npm run watch` | Build in watch mode |
 | `npm test` | Run unit tests |
 | `npm run lint` | Run ESLint |
+| `npm run e2e` | Run Cypress E2E tests (headless) |
+| `npm run e2e:headed` | Run Cypress E2E tests (visible browser) |
+| `npm run cy:open` | Open Cypress interactive UI |
+| `npm run cy:run` | Run Cypress tests (alias for e2e) |
 
 ### Backend
 
@@ -215,6 +219,89 @@ workflow/
 | `mongosh` | Open MongoDB shell |
 | `mongosh --eval "use workflow_platform; db.getCollectionNames()"` | List seeded collections |
 | `mongosh --eval "use workflow_platform; db.cases.countDocuments()"` | Count cases |
+
+---
+
+## E2E Testing (Cypress)
+
+Cypress is configured as an **optional dependency** — it won't block `npm install` if the binary fails to download (e.g. in CI without browser support).
+
+### Prerequisites
+
+Both servers must be running before executing E2E tests:
+
+```powershell
+# Terminal 1 — Backend
+cd backend
+.\venv\Scripts\Activate.ps1
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 2 — Frontend
+cd frontend
+npm start
+```
+
+### Running Tests
+
+```powershell
+cd frontend
+
+# Headless (CI-friendly, no visible browser)
+npm run e2e
+
+# Headed (visible browser window)
+npm run e2e:headed
+
+# Interactive Cypress UI (pick & run individual specs)
+npm run cy:open
+
+# Run a single spec file
+npx cypress run --spec "cypress/e2e/auth.cy.ts"
+```
+
+### Test Specs (51 tests across 7 files)
+
+| Spec | Tests | Coverage |
+|------|-------|----------|
+| `auth.cy.ts` | 9 | Login (3 roles), invalid credentials, password toggle, register link, auth guard redirect |
+| `cases.cy.ts` | 11 | Case list, filters, table, pagination, case detail, stage journey, tabs, create navigation |
+| `dashboard.cy.ts` | 6 | Stats cards (Open Cases, Critical, My Tasks, Overdue), recent items, View All links |
+| `navigation.cy.ts` | 9 | Toolbar, sidebar nav, Tools section, Admin section, page navigation, user menu, logout |
+| `roles.cy.ts` | 7 | Admin full access, Manager tools + limited admin, Worker no admin/tools, page access per role |
+| `tasks.cy.ts` | 5 | Kanban board, 5 columns, filters, task cards, card details |
+| `workflow.cy.ts` | 4 | Full login→dashboard→cases→detail flow, all-pages navigation, login→logout cycle |
+
+### Project Structure
+
+```
+frontend/
+├── cypress.config.ts          # Cypress configuration
+├── cypress/
+│   ├── tsconfig.json          # TypeScript config for Cypress
+│   ├── support/
+│   │   ├── e2e.ts             # Support file (loaded before each spec)
+│   │   └── commands.ts        # Custom commands (login, loginAsAdmin, etc.)
+│   └── e2e/
+│       ├── auth.cy.ts         # Authentication flow tests
+│       ├── cases.cy.ts        # Case list & detail tests
+│       ├── dashboard.cy.ts    # Dashboard tests
+│       ├── navigation.cy.ts   # Shell/sidebar navigation tests
+│       ├── roles.cy.ts        # Role-based access tests
+│       ├── tasks.cy.ts        # Task kanban board tests
+│       └── workflow.cy.ts     # End-to-end workflow tests
+```
+
+### Custom Commands
+
+Available in all specs via `cypress/support/commands.ts`:
+
+| Command | Description |
+|---------|-------------|
+| `cy.login(email, password)` | Login with any credentials |
+| `cy.loginAsAdmin()` | Login as admin@example.com / admin123 |
+| `cy.loginAsManager()` | Login as alice@example.com / demo123 |
+| `cy.loginAsWorker()` | Login as bob@example.com / demo123 |
+| `cy.logout()` | Sign out via user menu |
 
 ---
 

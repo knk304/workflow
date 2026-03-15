@@ -34,3 +34,8 @@ node_modules/
 # Angular
 .angular/cache
 dist/
+
+# Cypress
+frontend/cypress/screenshots/
+frontend/cypress/videos/
+frontend/cypress/downloads/
