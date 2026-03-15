@@ -126,6 +126,10 @@ export class ApiDataService extends DataService {
     return this.http.get<KanbanBoard>(`${this.taskUrl}/tasks/kanban`, { params });
   }
 
+  createTask(task: Partial<Task>): Observable<Task> {
+    return this.http.post<Task>(`${this.taskUrl}/tasks`, task);
+  }
+
   updateTask(taskId: string, updates: Partial<Task>): Observable<Task> {
     return this.http.patch<Task>(`${this.taskUrl}/tasks/${taskId}`, updates);
   }

@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,14 +14,18 @@ import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Store } from '@ngrx/store';
 import { of, Observable, Subject } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
-import { selectCasesList } from '../../state/cases/cases.selectors';
+import { map, takeUntil, switchMap } from 'rxjs/operators';
+import { selectCasesList, selectSelectedCase } from '../../state/cases/cases.selectors';
+import * as CasesActions from '../../state/cases/cases.actions';
+import * as TasksActions from '../../state/tasks/tasks.actions';
 import { Case, Task } from '../../core/models';
 import { CommentsComponent } from '../comments/comments.component';
 import { AuditLogComponent } from '../audit/audit-log.component';
 import { WebSocketService } from '../../core/services/websocket.service';
+import { DataService } from '../../core/services/data.service';
 import { selectUser, selectToken } from '../../state/auth/auth.selectors';
 
 @Component({
@@ -43,6 +47,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
     MatDividerModule,
     MatExpansionModule,
     MatTooltipModule,
+    MatSnackBarModule,
     CommentsComponent,
     AuditLogComponent,
   ],
@@ -255,7 +260,50 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </ng-template>
 
                 <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  <!-- Create Task Form -->
+                  @if (showCreateTask()) {
+                    <div class="mb-6 p-5 bg-slate-50 rounded-xl border border-slate-200 animate-fade-in">
+                      <h4 class="text-sm font-semibold text-slate-700 mb-4">New Task</h4>
+                      <form [formGroup]="createTaskForm" (ngSubmit)="submitCreateTask()" class="space-y-4">
+                        <mat-form-field class="w-full">
+                          <mat-label>Title</mat-label>
+                          <input matInput formControlName="title" placeholder="Task title">
+                        </mat-form-field>
+                        <mat-form-field class="w-full">
+                          <mat-label>Description</mat-label>
+                          <textarea matInput formControlName="description" rows="2" placeholder="Task description"></textarea>
+                        </mat-form-field>
+                        <div class="grid grid-cols-2 gap-4">
+                          <mat-form-field>
+                            <mat-label>Priority</mat-label>
+                            <mat-select formControlName="priority">
+                              <mat-option value="low">Low</mat-option>
+                              <mat-option value="medium">Medium</mat-option>
+                              <mat-option value="high">High</mat-option>
+                              <mat-option value="critical">Critical</mat-option>
+                            </mat-select>
+                          </mat-form-field>
+                          <mat-form-field>
+                            <mat-label>Due Date</mat-label>
+                            <input matInput type="date" formControlName="dueDate">
+                          </mat-form-field>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                          <button mat-stroked-button type="button" (click)="showCreateTask.set(false)">Cancel</button>
+                          <button mat-raised-button color="primary" type="submit" [disabled]="createTaskForm.invalid">
+                            <mat-icon>add</mat-icon> Create
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  }
+
                   @if (tasks.length > 0) {
+                    <div class="flex justify-end mb-4">
+                      <button mat-stroked-button color="primary" (click)="showCreateTask.set(true)">
+                        <mat-icon>add</mat-icon> Create Task
+                      </button>
+                    </div>
                     <div class="space-y-3">
                       @for (task of tasks; track task.id) {
                         <div class="group flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-[#a1d1ef] hover:bg-[#EAF4FB]/30 transition-all duration-200 cursor-pointer">
@@ -293,7 +341,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                     <div class="text-center py-12">
                       <mat-icon class="text-5xl text-slate-200">task_alt</mat-icon>
                       <p class="text-slate-400 mt-3 text-sm">No tasks for this case yet</p>
-                      <button mat-stroked-button color="primary" class="mt-4">
+                      <button mat-stroked-button color="primary" class="mt-4" (click)="showCreateTask.set(true)">
                         <mat-icon>add</mat-icon> Create Task
                       </button>
                     </div>
@@ -468,7 +516,10 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
 export class CaseDetailComponent implements OnInit, OnDestroy {
   case$!: Observable<Case | undefined>;
   detailsForm: FormGroup;
+  createTaskForm: FormGroup;
   tasks: Task[] = [];
+  showCreateTask = signal(false);
+  private caseId: string | null = null;
   private destroy$ = new Subject<void>();
 
   stages = [
@@ -483,6 +534,8 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private store: Store,
     private formBuilder: FormBuilder,
+    private snackBar: MatSnackBar,
+    private dataService: DataService,
     public wsService: WebSocketService,
   ) {
     this.detailsForm = this.formBuilder.group({
@@ -494,22 +547,42 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
       priority: [''],
       notes: [''],
     });
+    this.createTaskForm = this.formBuilder.group({
+      title: ['', Validators.required],
+      description: [''],
+      priority: ['medium'],
+      dueDate: [''],
+    });
   }
 
   ngOnInit(): void {
     const caseId = this.route.snapshot.paramMap.get('id');
+    this.caseId = caseId;
 
+    // Ensure the case is fetched from the API (handles page refresh)
+    if (caseId) {
+      this.store.dispatch(CasesActions.loadCaseById({ id: caseId }));
+    }
+
+    // Try the list first (already loaded), fall back to selected (loaded by ID)
     this.case$ = this.store.select(selectCasesList).pipe(
-      map(cases => cases.find(c => c.id === caseId))
+      map(cases => cases.find(c => c.id === caseId)),
+      switchMap(found => found ? of(found) : this.store.select(selectSelectedCase).pipe(
+        map(c => c ?? undefined)
+      )),
     );
 
-    // Subscribe to populate form and tasks
+    // Subscribe to populate form
     this.case$.pipe(takeUntil(this.destroy$)).subscribe(selectedCase => {
       if (selectedCase) {
         this.updateForm(selectedCase);
-        this.tasks = selectedCase.tasks || [];
       }
     });
+
+    // Load tasks from tasks API
+    if (caseId) {
+      this.loadTasks(caseId);
+    }
 
     // Connect WebSocket for live collaboration
     if (caseId) {
@@ -525,6 +598,31 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.wsService.disconnect();
+  }
+
+  submitCreateTask(): void {
+    if (this.createTaskForm.invalid || !this.caseId) return;
+    const val = this.createTaskForm.value;
+    this.store.dispatch(TasksActions.createTask({
+      task: {
+        caseId: this.caseId,
+        title: val.title,
+        description: val.description || '',
+        priority: val.priority || 'medium',
+        dueDate: val.dueDate || undefined,
+      },
+    }));
+    this.snackBar.open('Creating task...', 'OK', { duration: 2000 });
+    this.createTaskForm.reset({ priority: 'medium' });
+    this.showCreateTask.set(false);
+    // Reload tasks from API after a short delay to allow the backend to persist
+    setTimeout(() => this.loadTasks(this.caseId!), 1000);
+  }
+
+  private loadTasks(caseId: string): void {
+    this.dataService.getTasks({ caseId }).pipe(takeUntil(this.destroy$)).subscribe(tasks => {
+      this.tasks = tasks;
+    });
   }
 
   updateForm(case_: Case): void {

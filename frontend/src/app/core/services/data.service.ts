@@ -39,6 +39,7 @@ export abstract class DataService {
   abstract getTaskById(id: string): Observable<Task | undefined>;
   abstract getTasksByStatus(status: string): Observable<Task[]>;
   abstract getKanbanBoard(caseId?: string): Observable<KanbanBoard>;
+  abstract createTask(task: Partial<Task>): Observable<Task>;
   abstract updateTask(taskId: string, updates: Partial<Task>): Observable<Task>;
 
   // Comments

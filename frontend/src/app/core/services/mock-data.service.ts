@@ -696,6 +696,25 @@ export class MockDataService extends DataService {
     throw new Error('Case not found');
   }
 
+  createTask(task: Partial<Task>): Observable<Task> {
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      caseId: task.caseId || '',
+      title: task.title || '',
+      description: task.description || '',
+      status: 'pending',
+      priority: task.priority || 'medium',
+      dueDate: task.dueDate,
+      dependsOn: [],
+      tags: [],
+      checklist: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.mockTasks.push(newTask);
+    return of(newTask).pipe(delay(500));
+  }
+
   updateTask(taskId: string, updates: Partial<Task>): Observable<Task> {
     const taskIdx = this.mockTasks.findIndex((t) => t.id === taskId);
     if (taskIdx >= 0) {

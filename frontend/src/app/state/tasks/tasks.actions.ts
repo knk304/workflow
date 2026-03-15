@@ -46,4 +46,10 @@ export const updateTaskAssignee = createAction(
   props<{ taskId: string; assigneeId?: string }>()
 );
 
+export const createTask = createAction('[Tasks] Create', props<{ task: Partial<Task> }>());
+
+export const createTaskSuccess = createAction('[Tasks] Create Success', props<{ task: Task }>());
+
+export const createTaskFailure = createAction('[Tasks] Create Failure', props<{ error: string }>());
+
 export const clearError = createAction('[Tasks] Clear Error');

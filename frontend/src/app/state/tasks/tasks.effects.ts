@@ -88,6 +88,18 @@ export class TasksEffects {
     )
   );
 
+  createTask$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(TasksActions.createTask),
+      mergeMap(({ task }) =>
+        this.dataService.createTask(task).pipe(
+          map((created) => TasksActions.createTaskSuccess({ task: created })),
+          catchError((error) => of(TasksActions.createTaskFailure({ error: error.message })))
+        )
+      )
+    )
+  );
+
   constructor(
     private actions$: Actions,
     private dataService: DataService
