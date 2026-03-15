@@ -8,6 +8,8 @@ import { CaseDetailComponent } from './features/cases/case-detail.component';
 import { CaseCreateComponent } from './features/cases/case-create.component';
 import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
 import { AdminUsersComponent } from './features/admin/admin-users.component';
+import { AdminTeamsComponent } from './features/admin/admin-teams.component';
+import { AdminWorkflowsComponent } from './features/admin/admin-workflows.component';
 import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
 import { ApprovalsComponent } from './features/approvals/approvals.component';
 import { DocumentsComponent } from './features/documents/documents.component';
@@ -105,12 +107,12 @@ export const routes: Routes = [
           },
           {
             path: 'teams',
-            component: AdminUsersComponent,
+            component: AdminTeamsComponent,
             data: { title: 'Team Management' },
           },
           {
             path: 'workflows',
-            component: AdminUsersComponent,
+            component: AdminWorkflowsComponent,
             data: { title: 'Workflow Management' },
           },
         ],

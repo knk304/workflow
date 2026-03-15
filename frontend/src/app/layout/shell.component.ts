@@ -120,23 +120,25 @@ import * as NotificationsActions from '@state/notifications/notifications.action
             </a>
           </mat-nav-list>
 
-          <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tools</p>
-          <mat-nav-list class="px-2">
-            <a mat-list-item routerLink="/workflows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
-              <mat-icon matListItemIcon>account_tree</mat-icon>
-              <span matListItemTitle>Workflow Designer</span>
-            </a>
-            <a mat-list-item routerLink="/forms" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
-              <mat-icon matListItemIcon>dynamic_form</mat-icon>
-              <span matListItemTitle>Form Builder</span>
-            </a>
-            <a mat-list-item routerLink="/sla" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
-              <mat-icon matListItemIcon>speed</mat-icon>
-              <span matListItemTitle>SLA Dashboard</span>
-            </a>
-          </mat-nav-list>
-
           @if (currentUserData?.role === 'ADMIN' || currentUserData?.role === 'MANAGER') {
+            <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tools</p>
+            <mat-nav-list class="px-2">
+              <a mat-list-item routerLink="/workflows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+                <mat-icon matListItemIcon>account_tree</mat-icon>
+                <span matListItemTitle>Workflow Designer</span>
+              </a>
+              <a mat-list-item routerLink="/forms" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+                <mat-icon matListItemIcon>dynamic_form</mat-icon>
+                <span matListItemTitle>Form Builder</span>
+              </a>
+              <a mat-list-item routerLink="/sla" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+                <mat-icon matListItemIcon>speed</mat-icon>
+                <span matListItemTitle>SLA Dashboard</span>
+              </a>
+            </mat-nav-list>
+          }
+
+          @if (currentUserData?.role === 'ADMIN') {
             <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Administration</p>
             <mat-nav-list class="px-2">
               <a mat-list-item routerLink="/admin/users" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
@@ -150,6 +152,14 @@ import * as NotificationsActions from '@state/notifications/notifications.action
               <a mat-list-item routerLink="/admin/workflows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
                 <mat-icon matListItemIcon>account_tree</mat-icon>
                 <span matListItemTitle>Workflows</span>
+              </a>
+            </mat-nav-list>
+          } @else if (currentUserData?.role === 'MANAGER') {
+            <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Administration</p>
+            <mat-nav-list class="px-2">
+              <a mat-list-item routerLink="/admin/teams" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+                <mat-icon matListItemIcon>groups</mat-icon>
+                <span matListItemTitle>Teams</span>
               </a>
             </mat-nav-list>
           }

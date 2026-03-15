@@ -15,14 +15,23 @@ export class MockAuthService extends AuthService {
       return throwError(() => new Error('Invalid credentials'));
     }
 
-    // Mock users - in real app, this would be from backend
+    // Mock users - role determined by email
+    const roleMap: Record<string, { name: string; role: User['role']; id: string; avatar: string; teamIds: string[] }> = {
+      'admin@example.com':   { name: 'Dave Wilson',    role: 'ADMIN',   id: 'user-4', avatar: '👨‍💻', teamIds: ['team-1', 'team-2'] },
+      'manager@example.com': { name: 'Alice Johnson',  role: 'MANAGER', id: 'user-1', avatar: '👩‍💼', teamIds: ['team-1'] },
+      'worker@example.com':  { name: 'Bob Smith',      role: 'WORKER',  id: 'user-2', avatar: '👨‍🔧', teamIds: ['team-1'] },
+      'viewer@example.com':  { name: 'Carol Williams', role: 'VIEWER',  id: 'user-3', avatar: '👩‍🔬', teamIds: ['team-2'] },
+    };
+    const defaults = { name: 'Alice Johnson', role: 'MANAGER' as User['role'], id: 'user-1', avatar: '👩‍💼', teamIds: ['team-1'] };
+    const profile = roleMap[req.email.toLowerCase()] || defaults;
+
     const mockUser: User = {
-      id: 'user-1',
+      id: profile.id,
       email: req.email,
-      name: 'Alice Johnson',
-      role: req.email === 'admin@example.com' ? 'ADMIN' : 'MANAGER',
-      teamIds: ['team-1'],
-      avatar: '👩‍💼',
+      name: profile.name,
+      role: profile.role,
+      teamIds: profile.teamIds,
+      avatar: profile.avatar,
       createdAt: '2025-01-01T00:00:00.000Z',
     };
 
