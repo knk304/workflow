@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  useMock: true,
+  useMock: false,
   apiUrl: 'http://localhost:8000/api',
   authApiUrl: 'http://localhost:8000/api',
   caseApiUrl: 'http://localhost:8000/api',
