@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
@@ -15,6 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { of, Observable, Subject } from 'rxjs';
 import { map, takeUntil, switchMap } from 'rxjs/operators';
@@ -49,6 +50,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
     MatExpansionModule,
     MatTooltipModule,
     MatSnackBarModule,
+    MatDialogModule,
     CommentsComponent,
     AuditLogComponent,
   ],
@@ -490,7 +492,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                     </div>
                     <span class="text-sm text-slate-800 flex-1">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
                     <button mat-icon-button class="w-7 h-7" matTooltip="Change Assignee"
-                            (click)="showAssigneePanel.set(!showAssigneePanel())">
+                            (click)="openAssigneeDialog()">
                       <mat-icon class="text-base text-slate-400 hover:text-[#056DAE]">swap_horiz</mat-icon>
                     </button>
                   </div>
@@ -552,11 +554,11 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                   <mat-icon class="text-[#056DAE]">{{ editing() ? 'edit_off' : 'edit' }}</mat-icon>
                   <span class="ml-1">{{ editing() ? 'Cancel Edit' : 'Edit Case' }}</span>
                 </button>
-                <button mat-stroked-button class="w-full justify-start" (click)="showTransitionPanel.set(!showTransitionPanel())">
+                <button mat-stroked-button class="w-full justify-start" (click)="openTransitionDialog()">
                   <mat-icon class="text-purple-500">swap_horiz</mat-icon>
                   <span class="ml-1">Transition Stage</span>
                 </button>
-                <button mat-stroked-button class="w-full justify-start" (click)="showAssigneePanel.set(!showAssigneePanel())">
+                <button mat-stroked-button class="w-full justify-start" (click)="openAssigneeDialog()">
                   <mat-icon class="text-amber-500">person_add</mat-icon>
                   <span class="ml-1">Change Assignee</span>
                 </button>
@@ -571,79 +573,6 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
               </div>
             </div>
 
-            <!-- Transition Panel -->
-            @if (showTransitionPanel()) {
-              <div class="bg-white rounded-xl border border-purple-200 shadow-sm overflow-hidden animate-fade-in">
-                <div class="bg-purple-50 px-5 py-3 border-b border-purple-200">
-                  <h4 class="text-sm font-semibold text-purple-800 flex items-center gap-2">
-                    <mat-icon class="text-base text-purple-500">swap_horiz</mat-icon>
-                    Stage Transition
-                  </h4>
-                </div>
-                <div class="p-4 space-y-3">
-                  @if (availableTransitions().length > 0) {
-                    <p class="text-xs text-slate-500">Select an action to transition this case:</p>
-                    @for (t of availableTransitions(); track t.action) {
-                      <button mat-raised-button class="w-full" [color]="t.action === 'reject' ? 'warn' : 'primary'"
-                              (click)="performTransition(t.action, caseData.id)">
-                        <mat-icon>{{ t.action === 'reject' ? 'undo' : t.action === 'complete' ? 'check_circle' : 'arrow_forward' }}</mat-icon>
-                        <span class="ml-1 capitalize">{{ t.action }}</span>
-                        <span class="text-xs opacity-75 ml-1">(→ {{ t.to | uppercase }})</span>
-                      </button>
-                    }
-                    <mat-form-field class="w-full mt-2">
-                      <mat-label>Transition Notes (optional)</mat-label>
-                      <textarea matInput [(ngModel)]="transitionNotes" rows="2"></textarea>
-                    </mat-form-field>
-                  } @else {
-                    <div class="text-center py-4">
-                      <mat-icon class="text-3xl text-slate-200">block</mat-icon>
-                      <p class="text-slate-400 text-xs mt-2">No transitions available for your role at this stage.</p>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Assignee Panel -->
-            @if (showAssigneePanel()) {
-              <div class="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden animate-fade-in">
-                <div class="bg-amber-50 px-5 py-3 border-b border-amber-200">
-                  <h4 class="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                    <mat-icon class="text-base text-amber-500">person_add</mat-icon>
-                    Change Assignee
-                  </h4>
-                </div>
-                <div class="p-4 space-y-3">
-                  @if (allUsers.length > 0) {
-                    <p class="text-xs text-slate-500">Select a user to assign this case to:</p>
-                    <div class="max-h-48 overflow-y-auto space-y-1">
-                      @for (u of allUsers; track u.id) {
-                        <button class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[#EAF4FB] transition-colors"
-                                [ngClass]="{'bg-[#EAF4FB] ring-1 ring-[#056DAE]': caseData.assignedTo?.id === u.id}"
-                                (click)="changeAssignee(u.id, caseData.id)">
-                          <div class="w-8 h-8 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-xs font-bold flex-shrink-0">
-                            {{ u.name.charAt(0) }}
-                          </div>
-                          <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-slate-800 truncate">{{ u.name }}</p>
-                            <p class="text-[11px] text-slate-400 truncate">{{ u.email }} · {{ u.role }}</p>
-                          </div>
-                          @if (caseData.assignedTo?.id === u.id) {
-                            <mat-icon class="text-[#056DAE] text-base flex-shrink-0">check_circle</mat-icon>
-                          }
-                        </button>
-                      }
-                    </div>
-                  } @else {
-                    <div class="text-center py-4">
-                      <mat-icon class="text-3xl text-slate-200">group_off</mat-icon>
-                      <p class="text-slate-400 text-xs mt-2">No users available.</p>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
           </div>
         </div>
       </div>
@@ -661,6 +590,82 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
         </button>
       </div>
     }
+
+    <!-- Transition Dialog -->
+    <ng-template #transitionDialogTpl>
+      <div class="p-6 min-w-[420px]">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+            <mat-icon class="text-purple-500">swap_horiz</mat-icon>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">Stage Transition</h3>
+            <p class="text-xs text-slate-400">Move this case to the next stage</p>
+          </div>
+        </div>
+        @if (availableTransitions().length > 0) {
+          <div class="space-y-3">
+            @for (t of availableTransitions(); track t.action) {
+              <button mat-raised-button class="w-full" [color]="t.action === 'reject' ? 'warn' : 'primary'"
+                      (click)="performTransition(t.action, caseId!)">
+                <mat-icon>{{ t.action === 'reject' ? 'undo' : t.action === 'complete' ? 'check_circle' : 'arrow_forward' }}</mat-icon>
+                <span class="ml-1 capitalize">{{ t.action }}</span>
+                <span class="text-xs opacity-75 ml-1">(→ {{ t.to | uppercase }})</span>
+              </button>
+            }
+          </div>
+          <mat-form-field class="w-full mt-4">
+            <mat-label>Transition Notes (optional)</mat-label>
+            <textarea matInput [(ngModel)]="transitionNotes" rows="2"></textarea>
+          </mat-form-field>
+        } @else {
+          <div class="text-center py-6">
+            <mat-icon class="text-4xl text-slate-200">block</mat-icon>
+            <p class="text-slate-400 text-sm mt-2">No transitions available for your role at this stage.</p>
+          </div>
+        }
+      </div>
+    </ng-template>
+
+    <!-- Assignee Dialog -->
+    <ng-template #assigneeDialogTpl>
+      <div class="p-6 min-w-[420px]">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+            <mat-icon class="text-amber-500">person_add</mat-icon>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">Change Assignee</h3>
+            <p class="text-xs text-slate-400">Reassign this case to another user</p>
+          </div>
+        </div>
+        @if (allUsers.length > 0) {
+          <div class="max-h-72 overflow-y-auto space-y-1">
+            @for (u of allUsers; track u.id) {
+              <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-[#EAF4FB] transition-colors"
+                      [ngClass]="{'bg-[#EAF4FB] ring-1 ring-[#056DAE]': currentCase?.assignedTo?.id === u.id}"
+                      (click)="changeAssignee(u.id, caseId!)">
+                <div class="w-9 h-9 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {{ u.name.charAt(0) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-slate-800 truncate">{{ u.name }}</p>
+                  <p class="text-[11px] text-slate-400 truncate">{{ u.email }} · {{ u.role }}</p>
+                </div>
+                @if (currentCase?.assignedTo?.id === u.id) {
+                  <mat-icon class="text-[#056DAE] text-base flex-shrink-0">check_circle</mat-icon>
+                }
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="text-center py-6">
+            <mat-icon class="text-4xl text-slate-200">group_off</mat-icon>
+            <p class="text-slate-400 text-sm mt-2">No users available.</p>
+          </div>
+        }
+      </div>
+    </ng-template>
   `,
   styles: [`
     :host {
@@ -679,8 +684,6 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   createTaskForm: FormGroup;
   tasks: Task[] = [];
   showCreateTask = signal(false);
-  showTransitionPanel = signal(false);
-  showAssigneePanel = signal(false);
   editing = signal(false);
   editingTask = signal<Task | null>(null);
   availableTransitions = signal<TransitionOption[]>([]);
@@ -688,9 +691,11 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   dynamicFields: { key: string; label: string; type: string; icon?: string; options?: string[] }[] = [];
   allUsers: User[] = [];
   editTaskForm!: FormGroup;
-  private caseId: string | null = null;
+  @ViewChild('transitionDialogTpl') transitionDialogTpl!: TemplateRef<any>;
+  @ViewChild('assigneeDialogTpl') assigneeDialogTpl!: TemplateRef<any>;
+  caseId: string | null = null;
   private destroy$ = new Subject<void>();
-  private currentCase: Case | null = null;
+  currentCase: Case | null = null;
 
   stages: { name: string; order: number }[] = [];
 
@@ -702,6 +707,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private dataService: DataService,
     public wsService: WebSocketService,
+    private dialog: MatDialog,
   ) {
     this.detailsForm = this.formBuilder.group({
       status: [''],
@@ -910,6 +916,14 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
       });
   }
 
+  openTransitionDialog(): void {
+    this.dialog.open(this.transitionDialogTpl, { width: '480px', autoFocus: false });
+  }
+
+  openAssigneeDialog(): void {
+    this.dialog.open(this.assigneeDialogTpl, { width: '480px', autoFocus: false });
+  }
+
   performTransition(action: string, caseId: string): void {
     this.store.dispatch(CasesActions.transitionCase({
       caseId,
@@ -918,7 +932,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     }));
     this.snackBar.open(`Transitioning: ${action}...`, 'OK', { duration: 3000 });
     this.transitionNotes = '';
-    this.showTransitionPanel.set(false);
+    this.dialog.closeAll();
   }
 
   // ─── Edit / Save ─────────────────────────────
@@ -986,7 +1000,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
     }));
     const user = this.allUsers.find(u => u.id === userId);
     this.snackBar.open(`Reassigning to ${user?.name || userId}...`, 'OK', { duration: 2000 });
-    this.showAssigneePanel.set(false);
+    this.dialog.closeAll();
   }
 
   scrollToComments(): void {
