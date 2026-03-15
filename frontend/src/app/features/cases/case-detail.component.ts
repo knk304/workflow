@@ -22,7 +22,7 @@ import { Case, Task } from '../../core/models';
 import { CommentsComponent } from '../comments/comments.component';
 import { AuditLogComponent } from '../audit/audit-log.component';
 import { WebSocketService } from '../../core/services/websocket.service';
-import { selectUser } from '../../state/auth/auth.selectors';
+import { selectUser, selectToken } from '../../state/auth/auth.selectors';
 
 @Component({
   selector: 'app-case-detail',
@@ -513,10 +513,9 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
     // Connect WebSocket for live collaboration
     if (caseId) {
-      this.store.select(selectUser).pipe(takeUntil(this.destroy$)).subscribe(user => {
-        if (user) {
-          // In production the token comes from the auth store; use user id as placeholder for mock
-          this.wsService.connect(caseId, user.id);
+      this.store.select(selectToken).pipe(takeUntil(this.destroy$)).subscribe(token => {
+        if (token) {
+          this.wsService.connect(caseId, token);
         }
       });
     }

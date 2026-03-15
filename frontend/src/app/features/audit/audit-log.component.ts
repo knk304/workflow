@@ -110,7 +110,7 @@ export class AuditLogComponent implements OnInit, OnChanges {
   }
 
   hasChanges(log: AuditLog): boolean {
-    return Object.keys(log.changes.after).length > 0;
+    return !!log.changes && Object.keys(log.changes.after || {}).length > 0;
   }
 
   changeKeys(log: AuditLog): string[] {
