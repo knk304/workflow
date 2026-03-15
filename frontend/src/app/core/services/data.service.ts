@@ -27,6 +27,9 @@ export abstract class DataService {
 
   // Case Types
   abstract getCaseTypes(): Observable<CaseType[]>;
+  abstract createCaseType(ct: { name: string; slug: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType>;
+  abstract updateCaseType(id: string, updates: { name?: string; slug?: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType>;
+  abstract deleteCaseType(id: string): Observable<void>;
 
   // Cases
   abstract getCases(filters?: Record<string, string>): Observable<Case[]>;

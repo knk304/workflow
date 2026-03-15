@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
 from datetime import datetime, timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from auth_deps import get_current_user
 from database import get_db
@@ -43,8 +43,9 @@ class FormSection(BaseModel):
 
 
 class FormDefinitionCreate(BaseModel):
+    model_config = {"populate_by_name": True}
     name: str
-    case_type_id: str
+    case_type_id: str | None = Field(default=None, alias="caseTypeId")
     stage: str | None = None
     sections: list[FormSection] = []
     fields: list[FormField]
@@ -63,7 +64,7 @@ def _form_response(doc: dict) -> dict:
     return {
         "id": str(doc["_id"]),
         "name": doc["name"],
-        "case_type_id": doc["case_type_id"],
+        "case_type_id": doc.get("case_type_id"),
         "stage": doc.get("stage"),
         "sections": doc.get("sections", []),
         "fields": doc["fields"],

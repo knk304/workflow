@@ -574,6 +574,23 @@ export class MockDataService extends DataService {
     return of([...this.mockCaseTypes]).pipe(delay(300));
   }
 
+  createCaseType(ct: { name: string; slug: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType> {
+    const newCt: CaseType = { id: 'case-type-' + Date.now(), name: ct.name, slug: ct.slug, description: ct.description || '', stages: [], transitions: [], fieldsSchema: ct.fieldsSchema || {}, workflowId: ct.workflowId };
+    this.mockCaseTypes.push(newCt);
+    return of(newCt).pipe(delay(300));
+  }
+
+  updateCaseType(id: string, updates: { name?: string; slug?: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType> {
+    const ct = this.mockCaseTypes.find(c => c.id === id);
+    if (ct) Object.assign(ct, updates);
+    return of(ct!).pipe(delay(300));
+  }
+
+  deleteCaseType(id: string): Observable<void> {
+    this.mockCaseTypes = this.mockCaseTypes.filter(c => c.id !== id);
+    return of(void 0).pipe(delay(300));
+  }
+
   getCases(filters?: any): Observable<Case[]> {
     let cases = [...this.mockCases];
     if (filters?.status) {

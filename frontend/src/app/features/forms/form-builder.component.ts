@@ -86,18 +86,10 @@ import { DataService } from '../../core/services/data.service';
         @if (editingForm()) {
           <!-- Form Settings Bar -->
           <div class="bg-white border-b p-4">
-            <div class="grid grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 gap-4">
               <mat-form-field>
                 <mat-label>Form Name</mat-label>
                 <input matInput [(ngModel)]="formName">
-              </mat-form-field>
-              <mat-form-field>
-                <mat-label>Case Type ID</mat-label>
-                <input matInput [(ngModel)]="formCaseTypeId">
-              </mat-form-field>
-              <mat-form-field>
-                <mat-label>Stage</mat-label>
-                <input matInput [(ngModel)]="formStage" placeholder="Optional">
               </mat-form-field>
               <div class="flex items-center gap-2">
                 <button mat-raised-button color="primary" (click)="saveForm()">

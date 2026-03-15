@@ -104,6 +104,23 @@ class CaseTypeResponse(BaseModel):
     stages: list[str]
     transitions: list[dict[str, Any]] = []
     fieldsSchema: dict[str, Any] = {}
+    workflowId: Optional[str] = None
+
+
+class CaseTypeCreate(BaseModel):
+    name: str
+    slug: str
+    description: str = ""
+    workflowId: Optional[str] = None
+    fieldsSchema: dict[str, Any] = {}
+
+
+class CaseTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    workflowId: Optional[str] = None
+    fieldsSchema: Optional[dict[str, Any]] = None
 
 
 class CommentCreate(BaseModel):

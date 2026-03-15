@@ -10,6 +10,7 @@ import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
 import { AdminUsersComponent } from './features/admin/admin-users.component';
 import { AdminTeamsComponent } from './features/admin/admin-teams.component';
 import { AdminWorkflowsComponent } from './features/admin/admin-workflows.component';
+import { AdminCaseTypesComponent } from './features/admin/admin-case-types.component';
 import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
 import { ApprovalsComponent } from './features/approvals/approvals.component';
 import { DocumentsComponent } from './features/documents/documents.component';
@@ -114,6 +115,11 @@ export const routes: Routes = [
             path: 'workflows',
             component: AdminWorkflowsComponent,
             data: { title: 'Workflow Management' },
+          },
+          {
+            path: 'case-types',
+            component: AdminCaseTypesComponent,
+            data: { title: 'Case Type Management' },
           },
         ],
       },

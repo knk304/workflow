@@ -78,6 +78,7 @@ export interface CaseType {
   name: string;
   slug: string;
   description: string;
+  workflowId?: string;
   stages: string[];
   transitions: TransitionOption[];
   fieldsSchema: Record<string, FieldDefinition>;

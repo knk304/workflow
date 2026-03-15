@@ -153,6 +153,10 @@ import * as NotificationsActions from '@state/notifications/notifications.action
                 <mat-icon matListItemIcon>account_tree</mat-icon>
                 <span matListItemTitle>Workflows</span>
               </a>
+              <a mat-list-item routerLink="/admin/case-types" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+                <mat-icon matListItemIcon>category</mat-icon>
+                <span matListItemTitle>Case Types</span>
+              </a>
             </mat-nav-list>
           } @else if (currentUserData?.role === 'MANAGER') {
             <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Administration</p>

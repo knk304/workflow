@@ -73,6 +73,18 @@ export class ApiDataService extends DataService {
     return this.http.get<CaseType[]>(`${this.caseUrl}/case-types`);
   }
 
+  createCaseType(ct: { name: string; slug: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType> {
+    return this.http.post<CaseType>(`${this.caseUrl}/case-types`, ct);
+  }
+
+  updateCaseType(id: string, updates: { name?: string; slug?: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType> {
+    return this.http.patch<CaseType>(`${this.caseUrl}/case-types/${id}`, updates);
+  }
+
+  deleteCaseType(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/case-types/${id}`);
+  }
+
   // ─── Cases ───────────────────────────────────────
   getCases(filters?: Record<string, string>): Observable<Case[]> {
     let params = new HttpParams();
