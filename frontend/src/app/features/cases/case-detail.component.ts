@@ -22,7 +22,7 @@ import { map, takeUntil, switchMap } from 'rxjs/operators';
 import { selectCasesList, selectSelectedCase } from '../../state/cases/cases.selectors';
 import * as CasesActions from '../../state/cases/cases.actions';
 import * as TasksActions from '../../state/tasks/tasks.actions';
-import { Case, Task, TransitionOption, CaseType, FormDefinition, FormField, User } from '../../core/models';
+import { Case, Task, TransitionOption, CaseType, FormDefinition, FormField, User, Document as WfDocument } from '../../core/models';
 import { CommentsComponent } from '../comments/comments.component';
 import { AuditLogComponent } from '../audit/audit-log.component';
 import { WebSocketService } from '../../core/services/websocket.service';
@@ -429,6 +429,98 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </div>
               </mat-tab>
 
+              <!-- Documents Tab -->
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <div class="flex items-center gap-2 py-1">
+                    <mat-icon>description</mat-icon>
+                    <span>Documents</span>
+                    @if (documents.length > 0) {
+                      <span class="ml-1 bg-purple-100 text-purple-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        {{ documents.length }}
+                      </span>
+                    }
+                  </div>
+                </ng-template>
+
+                <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  <!-- Upload Zone -->
+                  <div class="mb-6 p-5 bg-slate-50 rounded-xl border border-dashed border-slate-300 hover:border-[#056DAE] hover:bg-[#EAF4FB]/30 transition-colors"
+                       (dragover)="onDocumentDragOver($event)"
+                       (dragleave)="docDragOver.set(false)"
+                       (drop)="onDocumentDrop($event, caseData.id)">
+                    <div class="flex items-center justify-center gap-3">
+                      <mat-icon class="text-slate-400">cloud_upload</mat-icon>
+                      <div class="text-left">
+                        <p class="text-sm font-medium text-slate-700">Drag documents here or
+                          <button type="button" mat-button color="primary" class="!p-0 !h-auto !min-w-0 inline"
+                                  (click)="docFileInput.click()">
+                            browse
+                          </button>
+                        </p>
+                        <p class="text-xs text-slate-500">Supported formats: PDF, DOC, DOCX, XLS, XLSX</p>
+                      </div>
+                      <input type="file" #docFileInput class="hidden" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                             (change)="onDocumentSelected($event, caseData.id)">
+                    </div>
+                  </div>
+
+                  <!-- Documents List -->
+                  @if (documents.length > 0) {
+                    <div class="space-y-3">
+                      @for (doc of documents; track doc.id) {
+                        <div class="flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-[#a1d1ef] hover:bg-[#EAF4FB]/30 transition-all duration-200">
+                          <!-- File Icon -->
+                          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-50">
+                            <mat-icon class="text-purple-600">{{ getDocumentIcon(doc.contentType) }}</mat-icon>
+                          </div>
+                          <!-- Content -->
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                              <h4 class="font-semibold text-slate-800 text-sm truncate">{{ doc.filename }}</h4>
+                              @if (doc.version > 1) {
+                                <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+                                  v{{ doc.version }}
+                                </span>
+                              }
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                              {{ formatFileSize(doc.sizeBytes) }} • Uploaded by {{ getUserName(doc.uploadedBy) }}
+                            </p>
+                            <p class="text-xs text-slate-400 mt-1">{{ doc.uploadedAt | date: 'mediumDate' }}</p>
+                            @if (doc.tags && doc.tags.length > 0) {
+                              <div class="flex gap-1 mt-2 flex-wrap">
+                                @for (tag of doc.tags; track tag) {
+                                  <span class="inline-flex text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                    {{ tag }}
+                                  </span>
+                                }
+                              </div>
+                            }
+                          </div>
+                          <!-- Actions -->
+                          <div class="flex items-center gap-2 flex-shrink-0">
+                            <button mat-icon-button class="w-9 h-9" matTooltip="Download"
+                                    (click)="downloadDocument(doc)">
+                              <mat-icon class="text-slate-400 hover:text-[#056DAE]">download</mat-icon>
+                            </button>
+                            <button mat-icon-button class="w-9 h-9" matTooltip="Delete"
+                                    (click)="deleteDocument(doc)">
+                              <mat-icon class="text-slate-400 hover:text-red-500">delete</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="text-center py-12">
+                      <mat-icon class="text-5xl text-slate-200">description</mat-icon>
+                      <p class="text-slate-400 mt-3 text-sm">No documents attached to this case yet</p>
+                    </div>
+                  }
+                </div>
+              </mat-tab>
+
               <!-- Activity Tab -->
               <mat-tab>
                 <ng-template mat-tab-label>
@@ -698,6 +790,8 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   currentCase: Case | null = null;
 
   stages: { name: string; order: number }[] = [];
+  documents: WfDocument[] = [];
+  docDragOver = signal(false);
 
   constructor(
     private route: ActivatedRoute,
@@ -760,6 +854,7 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
 
     if (caseId) {
       this.loadTasks(caseId);
+      this.loadDocuments(caseId);
     }
 
     // Load users for assignee picker
@@ -1264,5 +1359,102 @@ export class CaseDetailComponent implements OnInit, OnDestroy {
   getUserName(userId: string): string {
     const user = this.allUsers.find(u => u.id === userId);
     return user?.name || userId;
+  }
+
+  // ─── Documents ───────────────────────────────
+  private loadDocuments(caseId: string): void {
+    this.dataService.getDocuments(caseId).pipe(takeUntil(this.destroy$)).subscribe(docs => {
+      this.documents = docs;
+    });
+  }
+
+  onDocumentDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.docDragOver.set(true);
+  }
+
+  onDocumentDrop(event: DragEvent, caseId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.docDragOver.set(false);
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.uploadDocuments(Array.from(files), caseId);
+    }
+  }
+
+  onDocumentSelected(event: Event, caseId: string): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.uploadDocuments(Array.from(input.files), caseId);
+    }
+  }
+
+  uploadDocuments(files: File[], caseId: string): void {
+    files.forEach(file => {
+      this.dataService.uploadDocument(caseId, file).pipe(takeUntil(this.destroy$)).subscribe({
+        next: (doc) => {
+          this.documents.push(doc);
+          this.snackBar.open(`Document "${file.name}" uploaded`, 'OK', { duration: 2000 });
+        },
+        error: () => {
+          this.snackBar.open(`Failed to upload "${file.name}"`, 'OK', { duration: 2000 });
+        },
+      });
+    });
+  }
+
+  getDocumentIcon(contentType: string): string {
+    const icons: Record<string, string> = {
+      'application/pdf': 'picture_as_pdf',
+      'application/msword': 'description',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'description',
+      'application/vnd.ms-excel': 'table_chart',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'table_chart',
+      'text/plain': 'text_snippet',
+      'image/jpeg': 'image',
+      'image/png': 'image',
+    };
+    return icons[contentType] || 'description';
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  downloadDocument(doc: WfDocument): void {
+    this.dataService.downloadDocument(doc.id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.snackBar.open('Failed to download document', 'OK', { duration: 2000 });
+      },
+    });
+  }
+
+  deleteDocument(doc: WfDocument): void {
+    if (confirm(`Delete document "${doc.filename}"?`)) {
+      this.dataService.deleteDocument(doc.id).pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
+          this.documents = this.documents.filter(d => d.id !== doc.id);
+          this.snackBar.open('Document deleted', 'OK', { duration: 2000 });
+        },
+        error: () => {
+          this.snackBar.open('Failed to delete document', 'OK', { duration: 2000 });
+        },
+      });
+    }
   }
 }

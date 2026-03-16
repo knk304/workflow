@@ -122,15 +122,6 @@ async def list_documents(
     return [_to_response(doc) async for doc in cursor]
 
 
-@router.get("/{doc_id}", response_model=DocumentResponse)
-async def get_document(doc_id: str, user: dict = Depends(get_current_user)):
-    db = get_db()
-    doc = await find_by_id(db.documents, doc_id)
-    if not doc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
-    return _to_response(doc)
-
-
 @router.get("/{doc_id}/download")
 async def download_document(doc_id: str, user: dict = Depends(get_current_user)):
     db = get_db()
@@ -147,6 +138,15 @@ async def download_document(doc_id: str, user: dict = Depends(get_current_user))
         filename=doc["file_name"],
         media_type=doc.get("file_type", "application/octet-stream"),
     )
+
+
+@router.get("/{doc_id}", response_model=DocumentResponse)
+async def get_document(doc_id: str, user: dict = Depends(get_current_user)):
+    db = get_db()
+    doc = await find_by_id(db.documents, doc_id)
+    if not doc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+    return _to_response(doc)
 
 
 @router.get("/{doc_id}/versions", response_model=DocumentVersionResponse)

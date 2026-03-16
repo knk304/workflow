@@ -1043,6 +1043,12 @@ export class MockDataService extends DataService {
     return of(void 0).pipe(delay(300));
   }
 
+  downloadDocument(id: string): Observable<Blob> {
+    // Mock: return a dummy blob
+    const blob = new Blob(['Mock document content'], { type: 'text/plain' });
+    return of(blob).pipe(delay(300));
+  }
+
   getDocumentVersions(id: string): Observable<DocumentVersion[]> {
     const doc = this.mockDocuments.find(d => d.id === id);
     if (!doc) return of([]);

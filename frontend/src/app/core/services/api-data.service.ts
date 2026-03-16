@@ -285,6 +285,12 @@ export class ApiDataService extends DataService {
     return this.http.delete<void>(`${this.caseUrl}/documents/${id}`);
   }
 
+  downloadDocument(id: string): Observable<Blob> {
+    return this.http.get(`${this.caseUrl}/documents/${id}/download`, {
+      responseType: 'blob'
+    });
+  }
+
   getDocumentVersions(id: string): Observable<DocumentVersion[]> {
     return this.http.get<any[]>(`${this.caseUrl}/documents/${id}/versions`).pipe(
       map(versions => versions.map(d => this.mapDoc(d) as any))

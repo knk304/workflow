@@ -82,6 +82,7 @@ export abstract class DataService {
   abstract getDocumentById(id: string): Observable<Document>;
   abstract uploadDocument(caseId: string, file: File, description?: string, tags?: string[]): Observable<Document>;
   abstract deleteDocument(id: string): Observable<void>;
+  abstract downloadDocument(id: string): Observable<Blob>;
   abstract getDocumentVersions(id: string): Observable<DocumentVersion[]>;
 
   // SLA
