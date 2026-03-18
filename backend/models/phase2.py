@@ -72,7 +72,6 @@ class DocumentResponse(BaseModel):
     version: int = 1
     uploaded_by: str
     tags: list[str] = []
-    storage_path: str
     current: bool = True
     created_at: str
 

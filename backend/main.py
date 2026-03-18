@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 from config import get_settings
 from database import connect_db, close_db
@@ -48,7 +51,7 @@ async def _sla_scheduler():
         except asyncio.CancelledError:
             break
         except Exception:
-            pass  # Log error but keep running
+            logger.exception("SLA breach check failed")
 
 
 app = FastAPI(

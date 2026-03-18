@@ -33,13 +33,15 @@ class ConnectionManager:
     def disconnect(self, case_id: str, websocket: WebSocket):
         if case_id in self.active_connections:
             user_info = None
-            self.active_connections[case_id] = [
-                (ws, ui) for ws, ui in self.active_connections[case_id]
-                if ws != websocket or not (user_info := ui) is None  # capture user_info
-            ]
-            # Find the user_info of the disconnected socket
-            # (captured above is unreliable, re-scan)
-            if not self.active_connections[case_id]:
+            remaining = []
+            for ws, ui in self.active_connections[case_id]:
+                if ws == websocket:
+                    user_info = ui
+                else:
+                    remaining.append((ws, ui))
+            if remaining:
+                self.active_connections[case_id] = remaining
+            else:
                 del self.active_connections[case_id]
             return user_info
         return None

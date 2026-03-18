@@ -1,5 +1,6 @@
 """Approval chain routes — multi-level approvals with delegation."""
 
+from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
 from datetime import datetime, timezone
@@ -15,16 +16,19 @@ from models.phase2 import (
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
-# Cache user names to avoid repeated DB lookups within a request
+# Cache user names with bounded size to prevent unbounded memory growth
 _user_name_cache: dict[str, str] = {}
+_USER_NAME_CACHE_MAX = 1000
 
 
 async def _resolve_user_name(db, user_id: str) -> str:
-    """Look up a user's display name by ID, with simple caching."""
+    """Look up a user's display name by ID, with bounded caching."""
     if user_id in _user_name_cache:
         return _user_name_cache[user_id]
     user = await find_by_id(db.users, user_id)
     name = user.get("name", user_id) if user else user_id
+    if len(_user_name_cache) >= _USER_NAME_CACHE_MAX:
+        _user_name_cache.clear()
     _user_name_cache[user_id] = name
     return name
 

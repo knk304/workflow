@@ -49,9 +49,9 @@ async def add_comment(body: CommentCreate, user: dict = Depends(get_current_user
     doc = {
         "caseId": body.caseId,
         "taskId": body.taskId,
-        "userId": body.userId,
-        "userName": body.userName,
-        "userAvatar": body.userAvatar,
+        "userId": str(user["_id"]),
+        "userName": user.get("name", user.get("email", "")),
+        "userAvatar": user.get("avatar"),
         "text": body.text,
         "mentions": [m for m in body.mentions],
         "createdAt": now,

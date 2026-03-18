@@ -15,6 +15,12 @@ from models.phase2 import DocumentResponse, DocumentVersionResponse
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/data/documents")
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+ALLOWED_EXTENSIONS = {
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp",
+    ".txt", ".csv", ".json", ".xml",
+}
 
 
 def _to_response(doc: dict) -> DocumentResponse:
@@ -28,7 +34,6 @@ def _to_response(doc: dict) -> DocumentResponse:
         version=doc.get("version", 1),
         uploaded_by=doc["uploaded_by"],
         tags=doc.get("tags", []),
-        storage_path=doc["storage_path"],
         current=doc.get("current", True),
         created_at=doc["created_at"],
     )
@@ -47,6 +52,22 @@ async def upload_document(
     user_id = str(user["_id"])
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
 
+    # Validate file extension
+    file_ext = os.path.splitext(file.filename or "file")[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"File type '{file_ext}' not allowed. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+        )
+
+    # Read content and validate size
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
+        )
+
     # Determine version (check for existing docs with same name + case_id)
     version = 1
     query: dict = {"file_name": file.filename, "current": True}
@@ -62,14 +83,12 @@ async def upload_document(
         )
 
     # Save file to disk
-    file_ext = os.path.splitext(file.filename or "file")[1]
     safe_name = f"{uuid.uuid4().hex}{file_ext}"
     case_folder = case_id or "unlinked"
     dir_path = os.path.join(UPLOAD_DIR, case_folder, f"v{version}")
     os.makedirs(dir_path, exist_ok=True)
     file_path = os.path.join(dir_path, safe_name)
 
-    content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
 

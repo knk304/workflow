@@ -125,6 +125,17 @@ async def list_cases(
         query["ownerId"] = ownerId
     if teamId:
         query["teamId"] = teamId
+
+    # Authorization: non-admin/manager users only see own or team cases
+    role = user.get("role", "WORKER")
+    if role not in ("ADMIN", "MANAGER"):
+        uid = str(user["_id"])
+        team_ids = user.get("team_ids", [])
+        ownership_filter = [{"ownerId": uid}, {"createdBy": uid}]
+        if team_ids:
+            ownership_filter.append({"teamId": {"$in": team_ids}})
+        query["$or"] = ownership_filter
+
     cursor = db.cases.find(query).sort("updatedAt", -1).skip(skip).limit(limit)
     results = []
     async for doc in cursor:
