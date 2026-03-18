@@ -1,0 +1,194 @@
+# Form Field Palette Configuration
+# Single source of truth for form builder UI + AI chatbot form generation.
+# Changes here are reflected in both the drag-drop palette and AI commands.
+
+fields:
+  # ── Basic Input Fields ──────────────────────────────────
+  - type: text
+    label: Text Input
+    icon: text_fields
+    category: basic
+    description: Single-line text input
+    defaultProps:
+      required: false
+      placeholder: ""
+      maxLength: 255
+
+  - type: textarea
+    label: Text Area
+    icon: notes
+    category: basic
+    description: Multi-line text input
+    defaultProps:
+      required: false
+      placeholder: ""
+      rows: 4
+      maxLength: 2000
+
+  - type: number
+    label: Number
+    icon: pin
+    category: basic
+    description: Numeric input with optional min/max
+    defaultProps:
+      required: false
+      min: null
+      max: null
+      step: 1
+
+  - type: date
+    label: Date Picker
+    icon: calendar_today
+    category: basic
+    description: Date selection field
+    defaultProps:
+      required: false
+      minDate: null
+      maxDate: null
+
+  - type: datetime
+    label: Date & Time
+    icon: schedule
+    category: basic
+    description: Date and time picker
+    defaultProps:
+      required: false
+
+  # ── Selection Fields ────────────────────────────────────
+  - type: select
+    label: Dropdown
+    icon: arrow_drop_down_circle
+    category: selection
+    description: Single or multi-select dropdown
+    defaultProps:
+      required: false
+      options: []
+      multiple: false
+      placeholder: "Select..."
+
+  - type: checkbox
+    label: Checkbox
+    icon: check_box
+    category: selection
+    description: Boolean checkbox or checkbox group
+    defaultProps:
+      required: false
+      options: []
+
+  - type: radio
+    label: Radio Group
+    icon: radio_button_checked
+    category: selection
+    description: Single selection from options
+    defaultProps:
+      required: false
+      options: []
+
+  - type: toggle
+    label: Toggle Switch
+    icon: toggle_on
+    category: selection
+    description: On/off toggle switch
+    defaultProps:
+      required: false
+      defaultValue: false
+
+  # ── Rich Fields ─────────────────────────────────────────
+  - type: email
+    label: Email
+    icon: email
+    category: rich
+    description: Email address with validation
+    defaultProps:
+      required: false
+      placeholder: "user@example.com"
+
+  - type: phone
+    label: Phone Number
+    icon: phone
+    category: rich
+    description: Phone number input
+    defaultProps:
+      required: false
+      placeholder: "+1 (555) 000-0000"
+
+  - type: currency
+    label: Currency
+    icon: attach_money
+    category: rich
+    description: Monetary value with currency symbol
+    defaultProps:
+      required: false
+      currency: "USD"
+      min: 0
+
+  - type: url
+    label: URL
+    icon: link
+    category: rich
+    description: Web URL with validation
+    defaultProps:
+      required: false
+      placeholder: "https://"
+
+  - type: file
+    label: File Upload
+    icon: attach_file
+    category: rich
+    description: File attachment field
+    defaultProps:
+      required: false
+      accept: ".pdf,.doc,.docx,.jpg,.png"
+      maxSizeMB: 50
+
+  - type: signature
+    label: Signature
+    icon: draw
+    category: rich
+    description: Digital signature capture
+    defaultProps:
+      required: false
+
+  # ── Layout Fields ───────────────────────────────────────
+  - type: heading
+    label: Section Heading
+    icon: title
+    category: layout
+    description: Non-input heading/divider
+    defaultProps:
+      text: "Section Title"
+      level: 2
+
+  - type: paragraph
+    label: Paragraph Text
+    icon: article
+    category: layout
+    description: Static informational text block
+    defaultProps:
+      text: ""
+
+  - type: divider
+    label: Divider
+    icon: horizontal_rule
+    category: layout
+    description: Visual separator line
+    defaultProps: {}
+
+# Categories define palette grouping in the UI sidebar
+categories:
+  - id: basic
+    label: Basic Fields
+    icon: input
+    order: 1
+  - id: selection
+    label: Selection Fields
+    icon: list
+    order: 2
+  - id: rich
+    label: Rich Fields
+    icon: auto_awesome
+    order: 3
+  - id: layout
+    label: Layout
+    icon: view_agenda
+    order: 4

@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, signal, ViewChild, TemplateRef } from '@angular/core';
+import { AiSummaryCardComponent } from '../ai/summary-card/ai-summary-card.component';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
@@ -53,6 +54,7 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
     MatDialogModule,
     CommentsComponent,
     AuditLogComponent,
+    AiSummaryCardComponent,
   ],
   template: `
     @let caseData = case$ | async;
@@ -553,6 +555,9 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
 
           <!-- Right: Summary Sidebar -->
           <div class="space-y-5">
+            <!-- AI Summary Card -->
+            <app-ai-summary-card [caseId]="caseData.id"></app-ai-summary-card>
+
             <!-- Case Info Card -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">

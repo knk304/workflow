@@ -1,0 +1,180 @@
+# Workflow Node Palette Configuration
+# Single source of truth for workflow designer UI + AI chatbot workflow generation.
+# Changes here are reflected in both the node palette and AI commands.
+
+nodes:
+  # ── Control Nodes ───────────────────────────────────────
+  - type: start
+    label: Start
+    icon: play_circle
+    emoji: "▶"
+    category: control
+    description: Entry point of the workflow
+    singleton: true          # Only one allowed per workflow
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+    properties: {}
+
+  - type: end
+    label: End
+    icon: stop_circle
+    emoji: "⏹"
+    category: control
+    description: Terminal node — workflow completes here
+    singleton: false         # Multiple end nodes allowed
+    allowedNext: []
+    properties:
+      resolution: "completed"
+
+  # ── Action Nodes ────────────────────────────────────────
+  - type: task
+    label: Task
+    icon: assignment
+    emoji: "📋"
+    category: action
+    description: Human task requiring manual action
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+      - end
+    properties:
+      assigneeRole: null     # Role to assign task to
+      slaHours: null         # SLA target in hours
+      linkedFormId: null     # Optional form to fill
+      instructions: ""
+
+  - type: subprocess
+    label: Subprocess
+    icon: account_tree
+    emoji: "📦"
+    category: action
+    description: Nested workflow or reusable process block
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+      - end
+    properties:
+      subWorkflowId: null
+      linkedFormId: null
+
+  - type: notification
+    label: Send Notification
+    icon: notifications_active
+    emoji: "🔔"
+    category: action
+    description: Auto-send notification to user or role
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+      - end
+    properties:
+      recipientRole: null
+      notificationType: "info"
+      messageTemplate: ""
+
+  # ── Gateway Nodes ───────────────────────────────────────
+  - type: decision
+    label: Decision Gateway
+    icon: call_split
+    emoji: "◆"
+    category: gateway
+    description: Conditional branching — routes to different paths based on rules
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+      - end
+    properties:
+      conditions: []         # Array of { label, expression, targetNodeId }
+
+  - type: parallel
+    label: Parallel Gateway
+    icon: fork_right
+    emoji: "⫘"
+    category: gateway
+    description: Split into parallel branches (all execute concurrently)
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - subprocess
+      - notification
+      - end
+    properties:
+      joinMode: "all"        # "all" = wait for all branches, "any" = first completes
+
+  # ── Approval Nodes ─────────────────────────────────────
+  - type: approval
+    label: Approval
+    icon: verified
+    emoji: "✅"
+    category: approval
+    description: Requires approval from designated user or role
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+      - end
+    properties:
+      approverRole: "MANAGER"
+      approvalMode: "sequential"   # sequential | parallel
+      escalateAfterHours: null
+
+  - type: review
+    label: Review Gate
+    icon: rate_review
+    emoji: "👁"
+    category: approval
+    description: Review checkpoint — can approve, reject, or request changes
+    singleton: false
+    allowedNext:
+      - task
+      - decision
+      - parallel
+      - subprocess
+      - notification
+      - end
+    properties:
+      reviewerRole: "MANAGER"
+      onReject: "return_to_previous"   # return_to_previous | go_to_start | end
+
+# Categories define palette grouping in the UI sidebar
+categories:
+  - id: control
+    label: Control Flow
+    icon: settings_ethernet
+    order: 1
+  - id: action
+    label: Actions
+    icon: bolt
+    order: 2
+  - id: gateway
+    label: Gateways
+    icon: call_split
+    order: 3
+  - id: approval
+    label: Approvals
+    icon: verified
+    order: 4

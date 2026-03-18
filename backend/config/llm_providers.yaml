@@ -1,0 +1,95 @@
+# LLM Provider Configuration
+# Defines all available LLM providers. Switch active provider via
+# LLM_PROVIDER env var or PATCH /api/config/llm-provider.
+#
+# Supported types: openai, azure_openai, ollama, custom
+# Custom type supports arbitrary HTTP-based LLMs with configurable req/res mapping.
+
+providers:
+  openai:
+    type: openai
+    label: OpenAI GPT-4o
+    base_url: https://api.openai.com/v1
+    model: gpt-4o
+    env_key: OPENAI_API_KEY
+    streaming: true
+    max_tokens: 4096
+    temperature: 0.3
+    request_format: openai_chat
+
+  azure:
+    type: azure_openai
+    label: Azure OpenAI
+    base_url: ${AZURE_OPENAI_ENDPOINT}
+    model: gpt-4o
+    api_version: "2024-08-01-preview"
+    env_key: AZURE_OPENAI_API_KEY
+    streaming: true
+    max_tokens: 4096
+    temperature: 0.3
+    request_format: openai_chat
+
+  ollama:
+    type: ollama
+    label: Ollama (Local)
+    base_url: http://localhost:11434/v1
+    model: llama3
+    env_key: null
+    streaming: true
+    max_tokens: 4096
+    temperature: 0.3
+    request_format: openai_chat
+
+  custom:
+    type: custom
+    label: Custom LLM
+    base_url: ${CUSTOM_LLM_URL}
+    model: ${CUSTOM_LLM_MODEL}
+    env_key: CUSTOM_LLM_TOKEN
+    streaming: true
+    max_tokens: 4096
+    temperature: 0.3
+
+    # Request template — Jinja2-style placeholders.
+    # Available variables: messages, max_tokens, temperature, model, session_id
+    request_template:
+      prompt: "{{messages}}"
+      model: "{{model}}"
+      max_tokens: "{{max_tokens}}"
+      temperature: "{{temperature}}"
+      stream: "{{stream}}"
+
+    # Response mapping — dot-notation paths to extract fields from JSON response.
+    response_mapping:
+      content: "choices.0.message.content"
+      usage_prompt_tokens: "usage.prompt_tokens"
+      usage_completion_tokens: "usage.completion_tokens"
+      finish_reason: "choices.0.finish_reason"
+
+    # Streaming response mapping (for SSE / chunked responses)
+    stream_mapping:
+      content_delta: "choices.0.delta.content"
+      finish_reason: "choices.0.finish_reason"
+
+    # Custom headers sent with every request.
+    # Use {{token}} for the value from env_key.
+    headers:
+      Authorization: "Bearer {{token}}"
+      Content-Type: "application/json"
+
+# Active provider — set via LLM_PROVIDER env var (default: openai)
+active_provider: ${LLM_PROVIDER:-openai}
+
+# Fallback provider — used if active provider fails (optional)
+fallback_provider: null
+
+# Global rate limiting
+rate_limit:
+  requests_per_minute: 60
+  tokens_per_minute: 100000
+
+# Response caching
+cache:
+  enabled: true
+  ttl_seconds: 300
+  max_entries: 500

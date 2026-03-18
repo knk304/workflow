@@ -29,6 +29,10 @@ from routes.sla import router as sla_router
 from routes.forms import router as forms_router
 from routes.websocket import router as ws_router
 
+# Phase 3 routers
+from routes.ai import router as ai_router
+from routes.config_api import router as config_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -87,6 +91,10 @@ app.include_router(documents_router)
 app.include_router(sla_router)
 app.include_router(forms_router)
 app.include_router(ws_router)
+
+# Phase 3 routers
+app.include_router(ai_router)
+app.include_router(config_router)
 
 
 @app.get("/health")
