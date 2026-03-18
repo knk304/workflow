@@ -22,6 +22,7 @@ import {
   selectDocumentsLoading,
   selectDocumentsUploading,
 } from '../../state/documents/documents.selectors';
+import { ExtractionWidgetComponent } from '../ai/extraction-widget/extraction-widget.component';
 
 @Component({
   selector: 'app-documents',
@@ -41,6 +42,7 @@ import {
     MatTooltipModule,
     MatMenuModule,
     MatDialogModule,
+    ExtractionWidgetComponent,
   ],
   template: `
     <div class="p-6">
@@ -130,6 +132,9 @@ import {
                   <button mat-menu-item (click)="viewVersions(doc)">
                     <mat-icon>history</mat-icon> Version History
                   </button>
+                  <button mat-menu-item (click)="extractFields(doc)">
+                    <mat-icon>document_scanner</mat-icon> Extract Fields
+                  </button>
                   <button mat-menu-item (click)="deleteDoc(doc.id)" class="!text-red-600">
                     <mat-icon>delete</mat-icon> Delete
                   </button>
@@ -163,6 +168,23 @@ import {
         <div class="text-center py-12 text-gray-400">
           <mat-icon class="!text-5xl !w-12 !h-12 mb-3">folder_open</mat-icon>
           <p>No documents found</p>
+        </div>
+      }
+
+      <!-- Extraction Panel -->
+      @if (extractionDocId()) {
+        <div class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+             (click)="closeExtraction()">
+          <div class="bg-slate-50 rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-auto m-4 p-4"
+               (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-semibold text-slate-700">AI Field Extraction</h3>
+              <button mat-icon-button (click)="closeExtraction()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <app-extraction-widget [documentId]="extractionDocId()!"></app-extraction-widget>
+          </div>
         </div>
       }
 
@@ -211,6 +233,7 @@ export class DocumentsComponent implements OnInit {
   isDragOver = signal(false);
   filteredDocuments = signal<WfDocument[]>([]);
   previewDocument = signal<WfDocument | null>(null);
+  extractionDocId = signal<string | null>(null);
   searchTerm = '';
   uploadCaseId = '';
   uploadDescription = '';
@@ -350,5 +373,14 @@ export class DocumentsComponent implements OnInit {
     a.href = url;
     a.download = doc.filename;
     a.click();
+  }
+
+  // ─── AI Extraction ──────────────────────────────
+  extractFields(doc: WfDocument): void {
+    this.extractionDocId.set(doc.id);
+  }
+
+  closeExtraction(): void {
+    this.extractionDocId.set(null);
   }
 }

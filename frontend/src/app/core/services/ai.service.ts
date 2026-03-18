@@ -52,6 +52,38 @@ export interface LLMProviderInfo {
   streaming: boolean;
 }
 
+// ── P3-S2: Document Extraction ──────────────────────────
+
+export interface ExtractionField {
+  field_name: string;
+  value: string;
+  confidence: number;
+  source_page: number | null;
+}
+
+export interface ExtractionResponse {
+  document_id: string;
+  fields: ExtractionField[];
+  raw_text_preview: string;
+  generated_by: string;
+}
+
+// ── P3-S2: Semantic Search ──────────────────────────────
+
+export interface SearchResult {
+  entity_type: string;
+  entity_id: string;
+  title: string;
+  snippet: string;
+  score: number;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+  total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AiService {
   private readonly apiUrl = environment.apiUrl;
@@ -96,5 +128,33 @@ export class AiService {
   // ── AI Health ─────────────────────────────────────────
   checkHealth(): Observable<{ status: string; provider: string; healthy: boolean }> {
     return this.http.get<any>(`${this.apiUrl}/ai/health`);
+  }
+
+  // ── Document Extraction (P3-S2) ───────────────────────
+  extractDocument(documentId: string): Observable<ExtractionResponse> {
+    return this.http.post<ExtractionResponse>(
+      `${this.apiUrl}/ai/extract/${documentId}`,
+      {},
+    );
+  }
+
+  // ── Semantic Search (P3-S2) ───────────────────────────
+  search(query: string, options?: {
+    limit?: number;
+    entity_types?: string[];
+  }): Observable<SearchResponse> {
+    return this.http.post<SearchResponse>(
+      `${this.apiUrl}/ai/search`,
+      { query, ...options },
+    );
+  }
+
+  // ── Index Management (P3-S2) ──────────────────────────
+  rebuildIndex(): Observable<{ status: string; indexed: Record<string, number> }> {
+    return this.http.post<any>(`${this.apiUrl}/ai/index/rebuild`, {});
+  }
+
+  indexEntity(entityType: string, entityId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/ai/index/${entityType}/${entityId}`, {});
   }
 }

@@ -14,6 +14,7 @@ import { selectUser, selectIsAuthenticated } from '@state/auth/auth.selectors';
 import { selectUnreadNotificationCount } from '@state/notifications/notifications.selectors';
 import * as AuthActions from '@state/auth/auth.actions';
 import * as NotificationsActions from '@state/notifications/notifications.actions';
+import { SemanticSearchComponent } from '../features/ai/search-bar/semantic-search.component';
 
 @Component({
   selector: 'app-shell',
@@ -31,6 +32,7 @@ import * as NotificationsActions from '@state/notifications/notifications.action
     MatMenuModule,
     MatBadgeModule,
     MatDividerModule,
+    SemanticSearchComponent,
   ],
   template: `
     <mat-toolbar color="primary" class="sticky top-0 z-50">
@@ -44,6 +46,9 @@ import * as NotificationsActions from '@state/notifications/notifications.action
         <span class="font-bold text-lg tracking-tight">Workflow</span>
       </div>
       <span class="flex-1"></span>
+
+      <!-- Semantic Search -->
+      <app-semantic-search class="hidden md:block flex-1 max-w-md mx-4"></app-semantic-search>
 
       <!-- Notifications Bell -->
       <button
