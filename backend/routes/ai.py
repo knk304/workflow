@@ -2,6 +2,7 @@
 
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from auth_deps import get_current_user, require_roles
 from models.ai import (
@@ -11,6 +12,11 @@ from models.ai import (
     SearchRequest,
     SearchResponse,
     SearchResult,
+    CopilotRequest,
+    CopilotResponse,
+    CopilotAction,
+    RoutingResponse,
+    RoutingSuggestion,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,4 +184,141 @@ async def index_single_entity(
         )
 
     return {"status": "ok", "entity_type": entity_type, "entity_id": entity_id}
-    return {"status": "ok" if result["healthy"] else "unreachable", **result}
+
+
+# ── Copilot Chat (P3-S3) ─────────────────────────────────
+
+@router.post("/copilot", response_model=CopilotResponse)
+async def copilot_chat(
+    body: CopilotRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Non-streaming copilot chat — parse intent, dispatch agent, return reply."""
+    from agents.copilot import CopilotAgent
+
+    agent = CopilotAgent()
+    try:
+        result = await agent.run(
+            message=body.message,
+            case_id=body.case_id,
+            history=[h.model_dump() for h in body.history],
+        )
+    except Exception as e:
+        logger.exception("Copilot chat failed")
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"Copilot failed: {type(e).__name__}: {e}",
+        )
+
+    action = None
+    if result.get("action"):
+        action = CopilotAction(**result["action"])
+
+    return CopilotResponse(
+        reply=result.get("reply", ""),
+        action=action,
+        sources=result.get("sources", []),
+    )
+
+
+@router.post("/copilot/stream")
+async def copilot_stream(
+    body: CopilotRequest,
+    user: dict = Depends(get_current_user),
+):
+    """SSE streaming copilot chat — yields JSON lines (action, delta, done)."""
+    from agents.copilot import CopilotAgent
+
+    agent = CopilotAgent()
+
+    async def event_generator():
+        try:
+            async for line in agent.stream(
+                message=body.message,
+                case_id=body.case_id,
+                history=[h.model_dump() for h in body.history],
+            ):
+                yield f"data: {line}\n\n"
+        except Exception as e:
+            logger.exception("Copilot stream failed")
+            import json
+            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ── Copilot Action Execution (P3-S3) ────────────────────
+
+@router.post("/copilot/action")
+async def execute_copilot_action(
+    body: dict,
+    user: dict = Depends(get_current_user),
+):
+    """Execute a confirmed copilot action (create form, create workflow, etc.)."""
+    from database import get_db
+
+    db = get_db()
+    action = body.get("action", "")
+    payload = body.get("payload", {})
+
+    if action == "create_form":
+        doc = {
+            "name": payload.get("name", "Untitled Form"),
+            "description": payload.get("description", ""),
+            "sections": payload.get("sections", []),
+            "fields": payload.get("fields", []),
+            "created_by": str(user.get("_id", "")),
+            "generated_by_ai": True,
+        }
+        result = await db.form_definitions.insert_one(doc)
+        return {"status": "created", "id": str(result.inserted_id), "type": "form"}
+
+    if action == "create_workflow":
+        doc = {
+            "name": payload.get("name", "Untitled Workflow"),
+            "description": payload.get("description", ""),
+            "definition": payload.get("definition", {"nodes": [], "edges": []}),
+            "is_active": False,
+            "created_by": str(user.get("_id", "")),
+            "generated_by_ai": True,
+        }
+        result = await db.workflows.insert_one(doc)
+        return {"status": "created", "id": str(result.inserted_id), "type": "workflow"}
+
+    raise HTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        f"Unknown action: {action}. Supported: create_form, create_workflow.",
+    )
+
+
+# ── Smart Routing (P3-S3) ───────────────────────────────
+
+@router.post("/route/{case_id}", response_model=RoutingResponse)
+async def suggest_routing(
+    case_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Suggest optimal assignees for a case based on workload + skills."""
+    from agents.routing import RoutingAgent
+
+    agent = RoutingAgent()
+    try:
+        result = await agent.run(case_id=case_id)
+    except Exception as e:
+        logger.exception(f"Routing failed for case {case_id}")
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"Routing failed: {type(e).__name__}: {e}",
+        )
+
+    if result.get("error"):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, result["error"])
+
+    return RoutingResponse(
+        case_id=case_id,
+        suggestions=[RoutingSuggestion(**s) for s in result.get("suggestions", [])],
+    )

@@ -15,6 +15,7 @@ import { selectUnreadNotificationCount } from '@state/notifications/notification
 import * as AuthActions from '@state/auth/auth.actions';
 import * as NotificationsActions from '@state/notifications/notifications.actions';
 import { SemanticSearchComponent } from '../features/ai/search-bar/semantic-search.component';
+import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-panel.component';
 
 @Component({
   selector: 'app-shell',
@@ -33,6 +34,7 @@ import { SemanticSearchComponent } from '../features/ai/search-bar/semantic-sear
     MatBadgeModule,
     MatDividerModule,
     SemanticSearchComponent,
+    CopilotPanelComponent,
   ],
   template: `
     <mat-toolbar color="primary" class="sticky top-0 z-50">
@@ -179,6 +181,9 @@ import { SemanticSearchComponent } from '../features/ai/search-bar/semantic-sear
         <router-outlet></router-outlet>
       </mat-sidenav-content>
     </mat-sidenav-container>
+
+    <!-- AI Copilot FAB + Panel -->
+    <app-copilot-panel></app-copilot-panel>
   `,
   styles: [
     `

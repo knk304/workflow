@@ -15,6 +15,7 @@ import yaml
 from agents.providers.base import BaseLLMProvider, LLMMessage, LLMResponse, LLMConfig
 from agents.providers.openai_provider import OpenAIProvider
 from agents.providers.custom_provider import CustomProvider
+from agents.providers.stub_provider import StubProvider
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ _PROVIDER_CLASSES: dict[str, type[BaseLLMProvider]] = {
     "azure_openai": OpenAIProvider,
     "ollama": OpenAIProvider,
     "custom": CustomProvider,
+    "stub": StubProvider,
 }
 
 
@@ -140,7 +142,10 @@ class LLMClient:
             if fallback:
                 logger.info(f"Falling back to provider: {fallback.name}")
                 return await fallback.chat(messages, max_tokens, temperature)
-            raise
+            # Last resort: use stub so the platform stays functional
+            logger.warning("No fallback configured — using stub provider")
+            stub = StubProvider(LLMConfig(name="stub", type="stub", label="Stub", base_url=""))
+            return await stub.chat(messages, max_tokens, temperature)
 
     async def stream(
         self,
@@ -148,9 +153,20 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
     ) -> AsyncIterator[str]:
-        """Stream a chat response as text chunks."""
-        async for chunk in self.provider.stream(messages, max_tokens, temperature):
-            yield chunk
+        """Stream a chat response as text chunks.
+
+        Falls back to stub provider if the primary provider fails.
+        """
+        try:
+            async for chunk in self.provider.stream(messages, max_tokens, temperature):
+                yield chunk
+        except Exception as e:
+            logger.warning(f"Primary provider {self.provider.name} stream failed: {e}")
+            fallback = self._get_fallback()
+            if not fallback:
+                fallback = StubProvider(LLMConfig(name="stub", type="stub", label="Stub", base_url=""))
+            async for chunk in fallback.stream(messages, max_tokens, temperature):
+                yield chunk
 
     async def health_check(self) -> dict[str, bool]:
         """Check health of the active provider."""
