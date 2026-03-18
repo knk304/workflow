@@ -861,6 +861,56 @@ export class MockDataService extends DataService {
       createdBy: 'user-2',
       createdAt: '2026-03-09T00:00:00.000Z',
     },
+    {
+      id: 'approval-2',
+      caseId: 'CASE-2026-00001',
+      mode: 'parallel',
+      approvers: [
+        { userId: 'user-1', userName: 'Alice Johnson', status: 'approved', decidedAt: '2026-03-08T14:30:00.000Z', comment: 'Financial review passed' },
+        { userId: 'user-2', userName: 'Bob Smith', status: 'approved', decidedAt: '2026-03-08T16:00:00.000Z', comment: 'Compliance check complete' },
+        { userId: 'user-4', userName: 'Dave Wilson', status: 'approved', decidedAt: '2026-03-09T09:00:00.000Z', comment: 'Final sign-off' },
+      ],
+      status: 'approved',
+      createdBy: 'user-4',
+      createdAt: '2026-03-07T00:00:00.000Z',
+    },
+    {
+      id: 'approval-3',
+      caseId: 'CASE-2026-00003',
+      mode: 'sequential',
+      approvers: [
+        { userId: 'user-1', userName: 'Alice Johnson', status: 'rejected', decidedAt: '2026-03-12T11:00:00.000Z', comment: 'Insufficient documentation provided' },
+        { userId: 'user-4', userName: 'Dave Wilson', status: 'pending' },
+      ],
+      status: 'rejected',
+      createdBy: 'user-3',
+      createdAt: '2026-03-11T00:00:00.000Z',
+    },
+    {
+      id: 'approval-4',
+      caseId: 'CASE-2026-00002',
+      mode: 'parallel',
+      approvers: [
+        { userId: 'user-2', userName: 'Bob Smith', status: 'pending' },
+        { userId: 'user-3', userName: 'Carol Davis', status: 'pending' },
+      ],
+      status: 'pending',
+      createdBy: 'user-1',
+      createdAt: '2026-03-15T00:00:00.000Z',
+    },
+    {
+      id: 'approval-5',
+      caseId: 'CASE-2026-00001',
+      mode: 'sequential',
+      approvers: [
+        { userId: 'user-3', userName: 'Carol Davis', status: 'approved', decidedAt: '2026-03-14T10:00:00.000Z', comment: 'Verified' },
+        { userId: 'user-1', userName: 'Alice Johnson', status: 'delegated', decidedAt: '2026-03-14T14:00:00.000Z', comment: 'Delegating to Bob for review', delegatedTo: 'user-2' },
+        { userId: 'user-4', userName: 'Dave Wilson', status: 'pending' },
+      ],
+      status: 'pending',
+      createdBy: 'user-2',
+      createdAt: '2026-03-13T00:00:00.000Z',
+    },
   ];
 
   private mockDocuments: Document[] = [
@@ -991,7 +1041,15 @@ export class MockDataService extends DataService {
   approveChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
     const idx = this.mockApprovals.findIndex(a => a.id === id);
     if (idx < 0) throw new Error('Approval not found');
-    return of(this.mockApprovals[idx]).pipe(delay(500));
+    const chain = { ...this.mockApprovals[idx], approvers: [...this.mockApprovals[idx].approvers] };
+    const pending = chain.approvers.findIndex(a => a.status === 'pending');
+    if (pending >= 0) {
+      chain.approvers[pending] = { ...chain.approvers[pending], status: 'approved', decidedAt: new Date().toISOString(), comment: decision.comment || 'Approved' };
+    }
+    const allApproved = chain.approvers.every(a => a.status === 'approved');
+    chain.status = allApproved ? 'approved' : 'pending';
+    this.mockApprovals[idx] = chain;
+    return of(chain).pipe(delay(500));
   }
 
   rejectChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
@@ -1004,7 +1062,13 @@ export class MockDataService extends DataService {
   delegateApproval(id: string, delegation: ApprovalDelegation): Observable<ApprovalChain> {
     const idx = this.mockApprovals.findIndex(a => a.id === id);
     if (idx < 0) throw new Error('Approval not found');
-    return of(this.mockApprovals[idx]).pipe(delay(500));
+    const chain = { ...this.mockApprovals[idx], approvers: [...this.mockApprovals[idx].approvers] };
+    const pending = chain.approvers.findIndex(a => a.status === 'pending');
+    if (pending >= 0) {
+      chain.approvers[pending] = { ...chain.approvers[pending], status: 'delegated', delegatedTo: delegation.delegateTo, decidedAt: new Date().toISOString(), comment: delegation.comment || 'Delegated' };
+    }
+    this.mockApprovals[idx] = chain;
+    return of(chain).pipe(delay(500));
   }
 
   // Documents

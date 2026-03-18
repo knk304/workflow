@@ -15,15 +15,36 @@ from models.phase2 import (
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
+# Cache user names to avoid repeated DB lookups within a request
+_user_name_cache: dict[str, str] = {}
 
-def _to_response(doc: dict) -> ApprovalChainResponse:
+
+async def _resolve_user_name(db, user_id: str) -> str:
+    """Look up a user's display name by ID, with simple caching."""
+    if user_id in _user_name_cache:
+        return _user_name_cache[user_id]
+    user = await find_by_id(db.users, user_id)
+    name = user.get("name", user_id) if user else user_id
+    _user_name_cache[user_id] = name
+    return name
+
+
+async def _to_response(doc: dict, db=None) -> ApprovalChainResponse:
+    approvers = []
+    for a in doc.get("approvers", []):
+        approver = Approver(**a)
+        if db is not None and not approver.user_name:
+            approver.user_name = await _resolve_user_name(db, approver.user_id)
+        approvers.append(approver)
+
     return ApprovalChainResponse(
         id=str(doc["_id"]),
         case_id=doc["case_id"],
         workflow_id=doc.get("workflow_id"),
         mode=doc.get("mode", "sequential"),
-        approvers=[Approver(**a) for a in doc.get("approvers", [])],
+        approvers=approvers,
         status=doc.get("status", "pending"),
+        created_by=doc.get("created_by"),
         created_at=doc["created_at"],
         completed_at=doc.get("completed_at"),
     )
@@ -51,6 +72,7 @@ async def create_approval_chain(body: ApprovalChainCreate, user: dict = Depends(
         "mode": body.mode.value,
         "approvers": [a.model_dump() for a in body.approvers],
         "status": "pending",
+        "created_by": str(user["_id"]),
         "created_at": now,
         "completed_at": None,
     }
@@ -64,7 +86,7 @@ async def create_approval_chain(body: ApprovalChainCreate, user: dict = Depends(
         for approver in body.approvers:
             await _notify_approver(db, approver.user_id, body.case_id, str(result.inserted_id))
 
-    return _to_response(doc)
+    return await _to_response(doc, db)
 
 
 @router.get("", response_model=list[ApprovalChainResponse])
@@ -80,7 +102,10 @@ async def list_approvals(
     if status_filter:
         query["status"] = status_filter
     cursor = db.approval_chains.find(query).sort("created_at", -1)
-    return [_to_response(doc) async for doc in cursor]
+    results = []
+    async for doc in cursor:
+        results.append(await _to_response(doc, db))
+    return results
 
 
 @router.get("/{approval_id}", response_model=ApprovalChainResponse)
@@ -89,7 +114,7 @@ async def get_approval(approval_id: str, user: dict = Depends(get_current_user))
     doc = await find_by_id(db.approval_chains, approval_id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
-    return _to_response(doc)
+    return await _to_response(doc, db)
 
 
 @router.post("/{approval_id}/approve", response_model=ApprovalChainResponse)
@@ -142,7 +167,7 @@ async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends
     })
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
-    return _to_response(updated_doc)
+    return await _to_response(updated_doc, db)
 
 
 @router.post("/{approval_id}/reject", response_model=ApprovalChainResponse)
@@ -184,7 +209,7 @@ async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(
     })
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
-    return _to_response(updated_doc)
+    return await _to_response(updated_doc, db)
 
 
 @router.post("/{approval_id}/delegate", response_model=ApprovalChainResponse)
@@ -218,7 +243,7 @@ async def delegate(approval_id: str, body: ApprovalDelegation, user: dict = Depe
     await _notify_approver(db, body.delegate_to, doc["case_id"], approval_id)
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
-    return _to_response(updated_doc)
+    return await _to_response(updated_doc, db)
 
 
 async def _notify_approver(db, user_id: str, case_id: str, approval_id: str):

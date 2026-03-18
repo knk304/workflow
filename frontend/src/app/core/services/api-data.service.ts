@@ -213,30 +213,78 @@ export class ApiDataService extends DataService {
   }
 
   // ─── Approvals ──────────────────────────────────
+  private mapApprover(raw: any): any {
+    return {
+      userId: raw.user_id ?? raw.userId ?? '',
+      userName: raw.user_name ?? raw.userName ?? undefined,
+      status: raw.status ?? 'pending',
+      decidedAt: raw.decision_at ?? raw.decidedAt ?? undefined,
+      comment: raw.decision_notes ?? raw.comment ?? undefined,
+      delegatedTo: raw.delegated_to ?? raw.delegatedTo ?? undefined,
+    };
+  }
+
+  private mapApprovalChain(raw: any): ApprovalChain {
+    return {
+      id: raw.id,
+      caseId: raw.case_id ?? raw.caseId ?? '',
+      taskId: raw.task_id ?? raw.taskId ?? undefined,
+      mode: raw.mode ?? 'sequential',
+      approvers: (raw.approvers || []).map((a: any) => this.mapApprover(a)),
+      status: raw.status ?? 'pending',
+      createdBy: raw.created_by ?? raw.createdBy ?? '',
+      createdAt: raw.created_at ?? raw.createdAt ?? '',
+    };
+  }
+
   getApprovals(caseId?: string): Observable<ApprovalChain[]> {
     let params = new HttpParams();
     if (caseId) { params = params.set('case_id', caseId); }
-    return this.http.get<ApprovalChain[]>(`${this.caseUrl}/approvals`, { params });
+    return this.http.get<any[]>(`${this.caseUrl}/approvals`, { params }).pipe(
+      map(list => list.map(item => this.mapApprovalChain(item)))
+    );
   }
 
   getApprovalById(id: string): Observable<ApprovalChain> {
-    return this.http.get<ApprovalChain>(`${this.caseUrl}/approvals/${id}`);
+    return this.http.get<any>(`${this.caseUrl}/approvals/${id}`).pipe(
+      map(item => this.mapApprovalChain(item))
+    );
   }
 
   createApproval(approval: Partial<ApprovalChain>): Observable<ApprovalChain> {
-    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals`, approval);
+    const body: any = {
+      case_id: approval.caseId,
+      mode: approval.mode ?? 'sequential',
+      approvers: (approval.approvers || []).map((a, idx) => ({
+        user_id: a.userId,
+        sequence: idx,
+        status: 'pending',
+      })),
+    };
+    return this.http.post<any>(`${this.caseUrl}/approvals`, body).pipe(
+      map(item => this.mapApprovalChain(item))
+    );
   }
 
   approveChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
-    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals/${id}/approve`, decision);
+    return this.http.post<any>(`${this.caseUrl}/approvals/${id}/approve`, { notes: decision.comment }).pipe(
+      map(item => this.mapApprovalChain(item))
+    );
   }
 
   rejectChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain> {
-    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals/${id}/reject`, decision);
+    return this.http.post<any>(`${this.caseUrl}/approvals/${id}/reject`, { notes: decision.comment }).pipe(
+      map(item => this.mapApprovalChain(item))
+    );
   }
 
   delegateApproval(id: string, delegation: ApprovalDelegation): Observable<ApprovalChain> {
-    return this.http.post<ApprovalChain>(`${this.caseUrl}/approvals/${id}/delegate`, delegation);
+    return this.http.post<any>(`${this.caseUrl}/approvals/${id}/delegate`, {
+      delegate_to: delegation.delegateTo,
+      notes: delegation.comment,
+    }).pipe(
+      map(item => this.mapApprovalChain(item))
+    );
   }
 
   // ─── Documents ──────────────────────────────────

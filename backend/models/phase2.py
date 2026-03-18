@@ -20,6 +20,7 @@ class ApprovalMode(str, Enum):
 
 class Approver(BaseModel):
     user_id: str
+    user_name: Optional[str] = None
     sequence: int = 0
     status: ApprovalStatus = ApprovalStatus.pending
     delegated_to: Optional[str] = None
@@ -50,6 +51,7 @@ class ApprovalChainResponse(BaseModel):
     mode: ApprovalMode
     approvers: list[Approver] = []
     status: str = "pending"
+    created_by: Optional[str] = None
     created_at: str
     completed_at: Optional[str] = None
 

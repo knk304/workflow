@@ -517,18 +517,73 @@ async def _insert_all(db):
 
     # ─── Approval Chains ────────────────────────
     approval_chains = [
+        # Loan case-3: sequential, partially approved (pending VP approval)
         {"_id": "approval-1", "case_id": "case-3", "workflow_id": "wf-loan", "mode": "sequential",
          "approvers": [
-             {"user_id": "user-1", "sequence": 0, "status": "approved", "decision_at": "2026-01-16T10:00:00Z", "decision_notes": "Financials look strong"},
-             {"user_id": "user-admin", "sequence": 1, "status": "pending", "decision_at": None, "decision_notes": None},
+             {"user_id": "user-1", "user_name": "Alice Johnson", "sequence": 0, "status": "approved",
+              "decision_at": "2026-01-16T10:00:00Z", "decision_notes": "Financials look strong — DTI ratio within limits"},
+             {"user_id": "user-admin", "user_name": "Admin User", "sequence": 1, "status": "pending",
+              "decision_at": None, "decision_notes": None},
          ],
-         "status": "pending", "created_at": "2026-01-15T09:30:00Z", "completed_at": None},
+         "status": "pending", "created_by": "user-2", "created_at": "2026-01-15T09:30:00Z", "completed_at": None},
+
+        # Claims case-8: sequential, partially approved (pending final approval)
         {"_id": "approval-2", "case_id": "case-8", "workflow_id": "wf-claims", "mode": "sequential",
          "approvers": [
-             {"user_id": "user-3", "sequence": 0, "status": "approved", "decision_at": "2026-02-21T15:00:00Z", "decision_notes": "Engineer report confirms structural damage"},
-             {"user_id": "user-admin", "sequence": 1, "status": "pending", "decision_at": None, "decision_notes": None},
+             {"user_id": "user-3", "user_name": "Carol Davis", "sequence": 0, "status": "approved",
+              "decision_at": "2026-02-21T15:00:00Z", "decision_notes": "Engineer report confirms structural damage"},
+             {"user_id": "user-admin", "user_name": "Admin User", "sequence": 1, "status": "pending",
+              "decision_at": None, "decision_notes": None},
          ],
-         "status": "pending", "created_at": "2026-02-20T16:30:00Z", "completed_at": None},
+         "status": "pending", "created_by": "user-3", "created_at": "2026-02-20T16:30:00Z", "completed_at": None},
+
+        # Loan case-2: parallel, fully approved
+        {"_id": "approval-3", "case_id": "case-2", "workflow_id": "wf-loan", "mode": "parallel",
+         "approvers": [
+             {"user_id": "user-1", "user_name": "Alice Johnson", "sequence": 0, "status": "approved",
+              "decision_at": "2026-02-01T14:30:00Z", "decision_notes": "Income verified, all clear"},
+             {"user_id": "user-2", "user_name": "Bob Smith", "sequence": 1, "status": "approved",
+              "decision_at": "2026-02-01T16:00:00Z", "decision_notes": "Document completeness confirmed"},
+             {"user_id": "user-admin", "user_name": "Admin User", "sequence": 2, "status": "approved",
+              "decision_at": "2026-02-02T09:00:00Z", "decision_notes": "Final sign-off granted"},
+         ],
+         "status": "approved", "created_by": "user-1", "created_at": "2026-02-01T10:00:00Z",
+         "completed_at": "2026-02-02T09:00:00Z"},
+
+        # KYC case-5: sequential, rejected
+        {"_id": "approval-4", "case_id": "case-5", "workflow_id": "wf-kyc", "mode": "sequential",
+         "approvers": [
+             {"user_id": "user-1", "user_name": "Alice Johnson", "sequence": 0, "status": "rejected",
+              "decision_at": "2026-03-01T11:00:00Z",
+              "decision_notes": "Insufficient identity documentation — additional proof of address required"},
+             {"user_id": "user-admin", "user_name": "Admin User", "sequence": 1, "status": "pending",
+              "decision_at": None, "decision_notes": None},
+         ],
+         "status": "rejected", "created_by": "user-3", "created_at": "2026-02-28T14:00:00Z",
+         "completed_at": "2026-03-01T11:00:00Z"},
+
+        # Claims case-9: parallel, all pending
+        {"_id": "approval-5", "case_id": "case-9", "workflow_id": "wf-claims", "mode": "parallel",
+         "approvers": [
+             {"user_id": "user-2", "user_name": "Bob Smith", "sequence": 0, "status": "pending",
+              "decision_at": None, "decision_notes": None},
+             {"user_id": "user-3", "user_name": "Carol Davis", "sequence": 1, "status": "pending",
+              "decision_at": None, "decision_notes": None},
+         ],
+         "status": "pending", "created_by": "user-admin", "created_at": "2026-03-10T08:00:00Z", "completed_at": None},
+
+        # Loan case-1: sequential with delegation
+        {"_id": "approval-6", "case_id": "case-1", "workflow_id": "wf-loan", "mode": "sequential",
+         "approvers": [
+             {"user_id": "user-3", "user_name": "Carol Davis", "sequence": 0, "status": "approved",
+              "decision_at": "2026-03-05T10:00:00Z", "decision_notes": "Initial review passed"},
+             {"user_id": "user-1", "user_name": "Alice Johnson", "sequence": 1, "status": "delegated",
+              "delegated_to": "user-2", "decision_at": "2026-03-05T14:00:00Z",
+              "decision_notes": "Delegating to Bob — on leave this week"},
+             {"user_id": "user-admin", "user_name": "Admin User", "sequence": 2, "status": "pending",
+              "decision_at": None, "decision_notes": None},
+         ],
+         "status": "pending", "created_by": "user-2", "created_at": "2026-03-04T09:00:00Z", "completed_at": None},
     ]
     await db.approval_chains.insert_many(approval_chains)
 
