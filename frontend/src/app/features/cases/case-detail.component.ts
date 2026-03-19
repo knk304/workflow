@@ -29,6 +29,8 @@ import { AuditLogComponent } from '../audit/audit-log.component';
 import { WebSocketService } from '../../core/services/websocket.service';
 import { DataService } from '../../core/services/data.service';
 import { selectUser, selectToken } from '../../state/auth/auth.selectors';
+import { RecommendationSidebarComponent } from '../ai/recommendation-sidebar/recommendation-sidebar.component';
+import { RiskSidebarComponent } from '../ai/risk-sidebar/risk-sidebar.component';
 
 @Component({
   selector: 'app-case-detail',
@@ -55,6 +57,8 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
     CommentsComponent,
     AuditLogComponent,
     AiSummaryCardComponent,
+    RecommendationSidebarComponent,
+    RiskSidebarComponent,
   ],
   template: `
     @let caseData = case$ | async;
@@ -669,6 +673,12 @@ import { selectUser, selectToken } from '../../state/auth/auth.selectors';
                 </button>
               </div>
             </div>
+
+            <!-- AI Recommendations -->
+            <app-recommendation-sidebar [caseId]="caseData.id"></app-recommendation-sidebar>
+
+            <!-- AI Risk Assessment -->
+            <app-risk-sidebar [caseId]="caseData.id"></app-risk-sidebar>
 
           </div>
         </div>

@@ -1,0 +1,20 @@
+# Recommendation Palette
+# List of possible actions, improvements, and suggestions for workflow cases.
+- action: follow_up
+  label: "Follow Up with Client"
+  description: "Contact the client to clarify outstanding questions or missing documents."
+- action: escalate
+  label: "Escalate to Supervisor"
+  description: "Escalate this case to a supervisor due to delays or high risk."
+- action: request_info
+  label: "Request Additional Information"
+  description: "Ask the client or team for missing or unclear information."
+- action: assign_task
+  label: "Assign Next Task"
+  description: "Assign the next pending task to an available team member."
+- action: review_docs
+  label: "Review Documents"
+  description: "Review all submitted documents for completeness and accuracy."
+- action: close_case
+  label: "Close Case"
+  description: "Mark the case as complete if all requirements are met."

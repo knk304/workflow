@@ -17,6 +17,8 @@ from models.ai import (
     CopilotAction,
     RoutingResponse,
     RoutingSuggestion,
+    RecommendationResponse,
+    RiskResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -322,3 +324,51 @@ async def suggest_routing(
         case_id=case_id,
         suggestions=[RoutingSuggestion(**s) for s in result.get("suggestions", [])],
     )
+
+
+# ── Recommendations (P3-S4) ─────────────────────────────
+
+@router.get("/recommend/{case_id}", response_model=RecommendationResponse)
+async def recommend_case(
+    case_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Suggest next actions and improvements for a case."""
+    from agents.recommendation_agent import RecommendationAgent
+
+    agent = RecommendationAgent()
+    try:
+        result = await agent.run(case_id=case_id)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except Exception as e:
+        logger.exception(f"Recommendation failed for case {case_id}")
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"Recommendation failed: {type(e).__name__}: {e}",
+        )
+    return result
+
+
+# ── Risk Detection (P3-S4) ─────────────────────────────
+
+@router.get("/risk/{case_id}", response_model=RiskResponse)
+async def risk_case(
+    case_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Detect and explain risk factors for a case."""
+    from agents.risk_agent import RiskAgent
+
+    agent = RiskAgent()
+    try:
+        result = await agent.run(case_id=case_id)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except Exception as e:
+        logger.exception(f"Risk detection failed for case {case_id}")
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"Risk detection failed: {type(e).__name__}: {e}",
+        )
+    return result

@@ -1,0 +1,22 @@
+# Risk Flag Palette
+# List of possible risk patterns for workflow cases.
+- severity: high
+  category: "Overdue"
+  description: "Case is past its due date or SLA."
+  source: "system"
+- severity: medium
+  category: "Missing Documents"
+  description: "Required documents have not been uploaded."
+  source: "system"
+- severity: critical
+  category: "Escalation Requested"
+  description: "Case has been escalated by a user or system."
+  source: "user"
+- severity: high
+  category: "Inactivity"
+  description: "No activity or updates for more than 7 days."
+  source: "system"
+- severity: medium
+  category: "Unassigned Tasks"
+  description: "There are open tasks with no assignee."
+  source: "system"

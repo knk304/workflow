@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { RecommendationResponse, RiskResponse } from '../models/ai.models';
 
 export interface CaseSummary {
   case_id: string;
@@ -117,6 +118,9 @@ export interface RoutingResponse {
   case_id: string;
   suggestions: RoutingSuggestion[];
 }
+
+// ── Recommendations + Risk (P3-S4) ─────────────────
+// Interfaces imported from ai.models.ts below
 
 @Injectable({ providedIn: 'root' })
 export class AiService {
@@ -270,5 +274,15 @@ export class AiService {
       `${this.apiUrl}/ai/route/${caseId}`,
       {},
     );
+  }
+
+  // ── Recommendations (P3-S4) ──────────────────────────
+  getRecommendations(caseId: string): Observable<RecommendationResponse> {
+    return this.http.get<RecommendationResponse>(`${this.apiUrl}/ai/recommend/${caseId}`);
+  }
+
+  // ── Risk Detection (P3-S4) ───────────────────────────
+  getRisk(caseId: string): Observable<RiskResponse> {
+    return this.http.get<RiskResponse>(`${this.apiUrl}/ai/risk/${caseId}`);
   }
 }
