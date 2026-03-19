@@ -699,4 +699,102 @@ debugger; // Set breakpoints in Chrome
 
 ---
 
+## AI / LLM Provider Configuration
+
+### Configured Providers
+
+The platform supports **4 LLM providers + 1 stub fallback**, configured in `backend/config/llm_providers.yaml`:
+
+| # | Provider | Type | Model | Use Case |
+|---|----------|------|-------|----------|
+| 1 | **OpenAI** | `openai` | `gpt-4o` | Primary cloud provider |
+| 2 | **Azure OpenAI** | `azure` | `gpt-4o` | Enterprise / compliance deployments |
+| 3 | **Ollama** | `ollama` | `llama3` | Local / air-gapped / privacy-sensitive |
+| 4 | **Custom** | `custom` | Configurable | Any OpenAI-compatible API |
+| 5 | **Stub** (built-in) | `stub` | N/A | Offline fallback — hardcoded responses |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│           AI Agents (Copilot, Risk,         │
+│       Recommendation, Summarization)        │
+└──────────────────┬──────────────────────────┘
+                   │
+         ┌─────────▼─────────┐
+         │    LLMClient      │  ← Singleton, provider-agnostic
+         │  (llm_client.py)  │
+         └────┬────┬────┬────┘
+              │    │    │
+    ┌─────────▼┐ ┌▼────▼──────┐ ┌──────────┐
+    │  OpenAI  │ │   Custom   │ │   Stub   │
+    │ Provider │ │  Provider  │ │ Provider │
+    └──────────┘ └────────────┘ └──────────┘
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `backend/config/llm_providers.yaml` | Provider definitions (model, API key env vars, temperature, max_tokens) |
+| `backend/agents/llm_client.py` | Singleton LLMClient — `chat()`, `stream()`, fallback chain, `health_check()` |
+| `backend/agents/providers/openai_provider.py` | Handles OpenAI, Azure OpenAI, and Ollama (all OpenAI-compatible) |
+| `backend/agents/providers/custom_provider.py` | Generic HTTP LLM with configurable request/response templates |
+| `backend/agents/providers/stub_provider.py` | Hardcoded responses for offline/fallback mode |
+| `backend/agents/providers/base.py` | `BaseLLMProvider` ABC, `LLMMessage`, `LLMResponse`, `LLMConfig` |
+| `backend/routes/config_api.py` | Runtime switching: `GET/PATCH /api/config/llm/active` |
+| `backend/agents/embeddings.py` | Text → vector pipeline (sentence-transformers or hash fallback) |
+
+### Fallback Chain
+
+```
+Primary Provider → fallback_provider (from YAML) → Stub Provider
+```
+
+If the active provider fails, the system automatically falls to the next in chain. The stub provider ensures AI features never hard-crash — they return safe placeholder responses.
+
+### Runtime Switching (Admin API)
+
+```bash
+# Check active provider
+GET /api/config/llm/active
+# Response: { "provider": "openai", "label": "OpenAI", "type": "openai", "model": "gpt-4o" }
+
+# Switch provider (admin only)
+PATCH /api/config/llm/active
+Body: { "provider": "ollama" }
+```
+
+### AI Agents
+
+| Agent | Purpose | LLM Required? |
+|-------|---------|---------------|
+| **CopilotAgent** | Natural language orchestrator (creates workflows, forms via chat) | Yes (or stub) |
+| **FormBuilderAgent** | Generates form JSON from description | Yes (or stub) |
+| **WorkflowBuilderAgent** | Generates workflow stages/transitions from description | Yes (or stub) |
+| **SummarizationAgent** | Case summary generation | Yes (or stub) |
+| **RecommendationAgent** | Next-action recommendations | Yes (or stub) |
+| **RiskAgent** | Risk flag detection | Yes (or stub) |
+| **CommandParser** | Intent extraction from user input | Yes (or stub) |
+
+### LLM vs Core Features — Dependency Matrix
+
+| Feature | Works Without LLM? | Notes |
+|---------|-------------------|-------|
+| Case CRUD | ✅ Yes | Standard REST |
+| Workflow Designer (visual) | ✅ Yes | Drag-and-drop, no AI needed |
+| Form Builder (manual) | ✅ Yes | Schema-driven fields |
+| User Management | ✅ Yes | Auth + roles |
+| Task Management | ✅ Yes | Kanban + assignments |
+| SLA & Escalations | ✅ Yes | Rule-based engine |
+| Documents | ✅ Yes | Upload/download |
+| Comments & Activity | ✅ Yes | Standard CRUD |
+| AI Copilot Chat | ⚡ Degraded | Stub returns placeholder |
+| AI Recommendations | ⚡ Degraded | Stub returns generic list |
+| AI Risk Assessment | ⚡ Degraded | Stub returns empty flags |
+| AI Summarization | ⚡ Degraded | Stub returns brief text |
+| Semantic Search | ⚡ Degraded | Falls back to hash-based vectors |
+
+---
+
 **Reference Created:** 2026-03-14
