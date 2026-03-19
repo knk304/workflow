@@ -170,11 +170,110 @@ import { RiskSidebarComponent } from '../ai/risk-sidebar/risk-sidebar.component'
           </div>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Left: Tabs (2 cols) -->
-          <div class="lg:col-span-2">
-            <mat-tab-group animationDuration="200ms">
+        <!-- Summary Strip: Case Info | SLA | Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <!-- Case Info -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <mat-icon class="text-sm text-slate-400">info</mat-icon> Case Info
+            </h4>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">Case ID</p>
+                <p class="text-sm font-mono text-slate-800">{{ caseData.id }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">Type</p>
+                <p class="text-sm text-slate-800 font-medium">{{ caseData.type | uppercase }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">Stage</p>
+                <span class="wf-badge text-[10px]" [ngClass]="stageBadgeClass(caseData.stage)">{{ caseData.stage | uppercase }}</span>
+              </div>
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">Assigned To</p>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <div class="w-5 h-5 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-[10px] font-bold">
+                    {{ (caseData.assignedTo?.name || 'U').charAt(0) }}
+                  </div>
+                  <span class="text-xs text-slate-800">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
+                  <button mat-icon-button class="!w-5 !h-5 !p-0" matTooltip="Reassign" (click)="openAssigneeDialog()">
+                    <mat-icon class="!text-[14px] text-slate-400 hover:text-[#056DAE]">swap_horiz</mat-icon>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">Created</p>
+                <p class="text-xs text-slate-800">{{ caseData.createdAt | date:'mediumDate' }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">Updated</p>
+                <p class="text-xs text-slate-800">{{ caseData.updatedAt | date:'mediumDate' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLA Status -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <mat-icon class="text-sm text-slate-400">timer</mat-icon> SLA Status
+            </h4>
+            @if (caseData.sla) {
+              <div class="flex items-center gap-4">
+                <div class="text-center">
+                  <div class="text-3xl font-bold leading-none" [ngClass]="slaColor(caseData.sla.daysRemaining ?? 0)">
+                    {{ caseData.sla.daysRemaining ?? 0 }}
+                  </div>
+                  <p class="text-[10px] text-slate-400 uppercase mt-1">Days Left</p>
+                </div>
+                <div class="flex-1 space-y-1.5">
+                  <p class="text-xs text-slate-500">
+                    <span class="text-slate-400">Target:</span> {{ caseData.sla.targetResolutionDate | date:'mediumDate' }}
+                  </p>
+                  @if (caseData.sla.escalated) {
+                    <div class="flex items-center gap-1 text-red-600 text-xs font-semibold">
+                      <mat-icon class="text-sm">warning</mat-icon>
+                      Escalated (Level {{ caseData.sla.escalationLevel }})
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="flex items-center justify-center py-3">
+                <mat-icon class="text-2xl text-slate-200 mr-2">timer_off</mat-icon>
+                <p class="text-sm text-slate-400">No SLA configured</p>
+              </div>
+            }
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <mat-icon class="text-sm text-slate-400">bolt</mat-icon> Quick Actions
+            </h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button mat-stroked-button class="!text-xs !min-h-[32px]" (click)="toggleEdit()">
+                <mat-icon class="!text-sm text-[#056DAE]">{{ editing() ? 'edit_off' : 'edit' }}</mat-icon>
+                {{ editing() ? 'Cancel' : 'Edit' }}
+              </button>
+              <button mat-stroked-button class="!text-xs !min-h-[32px]" (click)="openTransitionDialog()">
+                <mat-icon class="!text-sm text-purple-500">swap_horiz</mat-icon>
+                Transition
+              </button>
+              <button mat-stroked-button class="!text-xs !min-h-[32px]" (click)="openAssigneeDialog()">
+                <mat-icon class="!text-sm text-amber-500">person_add</mat-icon>
+                Reassign
+              </button>
+              <button mat-stroked-button class="!text-xs !min-h-[32px] !text-red-600" (click)="closeCase()">
+                <mat-icon class="!text-sm">archive</mat-icon>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Tabs (Full Width) -->
+        <mat-tab-group animationDuration="200ms">
               <!-- Details Tab -->
               <mat-tab>
                 <ng-template mat-tab-label>
@@ -554,134 +653,30 @@ import { RiskSidebarComponent } from '../ai/risk-sidebar/risk-sidebar.component'
                   <app-comments [caseId]="caseData.id"></app-comments>
                 </div>
               </mat-tab>
-            </mat-tab-group>
-          </div>
 
-          <!-- Right: Summary Sidebar -->
-          <div class="space-y-5">
-            <!-- AI Summary Card -->
-            <app-ai-summary-card [caseId]="caseData.id"></app-ai-summary-card>
+              <!-- AI Insights Tab -->
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <div class="flex items-center gap-2 py-1">
+                    <mat-icon>psychology</mat-icon>
+                    <span>AI Insights</span>
+                  </div>
+                </ng-template>
 
-            <!-- Case Info Card -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                  <mat-icon class="text-base text-slate-400">info</mat-icon>
-                  Case Information
-                </h4>
-              </div>
-              <div class="divide-y divide-slate-100">
-                <div class="px-5 py-3">
-                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Case ID</p>
-                  <p class="text-sm font-mono text-slate-800 mt-0.5">{{ caseData.id }}</p>
-                </div>
-                <div class="px-5 py-3">
-                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Type</p>
-                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.type | uppercase }}</p>
-                </div>
-                <div class="px-5 py-3">
-                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Current Stage</p>
-                  <span class="wf-badge mt-1" [ngClass]="stageBadgeClass(caseData.stage)">
-                    {{ caseData.stage | uppercase }}
-                  </span>
-                </div>
-                <div class="px-5 py-3">
-                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Assigned To</p>
-                  <div class="flex items-center gap-2 mt-1">
-                    <div class="w-6 h-6 rounded-full bg-[#d0e8f7] text-[#056DAE] flex items-center justify-center text-xs font-bold">
-                      {{ (caseData.assignedTo?.name || 'U').charAt(0) }}
-                    </div>
-                    <span class="text-sm text-slate-800 flex-1">{{ caseData.assignedTo?.name || 'Unassigned' }}</span>
-                    <button mat-icon-button class="w-7 h-7" matTooltip="Change Assignee"
-                            (click)="openAssigneeDialog()">
-                      <mat-icon class="text-base text-slate-400 hover:text-[#056DAE]">swap_horiz</mat-icon>
-                    </button>
+                <div class="bg-white rounded-b-xl border border-t-0 border-slate-200 p-6">
+                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- AI Summary -->
+                    <app-ai-summary-card [caseId]="caseData.id"></app-ai-summary-card>
+
+                    <!-- AI Recommendations -->
+                    <app-recommendation-sidebar [caseId]="caseData.id"></app-recommendation-sidebar>
+
+                    <!-- AI Risk Assessment -->
+                    <app-risk-sidebar [caseId]="caseData.id"></app-risk-sidebar>
                   </div>
                 </div>
-                <div class="px-5 py-3">
-                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Created</p>
-                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.createdAt | date: 'mediumDate' }}</p>
-                </div>
-                <div class="px-5 py-3">
-                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Last Updated</p>
-                  <p class="text-sm text-slate-800 mt-0.5">{{ caseData.updatedAt | date: 'mediumDate' }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- SLA Card -->
-            @if (caseData.sla) {
-              <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                  <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <mat-icon class="text-base text-slate-400">timer</mat-icon>
-                    SLA Tracking
-                  </h4>
-                </div>
-                <div class="p-5 space-y-4">
-                  <div>
-                    <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Target Resolution</p>
-                    <p class="text-sm text-slate-800 mt-0.5">{{ caseData.sla.targetResolutionDate | date: 'mediumDate' }}</p>
-                  </div>
-                  <div>
-                    <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Days Remaining</p>
-                    <div class="flex items-center gap-2 mt-1">
-                      <div class="text-2xl font-bold" [ngClass]="slaColor(caseData.sla.daysRemaining ?? 0)">
-                        {{ caseData.sla.daysRemaining ?? 0 }}
-                      </div>
-                      <span class="text-xs text-slate-500">days left</span>
-                    </div>
-                  </div>
-                  @if (caseData.sla.escalated) {
-                    <div class="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs font-semibold">
-                      <mat-icon class="text-base">warning</mat-icon>
-                      Escalated (Level {{ caseData.sla.escalationLevel }})
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                  <mat-icon class="text-base text-slate-400">bolt</mat-icon>
-                  Quick Actions
-                </h4>
-              </div>
-              <div class="p-4 space-y-2">
-                <button mat-stroked-button class="w-full justify-start" (click)="toggleEdit()">
-                  <mat-icon class="text-[#056DAE]">{{ editing() ? 'edit_off' : 'edit' }}</mat-icon>
-                  <span class="ml-1">{{ editing() ? 'Cancel Edit' : 'Edit Case' }}</span>
-                </button>
-                <button mat-stroked-button class="w-full justify-start" (click)="openTransitionDialog()">
-                  <mat-icon class="text-purple-500">swap_horiz</mat-icon>
-                  <span class="ml-1">Transition Stage</span>
-                </button>
-                <button mat-stroked-button class="w-full justify-start" (click)="openAssigneeDialog()">
-                  <mat-icon class="text-amber-500">person_add</mat-icon>
-                  <span class="ml-1">Change Assignee</span>
-                </button>
-                <button mat-stroked-button class="w-full justify-start" (click)="scrollToComments()">
-                  <mat-icon class="text-cyan-500">chat_bubble_outline</mat-icon>
-                  <span class="ml-1">Add Comment</span>
-                </button>
-                <button mat-stroked-button class="w-full justify-start text-red-600" (click)="closeCase()">
-                  <mat-icon>archive</mat-icon>
-                  <span class="ml-1">Close Case</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- AI Recommendations -->
-            <app-recommendation-sidebar [caseId]="caseData.id"></app-recommendation-sidebar>
-
-            <!-- AI Risk Assessment -->
-            <app-risk-sidebar [caseId]="caseData.id"></app-risk-sidebar>
-
-          </div>
-        </div>
+              </mat-tab>
+        </mat-tab-group>
       </div>
     } @else {
       <!-- Empty State -->
@@ -779,7 +774,7 @@ import { RiskSidebarComponent } from '../ai/risk-sidebar/risk-sidebar.component'
       display: block;
     }
     .case-detail-container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 24px;
     }
