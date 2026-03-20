@@ -145,6 +145,157 @@ async def seed_task(db, task_id="task-001", case_id="case-001",
     return doc
 
 
+# ─── Hierarchical helpers (Sprint B) ─────────────────────────────
+
+def _make_step(step_id, name, step_type, order, config=None, skip_when=None, sla_hours=None):
+    return {
+        "id": step_id, "name": name, "type": step_type, "order": order,
+        "required": True, "skip_when": skip_when, "visible_when": None,
+        "sla_hours": sla_hours, "config": config or {},
+    }
+
+
+def _make_process(proc_id, name, order, steps, is_parallel=False, start_when=None):
+    return {
+        "id": proc_id, "name": name, "type": "sequential", "order": order,
+        "is_parallel": is_parallel, "start_when": start_when,
+        "sla_hours": None, "steps": steps,
+    }
+
+
+def _make_stage(stage_id, name, order, processes, stage_type="primary",
+                on_complete="auto_advance", resolution_status=None, skip_when=None):
+    return {
+        "id": stage_id, "name": name, "stage_type": stage_type,
+        "order": order, "on_complete": on_complete,
+        "resolution_status": resolution_status, "skip_when": skip_when,
+        "entry_criteria": None, "required_attachments": [],
+        "delete_open_assignments": True, "resolve_child_cases": True,
+        "sla_hours": None, "processes": processes,
+    }
+
+
+async def seed_case_type_definition(db, ct_id="test-loan"):
+    """Seed a minimal hierarchical case type with 3 primary stages."""
+    ct = {
+        "_id": ct_id,
+        "name": "Test Loan",
+        "slug": ct_id,
+        "description": "Test case type",
+        "icon": "folder",
+        "prefix": "TL",
+        "field_schema": {},
+        "stages": [
+            _make_stage("stage-create", "Create", 1, [
+                _make_process("proc-intake", "Intake", 1, [
+                    _make_step("step-fill-form", "Fill Form", "assignment", 1,
+                               config={"assignee_role": "WORKER", "form_id": "form-loan"}),
+                ]),
+            ]),
+            _make_stage("stage-review", "Review", 2, [
+                _make_process("proc-review", "Review Process", 1, [
+                    _make_step("step-review", "Review Application", "assignment", 1,
+                               config={"assignee_role": "MANAGER"}),
+                ]),
+            ]),
+            _make_stage("stage-complete", "Complete", 3, [
+                _make_process("proc-complete", "Complete Process", 1, [
+                    _make_step("step-notify", "Send Notification", "automation", 1,
+                               config={"actions": [{"type": "send_notification",
+                                                     "config": {"template": "approved"}}]}),
+                ]),
+            ], on_complete="resolve_case", resolution_status="resolved_completed"),
+        ],
+        "attachment_categories": [],
+        "case_wide_actions": [],
+        "created_by": "user-admin",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+        "version": 1,
+        "is_active": True,
+    }
+    await db.case_type_definitions.insert_one(ct)
+    return ct
+
+
+async def seed_case_type_decision(db, ct_id="test-decision"):
+    """Seed a case type with a decision step that branches."""
+    ct = {
+        "_id": ct_id,
+        "name": "Decision Test",
+        "slug": ct_id,
+        "description": "Case type with decision branching",
+        "icon": "folder",
+        "prefix": "DT",
+        "field_schema": {},
+        "stages": [
+            _make_stage("stage-main", "Main", 1, [
+                _make_process("proc-main", "Main Process", 1, [
+                    _make_step("step-decide", "Route by Amount", "decision", 1, config={
+                        "mode": "first_match",
+                        "branches": [
+                            {"id": "branch-low", "label": "Low", "condition": {"field": "amount", "operator": "lte", "value": 1000}, "next_step_id": "step-auto-approve"},
+                            {"id": "branch-high", "label": "High", "condition": {"field": "amount", "operator": "gt", "value": 1000}, "next_step_id": "step-manual"},
+                        ],
+                        "default_step_id": "step-manual",
+                    }),
+                    _make_step("step-auto-approve", "Auto Approve", "automation", 2, config={
+                        "actions": [{"type": "set_field", "config": {"field": "auto_approved", "value": True}}],
+                    }),
+                    _make_step("step-manual", "Manual Review", "assignment", 3, config={
+                        "assignee_role": "MANAGER",
+                    }),
+                ]),
+            ], on_complete="resolve_case", resolution_status="resolved_completed"),
+        ],
+        "attachment_categories": [],
+        "case_wide_actions": [],
+        "created_by": "user-admin",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+        "version": 1,
+        "is_active": True,
+    }
+    await db.case_type_definitions.insert_one(ct)
+    return ct
+
+
+async def seed_case_type_wait_for_user(db, ct_id="test-wait"):
+    """Case type where stage 1 uses wait_for_user."""
+    ct = {
+        "_id": ct_id,
+        "name": "Wait Test",
+        "slug": ct_id,
+        "description": "Case type with wait_for_user stage",
+        "icon": "folder",
+        "prefix": "WT",
+        "field_schema": {},
+        "stages": [
+            _make_stage("stage-1", "Stage 1", 1, [
+                _make_process("proc-1", "Process 1", 1, [
+                    _make_step("step-1", "Do Work", "assignment", 1,
+                               config={"assignee_role": "WORKER"}),
+                ]),
+            ], on_complete="wait_for_user"),
+            _make_stage("stage-2", "Stage 2", 2, [
+                _make_process("proc-2", "Process 2", 1, [
+                    _make_step("step-2", "Final Work", "assignment", 1,
+                               config={"assignee_role": "WORKER"}),
+                ]),
+            ], on_complete="resolve_case", resolution_status="resolved_completed"),
+        ],
+        "attachment_categories": [],
+        "case_wide_actions": [],
+        "created_by": "user-admin",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+        "version": 1,
+        "is_active": True,
+    }
+    await db.case_type_definitions.insert_one(ct)
+    return ct
+
+
 # ─── Auth token helper ───────────────────────────────────────────
 
 def make_token(user_id="user-test1", role="MANAGER"):
