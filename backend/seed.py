@@ -1380,6 +1380,69 @@ async def _insert_all(db):
     ]
     await db.documents.insert_many(documents)
 
+    # ─── Decision Tables ────────────────────────
+    decision_tables = [
+        {
+            "_id": "dt-loan-routing",
+            "name": "Loan Routing Decision Table",
+            "description": "Routes loan applications to the appropriate approval tier based on amount, type, and income",
+            "inputs": ["loan_amount", "loan_type", "applicant_income"],
+            "output_field": "approval_tier",
+            "rows": [
+                {"conditions": {"loan_amount": "<=10000", "loan_type": "personal"}, "output": "auto_approve", "priority": 1},
+                {"conditions": {"loan_amount": "10000-100000", "applicant_income": ">=50000"}, "output": "manager", "priority": 2},
+                {"conditions": {"loan_amount": "10000-100000", "applicant_income": "<50000"}, "output": "senior_manager", "priority": 3},
+                {"conditions": {"loan_amount": ">100000"}, "output": "vp_approval", "priority": 4},
+                {"conditions": {"loan_type": "commercial"}, "output": "commercial_review", "priority": 5},
+            ],
+            "default_output": "manager",
+            "created_by": "user-admin",
+            "created_at": "2025-06-01T00:00:00Z",
+            "updated_at": "2025-06-01T00:00:00Z",
+            "version": 1,
+        },
+        {
+            "_id": "dt-risk-scoring",
+            "name": "Risk Scoring Decision Table",
+            "description": "Calculates risk level for KYC onboarding based on country, amount, and PEP status",
+            "inputs": ["country_risk", "transaction_volume", "pep_status"],
+            "output_field": "risk_level",
+            "rows": [
+                {"conditions": {"country_risk": "high", "pep_status": "yes"}, "output": "critical", "priority": 1},
+                {"conditions": {"country_risk": "high"}, "output": "high", "priority": 2},
+                {"conditions": {"transaction_volume": ">500000"}, "output": "high", "priority": 3},
+                {"conditions": {"pep_status": "yes"}, "output": "medium", "priority": 4},
+                {"conditions": {"country_risk": "medium"}, "output": "medium", "priority": 5},
+            ],
+            "default_output": "low",
+            "created_by": "user-admin",
+            "created_at": "2025-06-15T00:00:00Z",
+            "updated_at": "2025-06-15T00:00:00Z",
+            "version": 1,
+        },
+        {
+            "_id": "dt-claims-adjuster",
+            "name": "Claims Adjuster Assignment",
+            "description": "Assigns claims to adjusters based on claim type and estimated amount",
+            "inputs": ["claim_type", "claim_amount"],
+            "output_field": "adjuster_pool",
+            "rows": [
+                {"conditions": {"claim_type": "auto_collision", "claim_amount": ">25000"}, "output": "senior_auto", "priority": 1},
+                {"conditions": {"claim_type": "auto_collision"}, "output": "auto_pool", "priority": 2},
+                {"conditions": {"claim_type": "property_damage", "claim_amount": ">50000"}, "output": "senior_property", "priority": 3},
+                {"conditions": {"claim_type": "property_damage"}, "output": "property_pool", "priority": 4},
+                {"conditions": {"claim_type": "medical"}, "output": "medical_pool", "priority": 5},
+                {"conditions": {"claim_amount": ">100000"}, "output": "executive_review", "priority": 6},
+            ],
+            "default_output": "general_pool",
+            "created_by": "user-admin",
+            "created_at": "2025-07-01T00:00:00Z",
+            "updated_at": "2025-07-01T00:00:00Z",
+            "version": 1,
+        },
+    ]
+    await db.decision_tables.insert_many(decision_tables)
+
 
 if __name__ == "__main__":
     import asyncio

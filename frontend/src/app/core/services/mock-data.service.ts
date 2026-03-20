@@ -22,10 +22,13 @@ import {
   FormDefinition,
   FormSubmission,
   TransitionOption,
-  CaseTypeDefinition,
+  CaseTypeDefinition, CaseTypeCreateRequest, CaseTypeUpdateRequest,
   CaseInstance, CaseCreateRequest, CaseUpdateRequest,
   StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
   Assignment, AssignmentCompleteRequest, AssignmentReassignRequest,
+  DecisionTable, DecisionTableCreateRequest, DecisionTableUpdateRequest,
+  DecisionTableEvaluateRequest, DecisionTableEvaluateResponse,
+  RuleEvaluateRequest, RuleEvaluateResponse,
 } from '../models';
 import { DataService } from './data.service';
 
@@ -1228,4 +1231,22 @@ export class MockDataService extends DataService {
   reassignAssignment(id: string, req: AssignmentReassignRequest): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
   holdAssignment(id: string): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
   resumeAssignment(id: string): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
+
+  // Admin — Case Type Definitions CRUD
+  createCaseTypeDefinition(req: CaseTypeCreateRequest): Observable<CaseTypeDefinition> { return of({} as CaseTypeDefinition).pipe(delay(300)); }
+  updateCaseTypeDefinition(id: string, req: CaseTypeUpdateRequest): Observable<CaseTypeDefinition> { return of({} as CaseTypeDefinition).pipe(delay(300)); }
+  deleteCaseTypeDefinition(id: string): Observable<void> { return of(void 0).pipe(delay(200)); }
+  duplicateCaseTypeDefinition(id: string): Observable<CaseTypeDefinition> { return of({} as CaseTypeDefinition).pipe(delay(300)); }
+  validateCaseTypeDefinition(id: string): Observable<{ valid: boolean; errors: string[] }> { return of({ valid: true, errors: [] }).pipe(delay(200)); }
+
+  // Admin — Decision Tables CRUD
+  getDecisionTables(): Observable<DecisionTable[]> { return of([] as DecisionTable[]).pipe(delay(200)); }
+  getDecisionTableById(id: string): Observable<DecisionTable> { return of({} as DecisionTable).pipe(delay(200)); }
+  createDecisionTable(req: DecisionTableCreateRequest): Observable<DecisionTable> { return of({} as DecisionTable).pipe(delay(300)); }
+  updateDecisionTable(id: string, req: DecisionTableUpdateRequest): Observable<DecisionTable> { return of({} as DecisionTable).pipe(delay(300)); }
+  deleteDecisionTable(id: string): Observable<void> { return of(void 0).pipe(delay(200)); }
+  evaluateDecisionTable(id: string, req: DecisionTableEvaluateRequest): Observable<DecisionTableEvaluateResponse> { return of({ output: null } as DecisionTableEvaluateResponse).pipe(delay(200)); }
+
+  // Admin — Rules
+  evaluateRule(req: RuleEvaluateRequest): Observable<RuleEvaluateResponse> { return of({ result: false, matchedConditions: [], evaluationPath: [] }).pipe(delay(200)); }
 }

@@ -11,11 +11,15 @@ import {
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
   TransitionOption,
-  CaseTypeDefinition, StageDefinition, ProcessDefinition, StepDefinition,
+  CaseTypeDefinition, CaseTypeCreateRequest, CaseTypeUpdateRequest,
+  StageDefinition, ProcessDefinition, StepDefinition,
   CaseInstance, StageInstance, ProcessInstance, StepInstance,
   CaseCreateRequest, CaseUpdateRequest,
   StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
   Assignment, AssignmentCompleteRequest, AssignmentReassignRequest,
+  DecisionTable, DecisionTableCreateRequest, DecisionTableUpdateRequest,
+  DecisionTableEvaluateRequest, DecisionTableEvaluateResponse,
+  RuleEvaluateRequest, RuleEvaluateResponse,
 } from '../models';
 import { DataService } from './data.service';
 import { environment } from '../../../environments/environment';
@@ -725,6 +729,188 @@ export class ApiDataService extends DataService {
   resumeAssignment(id: string): Observable<Assignment> {
     return this.http.post<any>(`${this.caseUrl}/assignments/${id}/resume`, {}).pipe(
       map(d => this.mapAssignment(d))
+    );
+  }
+
+  // ===== Admin — Case Type Definitions CRUD =====
+
+  createCaseTypeDefinition(req: CaseTypeCreateRequest): Observable<CaseTypeDefinition> {
+    const body = {
+      name: req.name,
+      slug: req.slug,
+      description: req.description,
+      icon: req.icon || 'folder',
+      prefix: req.prefix,
+      field_schema: req.fieldSchema || {},
+      stages: (req.stages || []).map(s => this.serializeStageDef(s as StageDefinition)),
+      attachment_categories: (req.attachmentCategories || []).map(c => ({
+        id: c.id, name: c.name,
+        required_for_resolution: c.requiredForResolution,
+        allowed_types: c.allowedTypes,
+      })),
+    };
+    return this.http.post<any>(`${this.caseUrl}/case-types`, body).pipe(
+      map(d => this.mapCaseTypeDef(d))
+    );
+  }
+
+  updateCaseTypeDefinition(id: string, req: CaseTypeUpdateRequest): Observable<CaseTypeDefinition> {
+    const body: Record<string, any> = {};
+    if (req.name !== undefined) body['name'] = req.name;
+    if (req.slug !== undefined) body['slug'] = req.slug;
+    if (req.description !== undefined) body['description'] = req.description;
+    if (req.icon !== undefined) body['icon'] = req.icon;
+    if (req.prefix !== undefined) body['prefix'] = req.prefix;
+    if (req.fieldSchema !== undefined) body['field_schema'] = req.fieldSchema;
+    if (req.isActive !== undefined) body['is_active'] = req.isActive;
+    if (req.stages !== undefined) body['stages'] = req.stages.map(s => this.serializeStageDef(s));
+    if (req.attachmentCategories !== undefined) body['attachment_categories'] = req.attachmentCategories.map(c => ({
+      id: c.id, name: c.name,
+      required_for_resolution: c.requiredForResolution,
+      allowed_types: c.allowedTypes,
+    }));
+    return this.http.patch<any>(`${this.caseUrl}/case-types/${id}`, body).pipe(
+      map(d => this.mapCaseTypeDef(d))
+    );
+  }
+
+  deleteCaseTypeDefinition(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/case-types/${id}`);
+  }
+
+  duplicateCaseTypeDefinition(id: string): Observable<CaseTypeDefinition> {
+    return this.http.post<any>(`${this.caseUrl}/case-types/${id}/duplicate`, {}).pipe(
+      map(d => this.mapCaseTypeDef(d))
+    );
+  }
+
+  validateCaseTypeDefinition(id: string): Observable<{ valid: boolean; errors: string[] }> {
+    return this.http.post<{ valid: boolean; errors: string[] }>(`${this.caseUrl}/case-types/${id}/validate`, {});
+  }
+
+  private serializeStageDef(s: StageDefinition): Record<string, any> {
+    return {
+      id: s.id, name: s.name, stage_type: s.stageType, order: s.order,
+      on_complete: s.onComplete, resolution_status: s.resolutionStatus || null,
+      skip_when: s.skipWhen || null, entry_criteria: s.entryCriteria || null,
+      sla_hours: s.slaHours || null,
+      processes: (s.processes || []).map(p => ({
+        id: p.id, name: p.name, type: p.type, order: p.order,
+        is_parallel: p.isParallel, start_when: p.startWhen || null,
+        sla_hours: p.slaHours || null,
+        steps: (p.steps || []).map(st => ({
+          id: st.id, name: st.name, type: st.type, order: st.order,
+          required: st.required, skip_when: st.skipWhen || null,
+          visible_when: st.visibleWhen || null, sla_hours: st.slaHours || null,
+          config: this.serializeStepConfig(st.config),
+        })),
+      })),
+    };
+  }
+
+  private serializeStepConfig(c: any): Record<string, any> {
+    if (!c) return {};
+    return {
+      assignee_role: c.assigneeRole, assignee_user_id: c.assigneeUserId,
+      form_id: c.formId, instructions: c.instructions,
+      set_case_status: c.setCaseStatus, mode: c.mode,
+      approver_roles: c.approverRoles, approver_user_ids: c.approverUserIds,
+      allow_delegation: c.allowDelegation, rejection_stage_id: c.rejectionStageId,
+      categories: c.categories, min_files: c.minFiles,
+      allowed_types: c.allowedTypes, max_file_size_mb: c.maxFileSizeMb,
+      branches: c.branches?.map((b: any) => ({
+        id: b.id, label: b.label, condition: b.condition, next_step_id: b.nextStepId,
+      })),
+      decision_table_id: c.decisionTableId, default_step_id: c.defaultStepId,
+      actions: c.actions, rules: c.rules,
+      webhook: c.webhook ? {
+        url: c.webhook.url, method: c.webhook.method, headers: c.webhook.headers,
+        body_template: c.webhook.bodyTemplate, response_map: c.webhook.responseMap,
+      } : undefined,
+      child_case_type_id: c.childCaseTypeId, field_mapping: c.fieldMapping,
+      wait_for_resolution: c.waitForResolution, propagate_fields: c.propagateFields,
+    };
+  }
+
+  // ===== Admin — Decision Tables CRUD =====
+
+  getDecisionTables(): Observable<DecisionTable[]> {
+    return this.http.get<any[]>(`${this.caseUrl}/decision-tables`).pipe(
+      map(list => list.map(d => this.mapDecisionTable(d)))
+    );
+  }
+
+  getDecisionTableById(id: string): Observable<DecisionTable> {
+    return this.http.get<any>(`${this.caseUrl}/decision-tables/${id}`).pipe(
+      map(d => this.mapDecisionTable(d))
+    );
+  }
+
+  createDecisionTable(req: DecisionTableCreateRequest): Observable<DecisionTable> {
+    const body = {
+      name: req.name, description: req.description,
+      inputs: req.inputs, output_field: req.outputField,
+      rows: req.rows, default_output: req.defaultOutput,
+    };
+    return this.http.post<any>(`${this.caseUrl}/decision-tables`, body).pipe(
+      map(d => this.mapDecisionTable(d))
+    );
+  }
+
+  updateDecisionTable(id: string, req: DecisionTableUpdateRequest): Observable<DecisionTable> {
+    const body: Record<string, any> = {};
+    if (req.name !== undefined) body['name'] = req.name;
+    if (req.description !== undefined) body['description'] = req.description;
+    if (req.inputs !== undefined) body['inputs'] = req.inputs;
+    if (req.outputField !== undefined) body['output_field'] = req.outputField;
+    if (req.rows !== undefined) body['rows'] = req.rows;
+    if (req.defaultOutput !== undefined) body['default_output'] = req.defaultOutput;
+    return this.http.patch<any>(`${this.caseUrl}/decision-tables/${id}`, body).pipe(
+      map(d => this.mapDecisionTable(d))
+    );
+  }
+
+  deleteDecisionTable(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/decision-tables/${id}`);
+  }
+
+  evaluateDecisionTable(id: string, req: DecisionTableEvaluateRequest): Observable<DecisionTableEvaluateResponse> {
+    return this.http.post<any>(`${this.caseUrl}/decision-tables/${id}/evaluate`, { data: req.data }).pipe(
+      map(d => ({ output: d.output, matchedRow: d.matched_row }))
+    );
+  }
+
+  private mapDecisionTable(d: any): DecisionTable {
+    return {
+      id: d.id || d._id,
+      name: d.name,
+      description: d.description,
+      inputs: d.inputs || [],
+      outputField: d.output_field,
+      rows: (d.rows || []).map((r: any) => ({
+        conditions: r.conditions,
+        output: r.output,
+        priority: r.priority ?? 0,
+      })),
+      defaultOutput: d.default_output,
+      createdBy: d.created_by,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at,
+      version: d.version ?? 1,
+    };
+  }
+
+  // ===== Admin — Rules =====
+
+  evaluateRule(req: RuleEvaluateRequest): Observable<RuleEvaluateResponse> {
+    return this.http.post<any>(`${this.caseUrl}/rules/evaluate`, {
+      condition: req.condition, data: req.data,
+    }).pipe(
+      map(d => ({
+        result: d.result,
+        matchedConditions: d.matched_conditions || [],
+        evaluationPath: d.evaluation_path || [],
+      }))
     );
   }
 }

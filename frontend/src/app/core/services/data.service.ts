@@ -8,10 +8,13 @@ import {
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
   TransitionOption,
-  CaseTypeDefinition,
+  CaseTypeDefinition, CaseTypeCreateRequest, CaseTypeUpdateRequest,
   CaseInstance, CaseCreateRequest, CaseUpdateRequest,
   StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
   Assignment, AssignmentCompleteRequest, AssignmentReassignRequest,
+  DecisionTable, DecisionTableCreateRequest, DecisionTableUpdateRequest,
+  DecisionTableEvaluateRequest, DecisionTableEvaluateResponse,
+  RuleEvaluateRequest, RuleEvaluateResponse,
 } from '../models';
 
 export abstract class DataService {
@@ -128,4 +131,22 @@ export abstract class DataService {
   abstract reassignAssignment(id: string, req: AssignmentReassignRequest): Observable<Assignment>;
   abstract holdAssignment(id: string): Observable<Assignment>;
   abstract resumeAssignment(id: string): Observable<Assignment>;
+
+  // ===== Admin — Case Type Definitions CRUD =====
+  abstract createCaseTypeDefinition(req: CaseTypeCreateRequest): Observable<CaseTypeDefinition>;
+  abstract updateCaseTypeDefinition(id: string, req: CaseTypeUpdateRequest): Observable<CaseTypeDefinition>;
+  abstract deleteCaseTypeDefinition(id: string): Observable<void>;
+  abstract duplicateCaseTypeDefinition(id: string): Observable<CaseTypeDefinition>;
+  abstract validateCaseTypeDefinition(id: string): Observable<{ valid: boolean; errors: string[] }>;
+
+  // ===== Admin — Decision Tables CRUD =====
+  abstract getDecisionTables(): Observable<DecisionTable[]>;
+  abstract getDecisionTableById(id: string): Observable<DecisionTable>;
+  abstract createDecisionTable(req: DecisionTableCreateRequest): Observable<DecisionTable>;
+  abstract updateDecisionTable(id: string, req: DecisionTableUpdateRequest): Observable<DecisionTable>;
+  abstract deleteDecisionTable(id: string): Observable<void>;
+  abstract evaluateDecisionTable(id: string, req: DecisionTableEvaluateRequest): Observable<DecisionTableEvaluateResponse>;
+
+  // ===== Admin — Rules =====
+  abstract evaluateRule(req: RuleEvaluateRequest): Observable<RuleEvaluateResponse>;
 }

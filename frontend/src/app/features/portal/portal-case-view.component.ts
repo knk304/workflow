@@ -105,7 +105,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                     {{ stage.name }}
                   </h2>
                   <span class="text-xs text-slate-400">
-                    Step {{ currentStepIndex(stage) + 1 }} of {{ (stage.processes[0]?.steps || []).length }}
+                    Step {{ currentStepIndex(stage) + 1 }} of {{ (stage.processes[0].steps || []).length }}
                   </span>
                 </div>
 

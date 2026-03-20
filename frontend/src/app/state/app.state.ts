@@ -32,6 +32,16 @@ import {
   assignmentsFeatureKey,
   assignmentsReducer,
 } from './assignments/assignments.reducer';
+import {
+  CaseTypesState,
+  caseTypesFeatureKey,
+  caseTypesReducer,
+} from './case-types/case-types.reducer';
+import {
+  DecisionTablesState,
+  decisionTablesFeatureKey,
+  decisionTablesReducer,
+} from './decision-tables/decision-tables.reducer';
 
 export interface AppState {
   [authFeatureKey]: AuthState;
@@ -43,6 +53,8 @@ export interface AppState {
   [approvalsFeatureKey]: ApprovalsState;
   [documentsFeatureKey]: DocumentsState;
   [assignmentsFeatureKey]: AssignmentsState;
+  [caseTypesFeatureKey]: CaseTypesState;
+  [decisionTablesFeatureKey]: DecisionTablesState;
 }
 
 export const appReducers = {
@@ -55,4 +67,6 @@ export const appReducers = {
   [approvalsFeatureKey]: approvalsReducer,
   [documentsFeatureKey]: documentsReducer,
   [assignmentsFeatureKey]: assignmentsReducer,
+  [caseTypesFeatureKey]: caseTypesReducer,
+  [decisionTablesFeatureKey]: decisionTablesReducer,
 };

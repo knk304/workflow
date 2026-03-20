@@ -16,6 +16,8 @@ import { WorkflowsEffects } from './state/workflows/workflows.effects';
 import { ApprovalsEffects } from './state/approvals/approvals.effects';
 import { DocumentsEffects } from './state/documents/documents.effects';
 import { AssignmentsEffects } from './state/assignments/assignments.effects';
+import { CaseTypesEffects } from './state/case-types/case-types.effects';
+import { DecisionTablesEffects } from './state/decision-tables/decision-tables.effects';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { serviceProviders } from './core/services/service-providers';
 import { environment } from '../environments/environment';
@@ -53,6 +55,8 @@ export const appConfig: ApplicationConfig = {
         ApprovalsEffects,
         DocumentsEffects,
         AssignmentsEffects,
+        CaseTypesEffects,
+        DecisionTablesEffects,
       ]),
 
       // Store Devtools (only in development)

@@ -675,3 +675,110 @@ export interface AssignmentReassignRequest {
   assignedTo: string;
   reason?: string;
 }
+
+// ── Rule Engine / Conditions ──────────────────────────────
+
+export interface SimpleCondition {
+  field: string;
+  operator: string;
+  value?: any;
+}
+
+export interface CompoundCondition {
+  all?: (SimpleCondition | CompoundCondition)[];
+  any?: (SimpleCondition | CompoundCondition)[];
+}
+
+export type Condition = SimpleCondition | CompoundCondition;
+
+export interface RuleAction {
+  type: 'set_field' | 'send_notification' | 'change_stage' | 'create_assignment' | 'call_webhook';
+  field?: string;
+  value?: any;
+  config: Record<string, any>;
+}
+
+export interface RuleEvaluateRequest {
+  condition: Condition;
+  data: Record<string, any>;
+}
+
+export interface RuleEvaluateResponse {
+  result: boolean;
+  matchedConditions: string[];
+  evaluationPath: string[];
+}
+
+// ── Decision Tables ───────────────────────────────────────
+
+export interface DecisionTableRow {
+  conditions: Record<string, any>;
+  output: any;
+  priority: number;
+}
+
+export interface DecisionTable {
+  id: string;
+  name: string;
+  description?: string;
+  inputs: string[];
+  outputField: string;
+  rows: DecisionTableRow[];
+  defaultOutput: any;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface DecisionTableCreateRequest {
+  name: string;
+  description?: string;
+  inputs: string[];
+  outputField: string;
+  rows: DecisionTableRow[];
+  defaultOutput?: any;
+}
+
+export interface DecisionTableUpdateRequest {
+  name?: string;
+  description?: string;
+  inputs?: string[];
+  outputField?: string;
+  rows?: DecisionTableRow[];
+  defaultOutput?: any;
+}
+
+export interface DecisionTableEvaluateRequest {
+  data: Record<string, any>;
+}
+
+export interface DecisionTableEvaluateResponse {
+  output: any;
+  matchedRow?: number;
+}
+
+// ── Case Type Admin CRUD DTOs ─────────────────────────────
+
+export interface CaseTypeCreateRequest {
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  prefix: string;
+  fieldSchema?: Record<string, any>;
+  stages?: Partial<StageDefinition>[];
+  attachmentCategories?: AttachmentCategory[];
+}
+
+export interface CaseTypeUpdateRequest {
+  name?: string;
+  slug?: string;
+  description?: string;
+  icon?: string;
+  prefix?: string;
+  fieldSchema?: Record<string, any>;
+  stages?: StageDefinition[];
+  attachmentCategories?: AttachmentCategory[];
+  isActive?: boolean;
+}

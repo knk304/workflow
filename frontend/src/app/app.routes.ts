@@ -11,6 +11,10 @@ import { AdminUsersComponent } from './features/admin/admin-users.component';
 import { AdminTeamsComponent } from './features/admin/admin-teams.component';
 import { AdminWorkflowsComponent } from './features/admin/admin-workflows.component';
 import { AdminCaseTypesComponent } from './features/admin/admin-case-types.component';
+import { AdminCaseTypeDefinitionsComponent } from './features/admin/admin-case-type-definitions/admin-case-type-definitions.component';
+import { CaseTypeDesignerComponent } from './features/admin/case-type-designer/case-type-designer.component';
+import { AdminDecisionTablesComponent } from './features/admin/admin-decision-tables/admin-decision-tables.component';
+import { DecisionTableEditorComponent } from './features/admin/decision-table-editor/decision-table-editor.component';
 import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
 import { ApprovalsComponent } from './features/approvals/approvals.component';
 import { DocumentsComponent } from './features/documents/documents.component';
@@ -134,8 +138,38 @@ export const routes: Routes = [
           },
           {
             path: 'case-types',
+            component: AdminCaseTypeDefinitionsComponent,
+            data: { title: 'Case Type Definitions' },
+          },
+          {
+            path: 'case-types/new/designer',
+            component: CaseTypeDesignerComponent,
+            data: { title: 'New Case Type Designer' },
+          },
+          {
+            path: 'case-types/:id/designer',
+            component: CaseTypeDesignerComponent,
+            data: { title: 'Case Type Designer' },
+          },
+          {
+            path: 'case-types-legacy',
             component: AdminCaseTypesComponent,
-            data: { title: 'Case Type Management' },
+            data: { title: 'Case Type Management (Legacy)' },
+          },
+          {
+            path: 'decision-tables',
+            component: AdminDecisionTablesComponent,
+            data: { title: 'Decision Tables' },
+          },
+          {
+            path: 'decision-tables/new',
+            component: DecisionTableEditorComponent,
+            data: { title: 'New Decision Table' },
+          },
+          {
+            path: 'decision-tables/:id',
+            component: DecisionTableEditorComponent,
+            data: { title: 'Decision Table Editor' },
           },
         ],
       },
