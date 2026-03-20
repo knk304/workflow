@@ -399,3 +399,279 @@ export interface WSMessage {
   userId?: string;
   timestamp?: string;
 }
+
+
+// ===== Pega-Lite Hierarchical Engine Models =====
+
+// ── Enums ──────────────────────────────────────────────────
+
+export type StepType = 'assignment' | 'approval' | 'attachment' | 'decision' | 'automation' | 'subprocess';
+export type StageType = 'primary' | 'alternate';
+export type ProcessType = 'sequential' | 'parallel';
+export type ItemStatus = 'pending' | 'in_progress' | 'completed' | 'skipped' | 'cancelled' | 'waiting';
+export type CaseStatus = 'open' | 'in_progress' | 'pending' | 'resolved_completed' | 'resolved_cancelled' | 'resolved_rejected' | 'withdrawn';
+export type AssignmentType = 'form' | 'approval' | 'attachment' | 'action';
+export type AssignmentStatus = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
+
+// ── Blueprint (Case Type Definition) ──────────────────────
+
+export interface StepConfig {
+  assigneeRole?: string;
+  assigneeUserId?: string;
+  formId?: string;
+  instructions?: string;
+  setCaseStatus?: string;
+  mode?: string;
+  approverRoles?: string[];
+  approverUserIds?: string[];
+  allowDelegation?: boolean;
+  rejectionStageId?: string;
+  categories?: string[];
+  minFiles?: number;
+  allowedTypes?: string[];
+  maxFileSizeMb?: number;
+  branches?: DecisionBranch[];
+  decisionTableId?: string;
+  defaultStepId?: string;
+  actions?: AutomationAction[];
+  rules?: AutomationRule[];
+  webhook?: WebhookConfig;
+  childCaseTypeId?: string;
+  fieldMapping?: Record<string, string>;
+  waitForResolution?: boolean;
+  propagateFields?: Record<string, string>;
+}
+
+export interface DecisionBranch {
+  id: string;
+  label: string;
+  condition: Record<string, any>;
+  nextStepId: string;
+}
+
+export interface AutomationAction {
+  type: string;
+  config: Record<string, any>;
+}
+
+export interface AutomationRule {
+  condition: Record<string, any>;
+  actions: AutomationAction[];
+}
+
+export interface WebhookConfig {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  bodyTemplate: Record<string, any>;
+  responseMap: Record<string, string>;
+}
+
+export interface StepDefinition {
+  id: string;
+  name: string;
+  type: StepType;
+  order: number;
+  required: boolean;
+  skipWhen?: Record<string, any> | null;
+  visibleWhen?: Record<string, any> | null;
+  slaHours?: number | null;
+  config: StepConfig;
+}
+
+export interface ProcessDefinition {
+  id: string;
+  name: string;
+  type: ProcessType;
+  order: number;
+  isParallel: boolean;
+  startWhen?: Record<string, any> | null;
+  slaHours?: number | null;
+  steps: StepDefinition[];
+}
+
+export interface StageDefinition {
+  id: string;
+  name: string;
+  stageType: StageType;
+  order: number;
+  onComplete: 'auto_advance' | 'wait_for_user' | 'resolve_case';
+  resolutionStatus?: string | null;
+  skipWhen?: Record<string, any> | null;
+  entryCriteria?: Record<string, any> | null;
+  slaHours?: number | null;
+  processes: ProcessDefinition[];
+}
+
+export interface CaseTypeDefinition {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon: string;
+  prefix: string;
+  fieldSchema: Record<string, any>;
+  stages: StageDefinition[];
+  attachmentCategories: AttachmentCategory[];
+  caseWideActions: string[];
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  version: number;
+  isActive: boolean;
+}
+
+export interface AttachmentCategory {
+  id: string;
+  name: string;
+  requiredForResolution: boolean;
+  allowedTypes: string[];
+}
+
+// ── Runtime Instances ─────────────────────────────────────
+
+export interface StepInstance {
+  stepDefinitionId: string;
+  name: string;
+  type: StepType;
+  status: ItemStatus;
+  order: number;
+  description?: string;
+  formFields?: any[];
+  startedAt?: string | null;
+  completedAt?: string | null;
+  completedBy?: string | null;
+  assignedTo?: string | null;
+  formSubmissionId?: string | null;
+  approvalChainId?: string | null;
+  childCaseId?: string | null;
+  decisionBranchTaken?: string | null;
+  skippedReason?: string | null;
+  notes?: string | null;
+  slaTarget?: string | null;
+}
+
+export interface ProcessInstance {
+  processDefinitionId: string;
+  name: string;
+  type: ProcessType;
+  status: ItemStatus;
+  order: number;
+  isParallel: boolean;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  steps: StepInstance[];
+}
+
+export interface StageInstance {
+  stageDefinitionId: string;
+  name: string;
+  stageType: StageType;
+  status: ItemStatus;
+  order: number;
+  onComplete: string;
+  enteredAt?: string | null;
+  completedAt?: string | null;
+  completedBy?: string | null;
+  processes: ProcessInstance[];
+}
+
+export interface CaseInstance {
+  id: string;
+  caseTypeId: string;
+  caseTypeName: string;
+  title: string;
+  status: CaseStatus;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  ownerId: string;
+  teamId?: string;
+  data: Record<string, any>;
+  currentStageIndex: number;
+  currentStageId?: string;
+  currentProcessId?: string;
+  currentStepId?: string;
+  stages: StageInstance[];
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  resolutionStatus?: string;
+  parentCaseId?: string;
+  slaTargetDate?: string;
+  slaDaysRemaining?: number;
+  escalationLevel: number;
+  description?: string;
+}
+
+// ── Case Create / Update DTOs ─────────────────────────────
+
+export interface CaseCreateRequest {
+  caseTypeId: string;
+  title: string;
+  description?: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  ownerId?: string;
+  teamId?: string;
+  customFields?: Record<string, any>;
+}
+
+export interface CaseUpdateRequest {
+  title?: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  ownerId?: string;
+  teamId?: string;
+  customFields?: Record<string, any>;
+}
+
+export interface StepCompleteRequest {
+  notes?: string;
+  formData?: Record<string, any>;
+  decision?: string;
+  delegateTo?: string;
+}
+
+export interface AdvanceStageRequest {
+  notes?: string;
+}
+
+export interface ChangeStageRequest {
+  targetStageId: string;
+  reason: string;
+}
+
+// ── Assignment (Worklist) ─────────────────────────────────
+
+export interface Assignment {
+  id: string;
+  caseId: string;
+  caseTitle: string;
+  caseTypeId: string;
+  stageName: string;
+  processName: string;
+  stepName: string;
+  name: string;
+  assignmentType: AssignmentType;
+  status: AssignmentStatus;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedRole?: string;
+  formId?: string;
+  instructions?: string;
+  dueAt?: string;
+  isOverdue: boolean;
+  slaHours?: number;
+  createdAt: string;
+}
+
+export interface AssignmentCompleteRequest {
+  formData?: Record<string, any>;
+  notes?: string;
+  decision?: string;
+  delegateTo?: string;
+}
+
+export interface AssignmentReassignRequest {
+  assignedTo: string;
+  reason?: string;
+}

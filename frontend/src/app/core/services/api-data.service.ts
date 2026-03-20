@@ -11,6 +11,11 @@ import {
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
   TransitionOption,
+  CaseTypeDefinition, StageDefinition, ProcessDefinition, StepDefinition,
+  CaseInstance, StageInstance, ProcessInstance, StepInstance,
+  CaseCreateRequest, CaseUpdateRequest,
+  StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
+  Assignment, AssignmentCompleteRequest, AssignmentReassignRequest,
 } from '../models';
 import { DataService } from './data.service';
 import { environment } from '../../../environments/environment';
@@ -393,5 +398,333 @@ export class ApiDataService extends DataService {
     if (caseId) { params = params.set('case_id', caseId); }
     if (formId) { params = params.set('form_id', formId); }
     return this.http.get<FormSubmission[]>(`${this.caseUrl}/forms/submissions`, { params });
+  }
+
+  // ─── Pega-Lite: Case Type Definitions ───────────
+  private mapCaseTypeDef(raw: any): CaseTypeDefinition {
+    return {
+      id: raw.id,
+      name: raw.name,
+      slug: raw.slug,
+      description: raw.description,
+      icon: raw.icon ?? 'folder',
+      prefix: raw.prefix ?? 'CASE',
+      fieldSchema: raw.field_schema ?? {},
+      stages: (raw.stages ?? []).map((s: any) => this.mapStageDef(s)),
+      attachmentCategories: (raw.attachment_categories ?? []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        requiredForResolution: a.required_for_resolution ?? false,
+        allowedTypes: a.allowed_types ?? [],
+      })),
+      caseWideActions: raw.case_wide_actions ?? [],
+      createdBy: raw.created_by,
+      createdAt: raw.created_at,
+      updatedAt: raw.updated_at,
+      version: raw.version ?? 1,
+      isActive: raw.is_active ?? true,
+    };
+  }
+
+  private mapStageDef(raw: any): StageDefinition {
+    return {
+      id: raw.id,
+      name: raw.name,
+      stageType: raw.stage_type ?? 'primary',
+      order: raw.order ?? 0,
+      onComplete: raw.on_complete ?? 'auto_advance',
+      resolutionStatus: raw.resolution_status,
+      skipWhen: raw.skip_when,
+      entryCriteria: raw.entry_criteria,
+      slaHours: raw.sla_hours,
+      processes: (raw.processes ?? []).map((p: any) => this.mapProcessDef(p)),
+    };
+  }
+
+  private mapProcessDef(raw: any): ProcessDefinition {
+    return {
+      id: raw.id,
+      name: raw.name,
+      type: raw.type ?? 'sequential',
+      order: raw.order ?? 0,
+      isParallel: raw.is_parallel ?? false,
+      startWhen: raw.start_when,
+      slaHours: raw.sla_hours,
+      steps: (raw.steps ?? []).map((s: any) => this.mapStepDef(s)),
+    };
+  }
+
+  private mapStepDef(raw: any): StepDefinition {
+    return {
+      id: raw.id,
+      name: raw.name,
+      type: raw.type ?? 'assignment',
+      order: raw.order ?? 0,
+      required: raw.required ?? true,
+      skipWhen: raw.skip_when,
+      visibleWhen: raw.visible_when,
+      slaHours: raw.sla_hours,
+      config: raw.config ?? {},
+    };
+  }
+
+  getCaseTypeDefinitions(): Observable<CaseTypeDefinition[]> {
+    return this.http.get<any[]>(`${this.caseUrl}/case-types`).pipe(
+      map(list => list.map(d => this.mapCaseTypeDef(d)))
+    );
+  }
+
+  getCaseTypeDefinitionById(id: string): Observable<CaseTypeDefinition> {
+    return this.http.get<any>(`${this.caseUrl}/case-types/${id}`).pipe(
+      map(d => this.mapCaseTypeDef(d))
+    );
+  }
+
+  // ─── Pega-Lite: Case Instances ──────────────────
+  private mapCaseInstance(raw: any): CaseInstance {
+    return {
+      id: raw.id,
+      caseTypeId: raw.case_type_id ?? '',
+      caseTypeName: raw.case_type_name ?? '',
+      title: raw.title ?? '',
+      description: raw.description ?? '',
+      status: raw.status ?? 'open',
+      priority: raw.priority ?? 'medium',
+      ownerId: raw.owner_id ?? '',
+      teamId: raw.team_id,
+      data: raw.custom_fields ?? raw.data ?? {},
+      currentStageIndex: raw.current_stage_index ?? 0,
+      currentStageId: raw.current_stage_id,
+      currentProcessId: raw.current_process_id,
+      currentStepId: raw.current_step_id,
+      stages: (raw.stages ?? []).map((s: any) => this.mapStageInstance(s)),
+      createdBy: raw.created_by ?? '',
+      createdAt: raw.created_at ?? '',
+      updatedAt: raw.updated_at ?? '',
+      resolvedAt: raw.resolved_at,
+      resolutionStatus: raw.resolution_status,
+      parentCaseId: raw.parent_case_id,
+      slaTargetDate: raw.sla_target_date,
+      slaDaysRemaining: raw.sla_days_remaining,
+      escalationLevel: raw.escalation_level ?? 0,
+    };
+  }
+
+  private mapStageInstance(raw: any): StageInstance {
+    return {
+      stageDefinitionId: raw.stage_definition_id ?? raw.definition_id ?? '',
+      name: raw.name ?? '',
+      stageType: raw.stage_type ?? 'primary',
+      status: raw.status ?? 'pending',
+      order: raw.order ?? 0,
+      onComplete: raw.on_complete ?? '',
+      enteredAt: raw.entered_at,
+      completedAt: raw.completed_at,
+      completedBy: raw.completed_by,
+      processes: (raw.processes ?? []).map((p: any) => this.mapProcessInstance(p)),
+    };
+  }
+
+  private mapProcessInstance(raw: any): ProcessInstance {
+    return {
+      processDefinitionId: raw.process_definition_id ?? raw.definition_id ?? '',
+      name: raw.name ?? '',
+      type: raw.type ?? 'sequential',
+      status: raw.status ?? 'pending',
+      order: raw.order ?? 0,
+      isParallel: raw.is_parallel ?? false,
+      startedAt: raw.started_at,
+      completedAt: raw.completed_at,
+      steps: (raw.steps ?? []).map((s: any) => this.mapStepInstance(s)),
+    };
+  }
+
+  private mapStepInstance(raw: any): StepInstance {
+    return {
+      stepDefinitionId: raw.step_definition_id ?? raw.definition_id ?? '',
+      name: raw.name ?? '',
+      type: raw.type ?? 'assignment',
+      status: raw.status ?? 'pending',
+      order: raw.order ?? 0,
+      description: raw.description ?? '',
+      formFields: raw.form_fields ?? [],
+      startedAt: raw.started_at,
+      completedAt: raw.completed_at,
+      completedBy: raw.completed_by,
+      assignedTo: raw.assigned_to,
+      formSubmissionId: raw.form_submission_id,
+      approvalChainId: raw.approval_chain_id,
+      childCaseId: raw.child_case_id,
+      decisionBranchTaken: raw.decision_branch_taken,
+      skippedReason: raw.skipped_reason,
+      notes: raw.notes,
+      slaTarget: raw.sla_target,
+    };
+  }
+
+  getCaseInstances(filters?: Record<string, string>): Observable<CaseInstance[]> {
+    let params = new HttpParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, val]) => {
+        if (val) { params = params.set(key, val); }
+      });
+    }
+    return this.http.get<any[]>(`${this.caseUrl}/cases`, { params }).pipe(
+      map(list => list.map(d => this.mapCaseInstance(d)))
+    );
+  }
+
+  getCaseInstanceById(id: string): Observable<CaseInstance> {
+    return this.http.get<any>(`${this.caseUrl}/cases/${id}`).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  createCaseInstance(req: CaseCreateRequest): Observable<CaseInstance> {
+    const body = {
+      case_type_id: req.caseTypeId,
+      title: req.title,
+      description: req.description,
+      priority: req.priority,
+      owner_id: req.ownerId,
+      team_id: req.teamId,
+      custom_fields: req.customFields,
+    };
+    return this.http.post<any>(`${this.caseUrl}/cases`, body).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  updateCaseInstance(id: string, req: CaseUpdateRequest): Observable<CaseInstance> {
+    const body: Record<string, any> = {};
+    if (req.title !== undefined) body['title'] = req.title;
+    if (req.priority !== undefined) body['priority'] = req.priority;
+    if (req.ownerId !== undefined) body['owner_id'] = req.ownerId;
+    if (req.teamId !== undefined) body['team_id'] = req.teamId;
+    if (req.customFields !== undefined) body['custom_fields'] = req.customFields;
+    return this.http.patch<any>(`${this.caseUrl}/cases/${id}`, body).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  completeStep(caseId: string, stepId: string, req: StepCompleteRequest): Observable<CaseInstance> {
+    const body = {
+      notes: req.notes,
+      form_data: req.formData,
+      decision: req.decision,
+      delegate_to: req.delegateTo,
+    };
+    return this.http.post<any>(`${this.caseUrl}/cases/${caseId}/steps/${stepId}/complete`, body).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  advanceStage(caseId: string, req?: AdvanceStageRequest): Observable<CaseInstance> {
+    return this.http.post<any>(`${this.caseUrl}/cases/${caseId}/advance`, req ?? {}).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  changeStage(caseId: string, req: ChangeStageRequest): Observable<CaseInstance> {
+    return this.http.post<any>(`${this.caseUrl}/cases/${caseId}/change-stage`, {
+      target_stage_id: req.targetStageId,
+      reason: req.reason,
+    }).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  resolveCase(caseId: string): Observable<CaseInstance> {
+    return this.http.post<any>(`${this.caseUrl}/cases/${caseId}/resolve`, {}).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  withdrawCase(caseId: string): Observable<CaseInstance> {
+    return this.http.post<any>(`${this.caseUrl}/cases/${caseId}/withdraw`, {}).pipe(
+      map(d => this.mapCaseInstance(d))
+    );
+  }
+
+  // ─── Pega-Lite: Assignments ─────────────────────
+  private mapAssignment(raw: any): Assignment {
+    return {
+      id: raw.id,
+      caseId: raw.case_id ?? '',
+      caseTitle: raw.case_title ?? '',
+      caseTypeId: raw.case_type_id ?? '',
+      stageName: raw.stage_name ?? '',
+      processName: raw.process_name ?? '',
+      stepName: raw.step_name ?? '',
+      name: raw.name ?? raw.step_name ?? '',
+      assignmentType: raw.type ?? raw.assignment_type ?? 'form',
+      status: raw.status ?? 'open',
+      priority: raw.priority ?? 'medium',
+      assignedTo: raw.assigned_to,
+      assignedToName: raw.assigned_to_name,
+      assignedRole: raw.assigned_role,
+      formId: raw.form_id,
+      instructions: raw.instructions,
+      dueAt: raw.due_at,
+      isOverdue: raw.is_overdue ?? false,
+      slaHours: raw.sla_hours,
+      createdAt: raw.created_at ?? '',
+    };
+  }
+
+  getAssignments(filters?: Record<string, string>): Observable<Assignment[]> {
+    let params = new HttpParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, val]) => {
+        if (val) { params = params.set(key, val); }
+      });
+    }
+    return this.http.get<any[]>(`${this.caseUrl}/assignments`, { params }).pipe(
+      map(list => list.map(d => this.mapAssignment(d)))
+    );
+  }
+
+  getMyAssignments(): Observable<Assignment[]> {
+    return this.http.get<any[]>(`${this.caseUrl}/assignments/my`).pipe(
+      map(list => list.map(d => this.mapAssignment(d)))
+    );
+  }
+
+  getAssignmentById(id: string): Observable<Assignment> {
+    return this.http.get<any>(`${this.caseUrl}/assignments/${id}`).pipe(
+      map(d => this.mapAssignment(d))
+    );
+  }
+
+  completeAssignment(id: string, req: AssignmentCompleteRequest): Observable<Assignment> {
+    return this.http.post<any>(`${this.caseUrl}/assignments/${id}/complete`, {
+      form_data: req.formData,
+      notes: req.notes,
+      decision: req.decision,
+      delegate_to: req.delegateTo,
+    }).pipe(
+      map(d => this.mapAssignment(d))
+    );
+  }
+
+  reassignAssignment(id: string, req: AssignmentReassignRequest): Observable<Assignment> {
+    return this.http.post<any>(`${this.caseUrl}/assignments/${id}/reassign`, {
+      assigned_to: req.assignedTo,
+      reason: req.reason,
+    }).pipe(
+      map(d => this.mapAssignment(d))
+    );
+  }
+
+  holdAssignment(id: string): Observable<Assignment> {
+    return this.http.post<any>(`${this.caseUrl}/assignments/${id}/hold`, {}).pipe(
+      map(d => this.mapAssignment(d))
+    );
+  }
+
+  resumeAssignment(id: string): Observable<Assignment> {
+    return this.http.post<any>(`${this.caseUrl}/assignments/${id}/resume`, {}).pipe(
+      map(d => this.mapAssignment(d))
+    );
   }
 }

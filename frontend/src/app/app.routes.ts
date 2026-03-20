@@ -17,6 +17,11 @@ import { DocumentsComponent } from './features/documents/documents.component';
 import { SLADashboardComponent } from './features/sla/sla-dashboard.component';
 import { FormBuilderComponent } from './features/forms/form-builder.component';
 import { FormRendererPageComponent } from './features/forms/form-renderer-page.component';
+import { PortalDashboardComponent } from './features/portal/portal-dashboard.component';
+import { PortalCaseListComponent } from './features/portal/portal-case-list.component';
+import { PortalCaseCreateComponent } from './features/portal/portal-case-create.component';
+import { PortalCaseViewComponent } from './features/portal/portal-case-view.component';
+import { PortalWorklistComponent } from './features/portal/portal-worklist.component';
 
 export const routes: Routes = [
   // Auth Routes (public)
@@ -96,6 +101,17 @@ export const routes: Routes = [
         path: 'forms/:formId/fill',
         component: FormRendererPageComponent,
         data: { title: 'Fill Form' },
+      },
+      // Worker Portal routes
+      {
+        path: 'portal',
+        children: [
+          { path: '', component: PortalDashboardComponent, data: { title: 'Worker Portal' } },
+          { path: 'cases', component: PortalCaseListComponent, data: { title: 'Case Instances' } },
+          { path: 'cases/new', component: PortalCaseCreateComponent, data: { title: 'Create Case' } },
+          { path: 'cases/:id', component: PortalCaseViewComponent, data: { title: 'Case View' } },
+          { path: 'worklist', component: PortalWorklistComponent, data: { title: 'Worklist' } },
+        ],
       },
       {
         path: 'admin',

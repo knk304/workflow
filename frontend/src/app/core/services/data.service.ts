@@ -8,6 +8,10 @@ import {
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
   TransitionOption,
+  CaseTypeDefinition,
+  CaseInstance, CaseCreateRequest, CaseUpdateRequest,
+  StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
+  Assignment, AssignmentCompleteRequest, AssignmentReassignRequest,
 } from '../models';
 
 export abstract class DataService {
@@ -98,4 +102,30 @@ export abstract class DataService {
   abstract deleteFormDefinition(id: string): Observable<void>;
   abstract submitForm(submission: Omit<FormSubmission, 'id' | 'submittedBy' | 'submittedAt'>): Observable<FormSubmission>;
   abstract getFormSubmissions(caseId?: string, formId?: string): Observable<FormSubmission[]>;
+
+  // ===== Pega-Lite Hierarchical Engine =====
+
+  // Case Type Definitions (blueprints)
+  abstract getCaseTypeDefinitions(): Observable<CaseTypeDefinition[]>;
+  abstract getCaseTypeDefinitionById(id: string): Observable<CaseTypeDefinition>;
+
+  // Cases (hierarchical runtime)
+  abstract getCaseInstances(filters?: Record<string, string>): Observable<CaseInstance[]>;
+  abstract getCaseInstanceById(id: string): Observable<CaseInstance>;
+  abstract createCaseInstance(req: CaseCreateRequest): Observable<CaseInstance>;
+  abstract updateCaseInstance(id: string, req: CaseUpdateRequest): Observable<CaseInstance>;
+  abstract completeStep(caseId: string, stepId: string, req: StepCompleteRequest): Observable<CaseInstance>;
+  abstract advanceStage(caseId: string, req?: AdvanceStageRequest): Observable<CaseInstance>;
+  abstract changeStage(caseId: string, req: ChangeStageRequest): Observable<CaseInstance>;
+  abstract resolveCase(caseId: string): Observable<CaseInstance>;
+  abstract withdrawCase(caseId: string): Observable<CaseInstance>;
+
+  // Assignments (worklist)
+  abstract getAssignments(filters?: Record<string, string>): Observable<Assignment[]>;
+  abstract getMyAssignments(): Observable<Assignment[]>;
+  abstract getAssignmentById(id: string): Observable<Assignment>;
+  abstract completeAssignment(id: string, req: AssignmentCompleteRequest): Observable<Assignment>;
+  abstract reassignAssignment(id: string, req: AssignmentReassignRequest): Observable<Assignment>;
+  abstract holdAssignment(id: string): Observable<Assignment>;
+  abstract resumeAssignment(id: string): Observable<Assignment>;
 }

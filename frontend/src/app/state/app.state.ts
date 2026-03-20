@@ -27,6 +27,11 @@ import {
   documentsFeatureKey,
   documentsReducer,
 } from './documents/documents.reducer';
+import {
+  AssignmentsState,
+  assignmentsFeatureKey,
+  assignmentsReducer,
+} from './assignments/assignments.reducer';
 
 export interface AppState {
   [authFeatureKey]: AuthState;
@@ -37,6 +42,7 @@ export interface AppState {
   [workflowsFeatureKey]: WorkflowsState;
   [approvalsFeatureKey]: ApprovalsState;
   [documentsFeatureKey]: DocumentsState;
+  [assignmentsFeatureKey]: AssignmentsState;
 }
 
 export const appReducers = {
@@ -48,4 +54,5 @@ export const appReducers = {
   [workflowsFeatureKey]: workflowsReducer,
   [approvalsFeatureKey]: approvalsReducer,
   [documentsFeatureKey]: documentsReducer,
+  [assignmentsFeatureKey]: assignmentsReducer,
 };

@@ -22,6 +22,10 @@ import {
   FormDefinition,
   FormSubmission,
   TransitionOption,
+  CaseTypeDefinition,
+  CaseInstance, CaseCreateRequest, CaseUpdateRequest,
+  StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
+  Assignment, AssignmentCompleteRequest, AssignmentReassignRequest,
 } from '../models';
 import { DataService } from './data.service';
 
@@ -1204,4 +1208,24 @@ export class MockDataService extends DataService {
   getFormSubmissions(caseId?: string, formId?: string): Observable<FormSubmission[]> {
     return of([]).pipe(delay(200));
   }
+
+  // ─── Pega-Lite Stubs (mock not yet implemented) ──
+  getCaseTypeDefinitions(): Observable<CaseTypeDefinition[]> { return of([] as CaseTypeDefinition[]).pipe(delay(200)); }
+  getCaseTypeDefinitionById(id: string): Observable<CaseTypeDefinition> { return of({} as CaseTypeDefinition).pipe(delay(200)); }
+  getCaseInstances(filters?: Record<string, string>): Observable<CaseInstance[]> { return of([] as CaseInstance[]).pipe(delay(200)); }
+  getCaseInstanceById(id: string): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(200)); }
+  createCaseInstance(req: CaseCreateRequest): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  updateCaseInstance(id: string, req: CaseUpdateRequest): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  completeStep(caseId: string, stepId: string, req: StepCompleteRequest): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  advanceStage(caseId: string, req?: AdvanceStageRequest): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  changeStage(caseId: string, req: ChangeStageRequest): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  resolveCase(caseId: string): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  withdrawCase(caseId: string): Observable<CaseInstance> { return of({} as CaseInstance).pipe(delay(300)); }
+  getAssignments(filters?: Record<string, string>): Observable<Assignment[]> { return of([] as Assignment[]).pipe(delay(200)); }
+  getMyAssignments(): Observable<Assignment[]> { return of([] as Assignment[]).pipe(delay(200)); }
+  getAssignmentById(id: string): Observable<Assignment> { return of({} as Assignment).pipe(delay(200)); }
+  completeAssignment(id: string, req: AssignmentCompleteRequest): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
+  reassignAssignment(id: string, req: AssignmentReassignRequest): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
+  holdAssignment(id: string): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
+  resumeAssignment(id: string): Observable<Assignment> { return of({} as Assignment).pipe(delay(300)); }
 }

@@ -127,6 +127,22 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
             </a>
           </mat-nav-list>
 
+          <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Worker Portal</p>
+          <mat-nav-list class="px-2">
+            <a mat-list-item routerLink="/portal" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>space_dashboard</mat-icon>
+              <span matListItemTitle>Portal Home</span>
+            </a>
+            <a mat-list-item routerLink="/portal/worklist" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>assignment_ind</mat-icon>
+              <span matListItemTitle>Worklist</span>
+            </a>
+            <a mat-list-item routerLink="/portal/cases" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <mat-icon matListItemIcon>cases</mat-icon>
+              <span matListItemTitle>Case Instances</span>
+            </a>
+          </mat-nav-list>
+
           @if (currentUserData?.role === 'ADMIN' || currentUserData?.role === 'MANAGER') {
             <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tools</p>
             <mat-nav-list class="px-2">

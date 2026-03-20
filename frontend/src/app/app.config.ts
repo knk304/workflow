@@ -15,6 +15,7 @@ import { CommentsEffects } from './state/comments/comments.effects';
 import { WorkflowsEffects } from './state/workflows/workflows.effects';
 import { ApprovalsEffects } from './state/approvals/approvals.effects';
 import { DocumentsEffects } from './state/documents/documents.effects';
+import { AssignmentsEffects } from './state/assignments/assignments.effects';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { serviceProviders } from './core/services/service-providers';
 import { environment } from '../environments/environment';
@@ -51,6 +52,7 @@ export const appConfig: ApplicationConfig = {
         WorkflowsEffects,
         ApprovalsEffects,
         DocumentsEffects,
+        AssignmentsEffects,
       ]),
 
       // Store Devtools (only in development)
