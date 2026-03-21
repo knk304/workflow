@@ -86,7 +86,7 @@ import { filter, take } from 'rxjs/operators';
               <div class="mb-6">
                 <h3 class="text-sm font-semibold text-slate-700 mb-3">2. Case Details</h3>
                 <div class="space-y-4">
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field class="w-full">
                     <mat-label>Case Title</mat-label>
                     <input matInput formControlName="title" placeholder="Enter case title">
                     @if (form.get('title')?.hasError('required') && form.get('title')?.touched) {
@@ -94,13 +94,13 @@ import { filter, take } from 'rxjs/operators';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field class="w-full">
                     <mat-label>Description</mat-label>
                     <textarea matInput formControlName="description" rows="3"
                               placeholder="Describe the case..."></textarea>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field class="w-full">
                     <mat-label>Priority</mat-label>
                     <mat-select formControlName="priority">
                       <mat-option value="low">Low</mat-option>

@@ -10,6 +10,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
@@ -37,6 +38,7 @@ import {
     MatInputModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatTooltipModule,
   ],
   template: `
     <div class="space-y-4">
@@ -55,12 +57,12 @@ import {
       <mat-card class="!rounded-xl !shadow-sm border border-slate-100">
         <mat-card-content class="!pt-4">
           <div class="flex flex-wrap gap-3 items-end">
-            <mat-form-field appearance="outline" class="flex-1 min-w-[200px]">
+            <mat-form-field class="flex-1 min-w-[200px]">
               <mat-label>Search</mat-label>
               <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="Search cases...">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
-            <mat-form-field appearance="outline" class="w-40">
+            <mat-form-field class="w-40">
               <mat-label>Status</mat-label>
               <mat-select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
                 <mat-option value="">All</mat-option>
@@ -70,7 +72,7 @@ import {
                 <mat-option value="closed">Closed</mat-option>
               </mat-select>
             </mat-form-field>
-            <mat-form-field appearance="outline" class="w-40">
+            <mat-form-field class="w-40">
               <mat-label>Priority</mat-label>
               <mat-select [(ngModel)]="priorityFilter" (ngModelChange)="applyFilters()">
                 <mat-option value="">All</mat-option>
@@ -132,6 +134,29 @@ import {
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="sla">
+              <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">SLA</th>
+              <td mat-cell *matCellDef="let c">
+                @if (c.slaTargetDate) {
+                  <span class="text-xs px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1"
+                        [ngClass]="slaBadge(c)"
+                        [matTooltip]="'Due: ' + (c.slaTargetDate | date:'medium')">
+                    @if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) {
+                      {{ -c.slaDaysRemaining }}d overdue
+                    } @else if (c.slaDaysRemaining != null && c.slaDaysRemaining === 0) {
+                      Due today
+                    } @else if (c.slaDaysRemaining != null) {
+                      {{ c.slaDaysRemaining }}d left
+                    } @else {
+                      {{ c.slaTargetDate | date:'shortDate' }}
+                    }
+                  </span>
+                } @else {
+                  <span class="text-xs text-slate-300">—</span>
+                }
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="created">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Created</th>
               <td mat-cell *matCellDef="let c">
@@ -167,7 +192,7 @@ import {
 export class PortalCaseListComponent implements OnInit {
   allCases: CaseInstance[] = [];
   filteredCases: CaseInstance[] = [];
-  displayedColumns = ['title', 'caseType', 'status', 'priority', 'stage', 'created'];
+  displayedColumns = ['title', 'caseType', 'status', 'priority', 'stage', 'sla', 'created'];
   searchTerm = '';
   statusFilter = '';
   priorityFilter = '';
@@ -222,5 +247,11 @@ export class PortalCaseListComponent implements OnInit {
       medium: 'bg-yellow-100 text-yellow-700',
       low: 'bg-green-100 text-green-700',
     }[priority] || 'bg-slate-100 text-slate-600';
+  }
+
+  slaBadge(c: CaseInstance): string {
+    if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) return 'bg-red-100 text-red-700';
+    if (c.slaDaysRemaining != null && c.slaDaysRemaining <= 2) return 'bg-amber-100 text-amber-700';
+    return 'bg-slate-100 text-slate-600';
   }
 }

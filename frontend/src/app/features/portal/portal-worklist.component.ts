@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -8,6 +8,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { Assignment } from '@core/models';
@@ -32,6 +33,7 @@ import {
     MatTabsModule,
     MatMenuModule,
     MatDividerModule,
+    MatSnackBarModule,
   ],
   template: `
     <div class="space-y-4">
@@ -203,7 +205,7 @@ export class PortalWorklistComponent implements OnInit {
   allAssignments$: Observable<Assignment[]> = this.store.select(selectAllAssignments);
   isLoading$: Observable<boolean> = this.store.select(selectAssignmentsLoading);
 
-  constructor(private store: Store) {}
+  constructor(private store: Store, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
     this.refreshAll();
@@ -222,14 +224,17 @@ export class PortalWorklistComponent implements OnInit {
     this.store.dispatch(
       AssignmentsActions.completeAssignment({ id: a.id, request: { formData: {} } })
     );
+    this.snackBar.open(`Assignment "${a.stepName || a.name}" completed`, 'OK', { duration: 3000 });
   }
 
   onHold(a: Assignment): void {
     this.store.dispatch(AssignmentsActions.holdAssignment({ id: a.id }));
+    this.snackBar.open(`Assignment "${a.stepName || a.name}" put on hold`, 'OK', { duration: 3000 });
   }
 
   onResume(a: Assignment): void {
     this.store.dispatch(AssignmentsActions.resumeAssignment({ id: a.id }));
+    this.snackBar.open(`Assignment "${a.stepName || a.name}" resumed`, 'OK', { duration: 3000 });
   }
 
   priorityBar(priority: string): string {

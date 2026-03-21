@@ -55,12 +55,17 @@ async def instantiate_case(
         for proc_def in stage_def.get("processes", []):
             steps_runtime = []
             for step_def in proc_def.get("steps", []):
+                step_config = step_def.get("config", {})
                 steps_runtime.append({
                     "definition_id": step_def["id"],
                     "name": step_def["name"],
                     "type": step_def["type"],
                     "status": "pending",
                     "order": step_def.get("order", 0),
+                    "required": step_def.get("required", True),
+                    "config": step_config,
+                    "form_fields": step_config.get("form_fields", []),
+                    "sla_hours": step_def.get("sla_hours"),
                     "started_at": None,
                     "completed_at": None,
                     "assigned_to": None,

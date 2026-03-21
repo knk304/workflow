@@ -276,7 +276,7 @@ async def execute_copilot_action(
             "created_by": str(user.get("_id", "")),
             "generated_by_ai": True,
         }
-        result = await db.form_definitions.insert_one(doc)
+        result = await db.case_forms.insert_one(doc)
         return {"status": "created", "id": str(result.inserted_id), "type": "form"}
 
     if action == "create_workflow":

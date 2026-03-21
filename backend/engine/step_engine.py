@@ -68,6 +68,22 @@ async def activate_step(case_id: str, stage_id: str, process_id: str,
     await _update_step_status(case_id, stage_id, process_id, step_def_id,
                               "in_progress", now, db, set_started=True)
 
+    # Resolve form fields for human steps (assignment, approval, attachment)
+    # Populate from FormDefinition if form_id is set and no inline form_fields
+    if step["type"] in ("assignment", "approval", "attachment"):
+        config = step_config.get("config", {}) if step_config else {}
+        # Also check runtime step config as fallback
+        runtime_config = step.get("config") or {}
+        inline_fields = config.get("form_fields") or runtime_config.get("form_fields") or []
+        form_id = config.get("form_id") or runtime_config.get("form_id")
+        if not inline_fields and form_id:
+            form_def = await db.case_forms.find_one({"_id": form_id})
+            if form_def:
+                inline_fields = form_def.get("fields", [])
+        if inline_fields:
+            await _update_step_extras(case_id, stage_id, process_id, step_def_id,
+                                      {"form_fields": inline_fields}, now, db)
+
     # Update current pointers
     await db.cases.update_one({"_id": case_id}, {"$set": {
         "current_stage_id": stage_id,
@@ -145,8 +161,11 @@ async def complete_step(case_id: str, step_def_id: str, data: dict, user: dict, 
     if not step:
         raise ValueError(f"Step {step_def_id} not found in case {case_id}")
 
+    if step["status"] == "completed":
+        # Already completed — idempotent, just return current case state
+        return await db.cases.find_one({"_id": case_id})
     if step["status"] not in ("in_progress", "waiting"):
-        raise ValueError(f"Step {step_def_id} is not active (status: {step['status']})")
+        raise ValueError(f"Step {step_def_id} is not active (status: {step['status']})") 
 
     # Load config from case type definition
     case_type_def = await db.case_type_definitions.find_one({"_id": case["case_type_id"]})
@@ -324,6 +343,26 @@ async def _skip_steps_between(case_id: str, stage_id: str, process_id: str,
                         if skipping and step["status"] == "pending":
                             step["status"] = "skipped"
                             step["skipped_reason"] = f"decision branch skipped to {to_step_id}"
+                    break
+            break
+    await db.cases.update_one({"_id": case_id}, {"$set": {"stages": stages, "updated_at": now}})
+
+
+async def _update_step_extras(case_id: str, stage_id: str, process_id: str,
+                               step_def_id: str, extras: dict, now: str, db):
+    """Update extra fields on a step (e.g. form_fields) without changing status."""
+    case = await db.cases.find_one({"_id": case_id})
+    if not case:
+        return
+    stages = case.get("stages", [])
+    for stage in stages:
+        if stage["definition_id"] == stage_id:
+            for proc in stage.get("processes", []):
+                if proc["definition_id"] == process_id:
+                    for step in proc.get("steps", []):
+                        if step["definition_id"] == step_def_id:
+                            step.update(extras)
+                            break
                     break
             break
     await db.cases.update_one({"_id": case_id}, {"$set": {"stages": stages, "updated_at": now}})

@@ -35,12 +35,12 @@ import { DataService } from '@core/services/data.service';
       </mat-card-header>
       <mat-card-content class="!p-4">
         <div class="space-y-4">
-          <mat-form-field class="w-full" appearance="outline">
+          <mat-form-field class="w-full" >
             <mat-label>Process Name</mat-label>
             <input matInput [(ngModel)]="process.name" (ngModelChange)="emitChange()">
           </mat-form-field>
 
-          <mat-form-field class="w-full" appearance="outline">
+          <mat-form-field class="w-full" >
             <mat-label>Type</mat-label>
             <mat-select [(ngModel)]="process.type" (ngModelChange)="onTypeChange()">
               <mat-option value="sequential">Sequential</mat-option>
@@ -48,12 +48,12 @@ import { DataService } from '@core/services/data.service';
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field class="w-full" appearance="outline">
+          <mat-form-field class="w-full" >
             <mat-label>SLA (hours)</mat-label>
             <input matInput type="number" [(ngModel)]="process.slaHours" (ngModelChange)="emitChange()" min="0">
           </mat-form-field>
 
-          <mat-form-field class="w-full" appearance="outline">
+          <mat-form-field class="w-full" >
             <mat-label>Linked Flow</mat-label>
             <mat-select [(ngModel)]="process.flowId" (ngModelChange)="emitChange()">
               <mat-option [value]="null">— None —</mat-option>

@@ -331,9 +331,9 @@ async def _insert_all(db):
     # COUNTERS (for case ID sequencing)
     # ═══════════════════════════════════════════════════════════
     counters = [
-        {"_id": "LOAN", "seq": 3},   # 3 loan cases seeded
-        {"_id": "KYC", "seq": 3},    # 3 KYC cases
-        {"_id": "CLM", "seq": 3},    # 3 claims cases
+        {"_id": "case_LOAN", "seq": 3},   # 3 loan cases seeded
+        {"_id": "case_KYC", "seq": 3},    # 3 KYC cases
+        {"_id": "case_CLM", "seq": 3},    # 3 claims cases
     ]
     await db.counters.insert_many(counters)
 

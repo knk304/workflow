@@ -320,6 +320,7 @@ export interface StepConfig {
   assigneeRole?: string;
   assigneeUserId?: string;
   formId?: string;
+  formFields?: FormField[];
   instructions?: string;
   setCaseStatus?: string;
   mode?: string;
@@ -439,6 +440,7 @@ export interface StepInstance {
   status: ItemStatus;
   order: number;
   description?: string;
+  config?: Record<string, any>;
   formFields?: any[];
   startedAt?: string | null;
   completedAt?: string | null;

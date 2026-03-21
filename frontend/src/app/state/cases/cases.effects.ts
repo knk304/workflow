@@ -102,9 +102,24 @@ export class CasesEffects {
       ofType(CasesActions.completeStep),
       mergeMap(({ caseId, stepId, request }) =>
         this.dataService.completeStep(caseId, stepId, request).pipe(
-          map((instance) => CasesActions.completeStepSuccess({ instance })),
+          mergeMap((instance) =>
+            // Dispatch success + a re-fetch to guarantee UI reflects new step state
+            this.dataService.getCaseInstanceById(instance.id).pipe(
+              mergeMap((fresh) => [
+                CasesActions.completeStepSuccess({ instance: fresh }),
+                CasesActions.loadCaseInstanceSuccess({ instance: fresh }),
+              ]),
+              catchError(() => [
+                CasesActions.completeStepSuccess({ instance }),
+                CasesActions.loadCaseInstanceSuccess({ instance }),
+              ])
+            )
+          ),
           catchError((error) =>
-            of(CasesActions.completeStepFailure({ error: error.message }))
+            of(
+              CasesActions.completeStepFailure({ error: error.message }),
+              CasesActions.loadCaseInstance({ id: caseId }),
+            )
           )
         )
       )
@@ -116,7 +131,10 @@ export class CasesEffects {
       ofType(CasesActions.advanceStage),
       mergeMap(({ caseId, request }) =>
         this.dataService.advanceStage(caseId, request).pipe(
-          map((instance) => CasesActions.advanceStageSuccess({ instance })),
+          mergeMap((instance) => [
+            CasesActions.advanceStageSuccess({ instance }),
+            CasesActions.loadCaseInstanceSuccess({ instance }),
+          ]),
           catchError((error) =>
             of(CasesActions.advanceStageFailure({ error: error.message }))
           )
@@ -130,7 +148,10 @@ export class CasesEffects {
       ofType(CasesActions.changeStage),
       mergeMap(({ caseId, request }) =>
         this.dataService.changeStage(caseId, request).pipe(
-          map((instance) => CasesActions.changeStageSuccess({ instance })),
+          mergeMap((instance) => [
+            CasesActions.changeStageSuccess({ instance }),
+            CasesActions.loadCaseInstanceSuccess({ instance }),
+          ]),
           catchError((error) =>
             of(CasesActions.changeStageFailure({ error: error.message }))
           )

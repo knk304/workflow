@@ -80,16 +80,16 @@ import {
 
       <!-- Description & Metadata -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <mat-form-field class="w-full" appearance="outline">
+        <mat-form-field class="w-full" >
           <mat-label>Description</mat-label>
           <textarea matInput [(ngModel)]="dt.description" rows="2"></textarea>
         </mat-form-field>
         <div class="space-y-2">
-          <mat-form-field class="w-full" appearance="outline">
+          <mat-form-field class="w-full" >
             <mat-label>Inputs (comma-separated)</mat-label>
             <input matInput [ngModel]="inputsStr" (ngModelChange)="onInputsChange($event)" placeholder="loan_amount, loan_type">
           </mat-form-field>
-          <mat-form-field class="w-full" appearance="outline">
+          <mat-form-field class="w-full" >
             <mat-label>Output Field</mat-label>
             <input matInput [(ngModel)]="dt.outputField" placeholder="approval_tier">
           </mat-form-field>
@@ -188,7 +188,7 @@ import {
         <mat-card-content class="!p-4">
           <div class="flex flex-wrap gap-3 items-end">
             @for (inp of dt.inputs; track inp) {
-              <mat-form-field appearance="outline" class="!w-40">
+              <mat-form-field class="!w-40">
                 <mat-label>{{ inp }}</mat-label>
                 <input matInput [(ngModel)]="testInputs[inp]" placeholder="value">
               </mat-form-field>

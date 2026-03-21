@@ -383,7 +383,45 @@ export class ApiDataService extends DataService {
       skipWhen: raw.skip_when,
       visibleWhen: raw.visible_when,
       slaHours: raw.sla_hours,
-      config: raw.config ?? {},
+      config: this.deserializeStepConfig(raw.config ?? {}),
+    };
+  }
+
+  private deserializeStepConfig(c: any): Record<string, any> {
+    if (!c) return {};
+    return {
+      assigneeRole: c.assignee_role ?? c.assigneeRole,
+      assigneeUserId: c.assignee_user_id ?? c.assigneeUserId,
+      formId: c.form_id ?? c.formId,
+      formFields: c.form_fields ?? c.formFields ?? [],
+      instructions: c.instructions,
+      setCaseStatus: c.set_case_status ?? c.setCaseStatus,
+      mode: c.mode,
+      approverRoles: c.approver_roles ?? c.approverRoles,
+      approverUserIds: c.approver_user_ids ?? c.approverUserIds,
+      allowDelegation: c.allow_delegation ?? c.allowDelegation,
+      rejectionStageId: c.rejection_stage_id ?? c.rejectionStageId,
+      categories: c.categories,
+      minFiles: c.min_files ?? c.minFiles,
+      allowedTypes: c.allowed_types ?? c.allowedTypes,
+      maxFileSizeMb: c.max_file_size_mb ?? c.maxFileSizeMb,
+      branches: (c.branches ?? []).map((b: any) => ({
+        id: b.id, label: b.label, condition: b.condition,
+        nextStepId: b.next_step_id ?? b.nextStepId,
+      })),
+      decisionTableId: c.decision_table_id ?? c.decisionTableId,
+      defaultStepId: c.default_step_id ?? c.defaultStepId,
+      actions: c.actions,
+      rules: c.rules,
+      webhook: c.webhook ? {
+        url: c.webhook.url, method: c.webhook.method, headers: c.webhook.headers,
+        bodyTemplate: c.webhook.body_template ?? c.webhook.bodyTemplate,
+        responseMap: c.webhook.response_map ?? c.webhook.responseMap,
+      } : undefined,
+      childCaseTypeId: c.child_case_type_id ?? c.childCaseTypeId,
+      fieldMapping: c.field_mapping ?? c.fieldMapping,
+      waitForResolution: c.wait_for_resolution ?? c.waitForResolution,
+      propagateFields: c.propagate_fields ?? c.propagateFields,
     };
   }
 
@@ -466,6 +504,7 @@ export class ApiDataService extends DataService {
       status: raw.status ?? 'pending',
       order: raw.order ?? 0,
       description: raw.description ?? '',
+      config: raw.config ?? {},
       formFields: raw.form_fields ?? [],
       startedAt: raw.started_at,
       completedAt: raw.completed_at,
@@ -727,7 +766,8 @@ export class ApiDataService extends DataService {
     if (!c) return {};
     return {
       assignee_role: c.assigneeRole, assignee_user_id: c.assigneeUserId,
-      form_id: c.formId, instructions: c.instructions,
+      form_id: c.formId, form_fields: c.formFields ?? [],
+      instructions: c.instructions,
       set_case_status: c.setCaseStatus, mode: c.mode,
       approver_roles: c.approverRoles, approver_user_ids: c.approverUserIds,
       allow_delegation: c.allowDelegation, rejection_stage_id: c.rejectionStageId,

@@ -37,22 +37,71 @@ router = APIRouter(prefix="/api/cases", tags=["cases"])
 
 # ── Helpers ─────────────────────────────────────────────────
 
-def _case_to_response(doc: dict) -> dict:
+async def _case_to_response(doc: dict) -> dict:
     """Convert MongoDB document to CaseResponse-compatible dict."""
+    db = get_db()
+
+    # Compute current_stage_index from current_stage_id
+    stages = doc.get("stages", [])
+    current_stage_id = doc.get("current_stage_id")
+    current_stage_index = 0
+    if current_stage_id and stages:
+        for i, s in enumerate(stages):
+            if s.get("definition_id") == current_stage_id:
+                current_stage_index = i
+                break
+
+    # Hydrate form_fields for steps that have a form_id but empty form_fields.
+    # Also tries to recover form_id from blueprint or by case_type+stage match.
+    form_cache: dict = {}
+    case_type_id = doc.get("case_type_id")
+
+    for stage in stages:
+        for proc in stage.get("processes", []):
+            for step in proc.get("steps", []):
+                if step.get("form_fields"):
+                    continue  # already has fields
+
+                cfg = step.get("config") or {}
+                form_id = cfg.get("form_id")
+
+                # If no form_id in runtime config, try case_type + stage match
+                if not form_id and case_type_id and step.get("type") in ("assignment", "approval", "attachment"):
+                    stage_name = stage.get("definition_id", "").replace("stage-", "")
+                    cache_key = f"_lookup_{case_type_id}_{stage_name}"
+                    if cache_key not in form_cache:
+                        matched = await db.case_forms.find_one({
+                            "case_type_id": case_type_id,
+                            "stage": stage_name,
+                        })
+                        form_cache[cache_key] = matched.get("fields", []) if matched else []
+                    if form_cache[cache_key]:
+                        step["form_fields"] = form_cache[cache_key]
+                        continue
+
+                if form_id:
+                    if form_id not in form_cache:
+                        form_doc = await db.case_forms.find_one({"_id": form_id})
+                        form_cache[form_id] = form_doc.get("fields", []) if form_doc else []
+                    if form_cache[form_id]:
+                        step["form_fields"] = form_cache[form_id]
+
     return {
         "id": str(doc["_id"]),
         "case_type_id": doc.get("case_type_id", ""),
         "case_type_name": doc.get("case_type_name", ""),
         "title": doc.get("title", ""),
+        "description": doc.get("description", ""),
         "status": doc.get("status", "open"),
         "priority": doc.get("priority", "medium"),
         "owner_id": doc.get("owner_id", ""),
         "team_id": doc.get("team_id"),
         "custom_fields": doc.get("custom_fields", {}),
+        "current_stage_index": current_stage_index,
         "current_stage_id": doc.get("current_stage_id"),
         "current_process_id": doc.get("current_process_id"),
         "current_step_id": doc.get("current_step_id"),
-        "stages": doc.get("stages", []),
+        "stages": stages,
         "created_by": doc.get("created_by", ""),
         "created_at": doc.get("created_at", ""),
         "updated_at": doc.get("updated_at", ""),
@@ -95,7 +144,7 @@ async def create_case(body: CaseCreateRequest, user: dict = Depends(get_current_
     )
     if not case:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case type not found")
-    return _case_to_response(case)
+    return await _case_to_response(case)
 
 
 # ── List ────────────────────────────────────────────────────
@@ -137,7 +186,7 @@ async def list_cases(
     cursor = db.cases.find(query).sort("updated_at", -1).skip(skip).limit(limit)
     results = []
     async for doc in cursor:
-        results.append(_case_to_response(doc))
+        results.append(await _case_to_response(doc))
     return results
 
 
@@ -149,7 +198,7 @@ async def get_case(case_id: str, user: dict = Depends(get_current_user)):
     doc = await db.cases.find_one({"_id": case_id})
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
-    return _case_to_response(doc)
+    return await _case_to_response(doc)
 
 
 # ── Update ──────────────────────────────────────────────────
@@ -183,7 +232,7 @@ async def update_case(case_id: str, body: CaseUpdateRequest, user: dict = Depend
     await db.cases.update_one({"_id": case_id}, {"$set": updates})
     await _write_audit(db, case_id, "updated", user, changes)
     updated = await db.cases.find_one({"_id": case_id})
-    return _case_to_response(updated)
+    return await _case_to_response(updated)
 
 
 # ── Step Complete ───────────────────────────────────────────
@@ -207,7 +256,7 @@ async def complete_case_step(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
 
     updated = await db.cases.find_one({"_id": case_id})
-    return _case_to_response(updated)
+    return await _case_to_response(updated)
 
 
 # ── Manual Advance Stage ───────────────────────────────────
@@ -222,7 +271,7 @@ async def advance_stage(
         case = await manual_advance_stage(case_id, user)
     except TransitionDeniedError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
-    return _case_to_response(case)
+    return await _case_to_response(case)
 
 
 # ── Change Stage ────────────────────────────────────────────
@@ -237,7 +286,7 @@ async def change_case_stage(
         case = await change_stage(case_id, body.target_stage_id, body.reason, user)
     except TransitionDeniedError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
-    return _case_to_response(case)
+    return await _case_to_response(case)
 
 
 # ── Resolve ─────────────────────────────────────────────────
@@ -252,7 +301,7 @@ async def resolve_case_endpoint(
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
     case = await resolve_case(case_id, "resolved_completed", user)
-    return _case_to_response(case)
+    return await _case_to_response(case)
 
 
 # ── Withdraw ────────────────────────────────────────────────
@@ -267,7 +316,7 @@ async def withdraw_case(
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case not found")
     case = await resolve_case(case_id, "withdrawn", user)
-    return _case_to_response(case)
+    return await _case_to_response(case)
 
 
 # ── Audit History ───────────────────────────────────────────

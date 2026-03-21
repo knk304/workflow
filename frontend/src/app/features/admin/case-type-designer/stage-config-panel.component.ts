@@ -43,7 +43,7 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
           <!-- General Tab -->
           <mat-tab label="General">
             <div class="space-y-4 pt-4">
-              <mat-form-field class="w-full" appearance="outline">
+              <mat-form-field class="w-full" >
                 <mat-label>Stage Name</mat-label>
                 <input matInput [(ngModel)]="stage.name" (ngModelChange)="emitChange()">
               </mat-form-field>
@@ -69,7 +69,7 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
               </div>
 
               @if (stage.onComplete === 'resolve_case') {
-                <mat-form-field class="w-full" appearance="outline">
+                <mat-form-field class="w-full" >
                   <mat-label>Resolution Status</mat-label>
                   <mat-select [(ngModel)]="stage.resolutionStatus" (ngModelChange)="emitChange()">
                     <mat-option value="resolved_completed">Completed</mat-option>
@@ -80,7 +80,7 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
                 </mat-form-field>
               }
 
-              <mat-form-field class="w-full" appearance="outline">
+              <mat-form-field class="w-full" >
                 <mat-label>SLA (hours)</mat-label>
                 <input matInput type="number" [(ngModel)]="stage.slaHours" (ngModelChange)="emitChange()" min="0">
               </mat-form-field>
