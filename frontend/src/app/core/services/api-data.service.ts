@@ -3,14 +3,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  User, Team, CaseType, Case, Task, KanbanBoard,
+  User, Team,
   Comment, Notification, AuditLog,
   Workflow, WorkflowValidationResult,
   ApprovalChain, ApprovalDecision, ApprovalDelegation,
   Document, DocumentVersion,
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
-  TransitionOption,
   CaseTypeDefinition, CaseTypeCreateRequest, CaseTypeUpdateRequest,
   StageDefinition, ProcessDefinition, StepDefinition,
   CaseInstance, StageInstance, ProcessInstance, StepInstance,
@@ -27,7 +26,6 @@ import { environment } from '../../../environments/environment';
 @Injectable()
 export class ApiDataService extends DataService {
   private readonly caseUrl = environment.caseApiUrl;
-  private readonly taskUrl = environment.taskApiUrl;
   private readonly notifyUrl = environment.notifyApiUrl;
   private readonly authUrl = environment.authApiUrl;
 
@@ -75,89 +73,6 @@ export class ApiDataService extends DataService {
 
   deleteTeam(id: string): Observable<void> {
     return this.http.delete<void>(`${this.authUrl}/teams/${id}`);
-  }
-
-  // ─── Case Types ──────────────────────────────────
-  getCaseTypes(): Observable<CaseType[]> {
-    return this.http.get<CaseType[]>(`${this.caseUrl}/case-types`);
-  }
-
-  createCaseType(ct: { name: string; slug: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType> {
-    return this.http.post<CaseType>(`${this.caseUrl}/case-types`, ct);
-  }
-
-  updateCaseType(id: string, updates: { name?: string; slug?: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType> {
-    return this.http.patch<CaseType>(`${this.caseUrl}/case-types/${id}`, updates);
-  }
-
-  deleteCaseType(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.caseUrl}/case-types/${id}`);
-  }
-
-  // ─── Cases ───────────────────────────────────────
-  getCases(filters?: Record<string, string>): Observable<Case[]> {
-    let params = new HttpParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, val]) => {
-        if (val) { params = params.set(key, val); }
-      });
-    }
-    return this.http.get<Case[]>(`${this.caseUrl}/cases`, { params });
-  }
-
-  getCaseById(id: string): Observable<Case | undefined> {
-    return this.http.get<Case>(`${this.caseUrl}/cases/${id}`);
-  }
-
-  createCase(caseData: Partial<Case>): Observable<Case> {
-    return this.http.post<Case>(`${this.caseUrl}/cases`, caseData);
-  }
-
-  updateCase(caseId: string, updates: Partial<Case>): Observable<Case> {
-    return this.http.patch<Case>(`${this.caseUrl}/cases/${caseId}`, updates);
-  }
-
-  transitionCase(caseId: string, action: string, notes?: string): Observable<Case> {
-    return this.http.patch<Case>(`${this.caseUrl}/cases/${caseId}/stage`, { action, notes });
-  }
-
-  getAvailableTransitions(caseId: string): Observable<TransitionOption[]> {
-    return this.http.get<TransitionOption[]>(`${this.caseUrl}/cases/${caseId}/transitions`);
-  }
-
-  // ─── Tasks ───────────────────────────────────────
-  getTasks(filters?: Record<string, string>): Observable<Task[]> {
-    let params = new HttpParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, val]) => {
-        if (val) { params = params.set(key, val); }
-      });
-    }
-    return this.http.get<Task[]>(`${this.taskUrl}/tasks`, { params });
-  }
-
-  getTaskById(id: string): Observable<Task | undefined> {
-    return this.http.get<Task>(`${this.taskUrl}/tasks/${id}`);
-  }
-
-  getTasksByStatus(status: string): Observable<Task[]> {
-    return this.http.get<Task[]>(`${this.taskUrl}/tasks`, {
-      params: new HttpParams().set('status', status),
-    });
-  }
-
-  getKanbanBoard(caseId?: string): Observable<KanbanBoard> {
-    let params = new HttpParams();
-    if (caseId) { params = params.set('caseId', caseId); }
-    return this.http.get<KanbanBoard>(`${this.taskUrl}/tasks/kanban`, { params });
-  }
-
-  createTask(task: Partial<Task>): Observable<Task> {
-    return this.http.post<Task>(`${this.taskUrl}/tasks`, task);
-  }
-
-  updateTask(taskId: string, updates: Partial<Task>): Observable<Task> {
-    return this.http.patch<Task>(`${this.taskUrl}/tasks/${taskId}`, updates);
   }
 
   // ─── Comments ────────────────────────────────────

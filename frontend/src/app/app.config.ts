@@ -9,7 +9,6 @@ import { routes } from './app.routes';
 import { appReducers } from './state/app.state';
 import { AuthEffects } from './state/auth/auth.effects';
 import { CasesEffects } from './state/cases/cases.effects';
-import { TasksEffects } from './state/tasks/tasks.effects';
 import { NotificationsEffects } from './state/notifications/notifications.effects';
 import { CommentsEffects } from './state/comments/comments.effects';
 import { WorkflowsEffects } from './state/workflows/workflows.effects';
@@ -48,7 +47,6 @@ export const appConfig: ApplicationConfig = {
       EffectsModule.forRoot([
         AuthEffects,
         CasesEffects,
-        TasksEffects,
         NotificationsEffects,
         CommentsEffects,
         WorkflowsEffects,

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,8 +7,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCardModule } from '@angular/material/card';
-import { ProcessDefinition } from '@core/models';
+import { ProcessDefinition, Workflow } from '@core/models';
 import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-builder.component';
+import { DataService } from '@core/services/data.service';
 
 @Component({
   selector: 'app-process-config-panel',
@@ -52,6 +53,17 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
             <input matInput type="number" [(ngModel)]="process.slaHours" (ngModelChange)="emitChange()" min="0">
           </mat-form-field>
 
+          <mat-form-field class="w-full" appearance="outline">
+            <mat-label>Linked Flow</mat-label>
+            <mat-select [(ngModel)]="process.flowId" (ngModelChange)="emitChange()">
+              <mat-option [value]="null">— None —</mat-option>
+              @for (flow of workflows; track flow.id) {
+                <mat-option [value]="flow.id">{{ flow.name }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>Optionally link a flow diagram to this process</mat-hint>
+          </mat-form-field>
+
           <div>
             <label class="text-xs font-medium text-gray-600 mb-2 block">Start When</label>
             <app-rule-builder
@@ -72,12 +84,18 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
     </mat-card>
   `,
 })
-export class ProcessConfigPanelComponent implements OnChanges {
+export class ProcessConfigPanelComponent implements OnChanges, OnInit {
   @Input() process!: ProcessDefinition;
   @Output() processChange = new EventEmitter<ProcessDefinition>();
   @Output() deleteProcess = new EventEmitter<ProcessDefinition>();
 
+  private dataService = inject(DataService);
+  workflows: Workflow[] = [];
   startWhenCondition: RuleCondition | null = null;
+
+  ngOnInit(): void {
+    this.dataService.getWorkflows().subscribe(wfs => this.workflows = wfs);
+  }
 
   ngOnChanges(): void {
     this.startWhenCondition = RuleBuilderComponent.fromApiCondition(this.process.startWhen as any);

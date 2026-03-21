@@ -1,13 +1,12 @@
 import { Observable } from 'rxjs';
 import {
-  User, Team, CaseType, Case, Task, KanbanBoard,
+  User, Team,
   Comment, Notification, AuditLog,
   Workflow, WorkflowValidationResult,
   ApprovalChain, ApprovalDecision, ApprovalDelegation,
   Document, DocumentVersion,
   SLADashboard, SLADefinition,
   FormDefinition, FormSubmission,
-  TransitionOption,
   CaseTypeDefinition, CaseTypeCreateRequest, CaseTypeUpdateRequest,
   CaseInstance, CaseCreateRequest, CaseUpdateRequest,
   StepCompleteRequest, AdvanceStageRequest, ChangeStageRequest,
@@ -31,28 +30,6 @@ export abstract class DataService {
   abstract createTeam(team: { name: string; description?: string; memberIds: string[] }): Observable<Team>;
   abstract updateTeam(id: string, updates: { name?: string; description?: string; memberIds?: string[] }): Observable<Team>;
   abstract deleteTeam(id: string): Observable<void>;
-
-  // Case Types
-  abstract getCaseTypes(): Observable<CaseType[]>;
-  abstract createCaseType(ct: { name: string; slug: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType>;
-  abstract updateCaseType(id: string, updates: { name?: string; slug?: string; description?: string; workflowId?: string; fieldsSchema?: Record<string, any> }): Observable<CaseType>;
-  abstract deleteCaseType(id: string): Observable<void>;
-
-  // Cases
-  abstract getCases(filters?: Record<string, string>): Observable<Case[]>;
-  abstract getCaseById(id: string): Observable<Case | undefined>;
-  abstract createCase(caseData: Partial<Case>): Observable<Case>;
-  abstract updateCase(caseId: string, updates: Partial<Case>): Observable<Case>;
-  abstract transitionCase(caseId: string, action: string, notes?: string): Observable<Case>;
-  abstract getAvailableTransitions(caseId: string): Observable<TransitionOption[]>;
-
-  // Tasks
-  abstract getTasks(filters?: Record<string, string>): Observable<Task[]>;
-  abstract getTaskById(id: string): Observable<Task | undefined>;
-  abstract getTasksByStatus(status: string): Observable<Task[]>;
-  abstract getKanbanBoard(caseId?: string): Observable<KanbanBoard>;
-  abstract createTask(task: Partial<Task>): Observable<Task>;
-  abstract updateTask(taskId: string, updates: Partial<Task>): Observable<Task>;
 
   // Comments
   abstract getComments(caseId?: string, taskId?: string): Observable<Comment[]>;

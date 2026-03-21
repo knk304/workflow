@@ -3,14 +3,8 @@ import { authGuard } from './core/guards/auth.guard';
 import { LoginComponent } from './features/auth/login.component';
 import { RegisterComponent } from './features/auth/register.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
-import { CaseListComponent } from './features/cases/case-list.component';
-import { CaseDetailComponent } from './features/cases/case-detail.component';
-import { CaseCreateComponent } from './features/cases/case-create.component';
-import { TaskKanbanComponent } from './features/tasks/task-kanban.component';
 import { AdminUsersComponent } from './features/admin/admin-users.component';
 import { AdminTeamsComponent } from './features/admin/admin-teams.component';
-import { AdminWorkflowsComponent } from './features/admin/admin-workflows.component';
-import { AdminCaseTypesComponent } from './features/admin/admin-case-types.component';
 import { AdminCaseTypeDefinitionsComponent } from './features/admin/admin-case-type-definitions/admin-case-type-definitions.component';
 import { CaseTypeDesignerComponent } from './features/admin/case-type-designer/case-type-designer.component';
 import { AdminDecisionTablesComponent } from './features/admin/admin-decision-tables/admin-decision-tables.component';
@@ -55,31 +49,11 @@ export const routes: Routes = [
         component: DashboardComponent,
         data: { title: 'Dashboard' },
       },
+      // Flow Designer (formerly Workflow Designer)
       {
-        path: 'cases',
-        component: CaseListComponent,
-        data: { title: 'Cases' },
-      },
-      {
-        path: 'cases/new',
-        component: CaseCreateComponent,
-        data: { title: 'Create Case' },
-      },
-      {
-        path: 'cases/:id',
-        component: CaseDetailComponent,
-        data: { title: 'Case Details' },
-      },
-      {
-        path: 'tasks',
-        component: TaskKanbanComponent,
-        data: { title: 'Task Kanban' },
-      },
-      // Phase 2 routes
-      {
-        path: 'workflows',
+        path: 'flows',
         component: WorkflowDesignerComponent,
-        data: { title: 'Workflow Designer' },
+        data: { title: 'Flow Designer' },
       },
       {
         path: 'approvals',
@@ -132,11 +106,6 @@ export const routes: Routes = [
             data: { title: 'Team Management' },
           },
           {
-            path: 'workflows',
-            component: AdminWorkflowsComponent,
-            data: { title: 'Workflow Management' },
-          },
-          {
             path: 'case-types',
             component: AdminCaseTypeDefinitionsComponent,
             data: { title: 'Case Type Definitions' },
@@ -150,11 +119,6 @@ export const routes: Routes = [
             path: 'case-types/:id/designer',
             component: CaseTypeDesignerComponent,
             data: { title: 'Case Type Designer' },
-          },
-          {
-            path: 'case-types-legacy',
-            component: AdminCaseTypesComponent,
-            data: { title: 'Case Type Management (Legacy)' },
           },
           {
             path: 'decision-tables',

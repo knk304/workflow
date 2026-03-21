@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,6 +20,8 @@ import {
   AutomationRule,
 } from '@core/models';
 import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-builder.component';
+import { DataService } from '@core/services/data.service';
+import { FormDefinition } from '@core/models';
 
 @Component({
   selector: 'app-step-config-panel',
@@ -104,8 +106,13 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
               </mat-form-field>
 
               <mat-form-field class="w-full" appearance="outline">
-                <mat-label>Form ID</mat-label>
-                <input matInput [(ngModel)]="step.config.formId" (ngModelChange)="emitChange()" placeholder="Form definition ID">
+                <mat-label>Form</mat-label>
+                <mat-select [(ngModel)]="step.config.formId" (ngModelChange)="emitChange()">
+                  <mat-option [value]="null">— None —</mat-option>
+                  @for (form of formDefinitions; track form.id) {
+                    <mat-option [value]="form.id">{{ form.name }}</mat-option>
+                  }
+                </mat-select>
               </mat-form-field>
 
               <mat-form-field class="w-full" appearance="outline">
@@ -365,10 +372,13 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
     </mat-card>
   `,
 })
-export class StepConfigPanelComponent implements OnChanges {
+export class StepConfigPanelComponent implements OnChanges, OnInit {
   @Input() step!: StepDefinition;
   @Input() caseType!: CaseTypeDefinition;
   @Output() stepChange = new EventEmitter<StepDefinition>();
+
+  private dataService = inject(DataService);
+  formDefinitions: FormDefinition[] = [];
 
   skipWhenCondition: RuleCondition | null = null;
   branchConditions: (RuleCondition | null)[] = [];
@@ -394,6 +404,10 @@ export class StepConfigPanelComponent implements OnChanges {
 
   get alternateStages(): StageDefinition[] {
     return this.caseType?.stages.filter(s => s.stageType === 'alternate') ?? [];
+  }
+
+  ngOnInit(): void {
+    this.dataService.getFormDefinitions().subscribe(forms => this.formDefinitions = forms);
   }
 
   ngOnChanges(): void {

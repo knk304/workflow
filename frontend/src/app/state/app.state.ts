@@ -1,7 +1,6 @@
 // state/app.state.ts
 import { AuthState, authFeatureKey, authReducer } from './auth/auth.reducer';
 import { CasesState, casesFeatureKey, casesReducer } from './cases/cases.reducer';
-import { TasksState, tasksFeatureKey, tasksReducer } from './tasks/tasks.reducer';
 import {
   NotificationsState,
   notificationsFeatureKey,
@@ -46,7 +45,6 @@ import {
 export interface AppState {
   [authFeatureKey]: AuthState;
   [casesFeatureKey]: CasesState;
-  [tasksFeatureKey]: TasksState;
   [notificationsFeatureKey]: NotificationsState;
   [commentsFeatureKey]: CommentsState;
   [workflowsFeatureKey]: WorkflowsState;
@@ -60,7 +58,6 @@ export interface AppState {
 export const appReducers = {
   [authFeatureKey]: authReducer,
   [casesFeatureKey]: casesReducer,
-  [tasksFeatureKey]: tasksReducer,
   [notificationsFeatureKey]: notificationsReducer,
   [commentsFeatureKey]: commentsReducer,
   [workflowsFeatureKey]: workflowsReducer,

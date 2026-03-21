@@ -55,9 +55,9 @@ import {
       <!-- Sidebar: Workflow list + node palette -->
       <aside class="w-64 bg-white border-r flex flex-col">
         <div class="p-4 border-b">
-          <h3 class="text-lg font-semibold mb-3">Workflows</h3>
+          <h3 class="text-lg font-semibold mb-3">Flows</h3>
           <button mat-raised-button color="primary" class="w-full" (click)="newWorkflow()">
-            <mat-icon>add</mat-icon> New Workflow
+            <mat-icon>add</mat-icon> New Flow
           </button>
         </div>
 
@@ -94,7 +94,7 @@ import {
         <mat-toolbar class="!bg-white border-b !h-12 !min-h-[48px]">
           @if (editingWorkflow()) {
             <mat-form-field class="mr-4 !mt-4">
-              <input matInput [(ngModel)]="workflowName" placeholder="Workflow name" class="!text-sm">
+              <input matInput [(ngModel)]="workflowName" placeholder="Flow name" class="!text-sm">
             </mat-form-field>
             <button mat-icon-button matTooltip="Undo" (click)="undo()" [disabled]="!canUndo()">
               <mat-icon>undo</mat-icon>
@@ -127,7 +127,7 @@ import {
               </mat-chip-set>
             }
           } @else {
-            <span class="text-gray-400">Select or create a workflow to begin</span>
+            <span class="text-gray-400">Select or create a flow to begin</span>
           }
         </mat-toolbar>
 
@@ -139,8 +139,8 @@ import {
             <div class="flex items-center justify-center h-full text-gray-400">
               <div class="text-center">
                 <mat-icon class="!text-6xl !w-16 !h-16 mb-4">account_tree</mat-icon>
-                <p class="text-lg">Visual Workflow Designer</p>
-                <p class="text-sm">Create or select a workflow from the sidebar</p>
+                <p class="text-lg">Visual Flow Designer</p>
+                <p class="text-sm">Create or select a flow from the sidebar</p>
               </div>
             </div>
           } @else {
@@ -257,7 +257,7 @@ import {
                       </mat-option>
                     }
                   </mat-select>
-                  <mat-hint>Select a form to present at this workflow step</mat-hint>
+                  <mat-hint>Select a form to present at this flow step</mat-hint>
                 </mat-form-field>
               }
             </div>
@@ -362,7 +362,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
 
     this.editingWorkflow.set({
       id: '',
-      name: 'New Workflow',
+      name: 'New Flow',
       description: '',
       caseTypeId: '',
       definition: { nodes: [startNode, endNode], edges: [] },
@@ -373,7 +373,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
     });
     this.canvasNodes.set([startNode, endNode]);
     this.canvasEdges.set([]);
-    this.workflowName = 'New Workflow';
+    this.workflowName = 'New Flow';
     this.selectedWorkflowId.set(null);
     this.validationResult.set(null);
   }
@@ -535,7 +535,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
         workflow: { name: this.workflowName, definition, caseTypeId: '', description: '' },
       }));
     }
-    this.snackBar.open('Workflow saved', 'OK', { duration: 2000 });
+    this.snackBar.open('Flow saved', 'OK', { duration: 2000 });
   }
 
   validateWorkflow(): void {
@@ -548,8 +548,8 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
       const edges = this.canvasEdges();
       const errors: { field: string; message: string }[] = [];
 
-      if (!nodes.some(n => n.type === 'start')) errors.push({ field: 'nodes', message: 'Workflow must have a Start node' });
-      if (!nodes.some(n => n.type === 'end')) errors.push({ field: 'nodes', message: 'Workflow must have an End node' });
+      if (!nodes.some(n => n.type === 'start')) errors.push({ field: 'nodes', message: 'Flow must have a Start node' });
+      if (!nodes.some(n => n.type === 'end')) errors.push({ field: 'nodes', message: 'Flow must have an End node' });
 
       const nodeIds = new Set(nodes.map(n => n.id));
       edges.forEach(e => {
@@ -569,7 +569,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
     this.selectedWorkflowId.set(null);
     this.canvasNodes.set([]);
     this.canvasEdges.set([]);
-    this.snackBar.open('Workflow deleted', 'OK', { duration: 2000 });
+    this.snackBar.open('Flow deleted', 'OK', { duration: 2000 });
   }
 
   // ─── Undo / Redo ──────────────────────────────

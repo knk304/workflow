@@ -109,14 +109,6 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
               <mat-icon matListItemIcon>dashboard</mat-icon>
               <span matListItemTitle>Dashboard</span>
             </a>
-            <a mat-list-item routerLink="/cases" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
-              <mat-icon matListItemIcon>folder_open</mat-icon>
-              <span matListItemTitle>Cases</span>
-            </a>
-            <a mat-list-item routerLink="/tasks" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
-              <mat-icon matListItemIcon>task_alt</mat-icon>
-              <span matListItemTitle>My Tasks</span>
-            </a>
             <a mat-list-item routerLink="/documents" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
               <mat-icon matListItemIcon>description</mat-icon>
               <span matListItemTitle>Documents</span>
@@ -146,9 +138,9 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
           @if (currentUserData?.role === 'ADMIN' || currentUserData?.role === 'MANAGER') {
             <p class="px-5 py-2 mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tools</p>
             <mat-nav-list class="px-2">
-              <a mat-list-item routerLink="/workflows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
+              <a mat-list-item routerLink="/flows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
                 <mat-icon matListItemIcon>account_tree</mat-icon>
-                <span matListItemTitle>Workflow Designer</span>
+                <span matListItemTitle>Flow Designer</span>
               </a>
               <a mat-list-item routerLink="/forms" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
                 <mat-icon matListItemIcon>dynamic_form</mat-icon>
@@ -171,10 +163,6 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
               <a mat-list-item routerLink="/admin/teams" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
                 <mat-icon matListItemIcon>groups</mat-icon>
                 <span matListItemTitle>Teams</span>
-              </a>
-              <a mat-list-item routerLink="/admin/workflows" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
-                <mat-icon matListItemIcon>account_tree</mat-icon>
-                <span matListItemTitle>Workflows</span>
               </a>
               <a mat-list-item routerLink="/admin/case-types" routerLinkActive="active" class="nav-item rounded-lg mb-0.5">
                 <mat-icon matListItemIcon>category</mat-icon>

@@ -6,10 +6,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { Store } from '@ngrx/store';
-import { selectOpenCases, selectCriticalCases } from '../../state/cases/cases.selectors';
-import { selectMyTasks, selectOverdueTasks } from '../../state/tasks/tasks.selectors';
+import { selectActiveCaseInstances, selectCriticalCaseInstances } from '../../state/cases/cases.selectors';
+import { selectMyAssignments } from '../../state/assignments/assignments.selectors';
 import * as CasesActions from '../../state/cases/cases.actions';
-import * as TasksActions from '../../state/tasks/tasks.actions';
+import * as AssignmentsActions from '../../state/assignments/assignments.actions';
+import { CaseInstance, Assignment } from '@core/models';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,12 +26,12 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Open Cases -->
+        <!-- Active Cases -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Open Cases</p>
-              <p class="text-3xl font-bold text-slate-900 mt-2">{{ openCases.length }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active Cases</p>
+              <p class="text-3xl font-bold text-slate-900 mt-2">{{ activeCases.length }}</p>
             </div>
             <div class="w-11 h-11 rounded-xl bg-[#EAF4FB] flex items-center justify-center">
               <mat-icon class="text-[#056DAE]">folder_open</mat-icon>
@@ -59,12 +60,12 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
           </div>
         </div>
 
-        <!-- My Tasks -->
+        <!-- My Assignments -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">My Tasks</p>
-              <p class="text-3xl font-bold text-slate-900 mt-2">{{ myTasks.length }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">My Assignments</p>
+              <p class="text-3xl font-bold text-slate-900 mt-2">{{ myAssignments.length }}</p>
             </div>
             <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
               <mat-icon class="text-emerald-500">task_alt</mat-icon>
@@ -81,7 +82,7 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Overdue</p>
-              <p class="text-3xl font-bold mt-2" [ngClass]="overdueTasks.length > 0 ? 'text-amber-600' : 'text-slate-900'">{{ overdueTasks.length }}</p>
+              <p class="text-3xl font-bold mt-2" [ngClass]="overdueAssignments.length > 0 ? 'text-amber-600' : 'text-slate-900'">{{ overdueAssignments.length }}</p>
             </div>
             <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center">
               <mat-icon class="text-amber-500">schedule</mat-icon>
@@ -103,20 +104,20 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
               <mat-icon class="text-base text-[#056DAE]">folder_open</mat-icon>
               Recent Cases
             </h3>
-            <a routerLink="/cases" class="text-xs text-[#056DAE] font-semibold hover:text-[#003B70] transition-colors">
+            <a routerLink="/portal/cases" class="text-xs text-[#056DAE] font-semibold hover:text-[#003B70] transition-colors">
               View All
             </a>
           </div>
-          @if (openCases.length > 0) {
+          @if (activeCases.length > 0) {
             <div class="divide-y divide-slate-50">
-              @for (case of openCases | slice:0:5; track case.id) {
-                <a [routerLink]="['/cases', case.id]" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 transition-colors cursor-pointer">
+              @for (c of activeCases | slice:0:5; track c.id) {
+                <a [routerLink]="['/portal/cases', c.id]" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 transition-colors cursor-pointer">
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-slate-800 truncate">{{ case.id }}</p>
-                    <p class="text-xs text-slate-400 truncate">{{ case.fields.applicantName }}</p>
+                    <p class="text-sm font-medium text-slate-800 truncate">{{ c.title || c.id }}</p>
+                    <p class="text-xs text-slate-400 truncate">{{ c.caseTypeName }}</p>
                   </div>
-                  <mat-icon [ngClass]="priorityColor(case.priority)" class="text-base">
-                    {{ priorityIcon(case.priority) }}
+                  <mat-icon [ngClass]="priorityColor(c.priority)" class="text-base">
+                    {{ priorityIcon(c.priority) }}
                   </mat-icon>
                 </a>
               }
@@ -124,38 +125,38 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
           } @else {
             <div class="text-center py-10">
               <mat-icon class="text-4xl text-slate-200">inbox</mat-icon>
-              <p class="text-slate-400 text-xs mt-2">No open cases</p>
+              <p class="text-slate-400 text-xs mt-2">No active cases</p>
             </div>
           }
         </div>
 
-        <!-- Recent Tasks -->
+        <!-- My Assignments -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
               <mat-icon class="text-base text-emerald-400">task_alt</mat-icon>
-              My Recent Tasks
+              My Assignments
             </h3>
-            <a routerLink="/tasks" class="text-xs text-[#056DAE] font-semibold hover:text-[#003B70] transition-colors">
+            <a routerLink="/portal/worklist" class="text-xs text-[#056DAE] font-semibold hover:text-[#003B70] transition-colors">
               View All
             </a>
           </div>
-          @if (myTasks.length > 0) {
+          @if (myAssignments.length > 0) {
             <div class="divide-y divide-slate-50">
-              @for (task of myTasks | slice:0:5; track task.id) {
+              @for (a of myAssignments | slice:0:5; track a.id) {
                 <div class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 transition-colors">
                   <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                       [ngClass]="statusBgColor(task.status)">
-                    <mat-icon class="text-sm" [ngClass]="statusColor(task.status)">
-                      {{ statusIcon(task.status) }}
+                       [ngClass]="statusBgColor(a.status)">
+                    <mat-icon class="text-sm" [ngClass]="statusColor(a.status)">
+                      {{ statusIcon(a.status) }}
                     </mat-icon>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-slate-800 truncate">{{ task.title }}</p>
-                    <p class="text-xs text-slate-400 truncate">{{ task.caseId }}</p>
+                    <p class="text-sm font-medium text-slate-800 truncate">{{ a.name }}</p>
+                    <p class="text-xs text-slate-400 truncate">{{ a.caseTitle }}</p>
                   </div>
-                  <span class="wf-badge text-[10px]" [ngClass]="statusBadge(task.status)">
-                    {{ task.status | uppercase }}
+                  <span class="wf-badge text-[10px]" [ngClass]="statusBadge(a.status)">
+                    {{ a.status | uppercase }}
                   </span>
                 </div>
               }
@@ -163,7 +164,7 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
           } @else {
             <div class="text-center py-10">
               <mat-icon class="text-4xl text-slate-200">check_circle</mat-icon>
-              <p class="text-slate-400 text-xs mt-2">No tasks assigned</p>
+              <p class="text-slate-400 text-xs mt-2">No assignments</p>
             </div>
           }
         </div>
@@ -172,28 +173,26 @@ import * as TasksActions from '../../state/tasks/tasks.actions';
   `,
 })
 export class DashboardComponent implements OnInit {
-  openCases: any[] = [];
-  criticalCases: any[] = [];
-  myTasks: any[] = [];
-  overdueTasks: any[] = [];
+  activeCases: CaseInstance[] = [];
+  criticalCases: CaseInstance[] = [];
+  myAssignments: Assignment[] = [];
+  overdueAssignments: Assignment[] = [];
 
   constructor(private store: Store) {}
 
   ngOnInit(): void {
-    this.store.dispatch(CasesActions.loadCases({}));
-    this.store.dispatch(TasksActions.loadTasks({}));
+    this.store.dispatch(CasesActions.loadCaseInstances({}));
+    this.store.dispatch(AssignmentsActions.loadMyAssignments());
 
-    this.store.select(selectOpenCases).subscribe(cases => {
-      this.openCases = cases;
+    this.store.select(selectActiveCaseInstances).subscribe(cases => {
+      this.activeCases = cases;
     });
-    this.store.select(selectCriticalCases).subscribe(cases => {
+    this.store.select(selectCriticalCaseInstances).subscribe(cases => {
       this.criticalCases = cases;
     });
-    this.store.select(selectMyTasks('user-1')).subscribe(tasks => {
-      this.myTasks = tasks;
-    });
-    this.store.select(selectOverdueTasks).subscribe(tasks => {
-      this.overdueTasks = tasks;
+    this.store.select(selectMyAssignments).subscribe(assignments => {
+      this.myAssignments = assignments;
+      this.overdueAssignments = assignments.filter(a => a.isOverdue);
     });
   }
 
