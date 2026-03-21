@@ -133,50 +133,101 @@ async def _insert_all(db):
             "loanType": {"type": "string", "label": "Loan Type"},
             "applicantName": {"type": "string", "label": "Applicant Name"},
             "applicantIncome": {"type": "number", "label": "Annual Income"},
+            "creditScore": {"type": "number", "label": "Credit Score"},
+            "approvalTier": {"type": "string", "label": "Approval Tier"},
         },
         "stages": [
             _stage("stage-intake", "Intake Review", 1, [
                 _proc("proc-intake", "Application Intake", 1, [
                     _step("step-fill-app", "Fill Application", "assignment", 1,
-                          config={"assignee_role": "WORKER", "form_id": "form-loan-intake"}, sla_hours=24),
+                          config={"assignee_role": "WORKER", "form_id": "form-loan-intake",
+                                  "instructions": "Complete the loan application form with all required fields."}, sla_hours=24),
                 ]),
             ]),
             _stage("stage-docs", "Document Collection", 2, [
                 _proc("proc-docs", "Collect Documents", 1, [
                     _step("step-upload-docs", "Upload Documents", "attachment", 1,
-                          config={"required_categories": ["income", "identity"]}, sla_hours=72),
+                          config={"required_categories": ["income", "identity"],
+                                  "instructions": "Upload income verification and identity documents."}, sla_hours=72),
                     _step("step-verify-docs", "Verify Documents", "assignment", 2,
-                          config={"assignee_role": "WORKER"}, sla_hours=24),
+                          config={"assignee_role": "WORKER",
+                                  "instructions": "Review all uploaded documents for completeness and authenticity."}, sla_hours=24),
                 ]),
             ]),
             _stage("stage-underwriting", "Underwriting", 3, [
                 _proc("proc-risk", "Risk Assessment", 1, [
-                    _step("step-auto-credit", "Auto Credit Check", "automation", 1,
-                          config={"actions": [{"type": "set_field", "config": {"field": "creditChecked", "value": True}}]}),
+                    _step("step-auto-credit", "Auto Credit Check (Webhook)", "automation", 1,
+                          config={
+                              "actions": [
+                                  {"type": "set_field", "config": {"field": "creditChecked", "value": True}},
+                                  {"type": "call_webhook", "config": {
+                                      "url": "https://api.stub.example.com/credit-check",
+                                      "method": "POST",
+                                      "headers": {"Authorization": "Bearer stub-token-123"},
+                                  }},
+                              ],
+                              "webhook": {
+                                  "url": "https://api.stub.example.com/credit-check",
+                                  "method": "POST",
+                                  "headers": {"Authorization": "Bearer stub-token-123", "Content-Type": "application/json"},
+                                  "body_template": {"applicant_name": "{{applicantName}}", "income": "{{applicantIncome}}"},
+                                  "response_map": {"creditScore": "score", "approvalTier": "tier"},
+                              },
+                          }),
                     _step("step-risk-review", "Risk Review", "assignment", 2,
-                          config={"assignee_role": "MANAGER"}, sla_hours=48),
+                          config={"assignee_role": "MANAGER",
+                                  "instructions": "Review credit check results and assess overall risk profile."}, sla_hours=48),
                 ]),
                 _proc("proc-decision", "Approval Decision", 2, [
-                    _step("step-amount-check", "Amount Decision", "decision", 1,
+                    _step("step-routing-decision", "Loan Routing (Decision Table)", "decision", 1,
+                          config={"mode": "decision_table",
+                                  "decision_table_id": "dt-loan-routing"}),
+                    _step("step-amount-check", "Amount Decision", "decision", 2,
                           config={"mode": "first_match", "branches": [
-                              {"id": "branch-high", "label": "High Value",
+                              {"id": "branch-high", "label": "High Value (>100K)",
                                "condition": {"field": "loanAmount", "operator": "gt", "value": 100000},
                                "next_step_id": "step-vp-approval"},
-                              {"id": "branch-standard", "label": "Standard",
+                              {"id": "branch-standard", "label": "Standard (<=100K)",
                                "condition": {"field": "loanAmount", "operator": "lte", "value": 100000},
                                "next_step_id": "step-mgr-approval"},
                           ], "default_step_id": "step-mgr-approval"}),
-                    _step("step-mgr-approval", "Manager Approval", "approval", 2,
+                    _step("step-mgr-approval", "Manager Approval", "approval", 3,
                           config={"mode": "sequential",
                                   "approver_roles": ["MANAGER"],
-                                  "on_reject_stage": "stage-intake"}),
-                    _step("step-vp-approval", "VP Approval", "approval", 3,
+                                  "approver_user_ids": ["user-1"],
+                                  "allow_delegation": True,
+                                  "rejection_stage_id": "stage-rejected",
+                                  "instructions": "Review loan details and approve or reject."}),
+                    _step("step-vp-approval", "VP Approval", "approval", 4,
                           config={"mode": "sequential",
                                   "approver_roles": ["MANAGER", "ADMIN"],
-                                  "on_reject_stage": "stage-underwriting"}),
+                                  "approver_user_ids": ["user-1", "user-admin"],
+                                  "allow_delegation": True,
+                                  "rejection_stage_id": "stage-rejected",
+                                  "instructions": "Executive review required for high-value loans."}),
                 ]),
             ]),
-            _stage("stage-disburse", "Disbursement", 4, [
+            _stage("stage-compliance", "Compliance Review", 4, [
+                _proc("proc-compliance", "Compliance Subprocess", 1, [
+                    _step("step-compliance-check", "AML/KYC Compliance Check", "subprocess", 1,
+                          config={
+                              "child_case_type_id": "ct-kyc",
+                              "wait_for_resolution": True,
+                              "field_mapping": {
+                                  "applicantName": "customerName",
+                                  "loanType": "accountType",
+                              },
+                              "propagate_fields": {
+                                  "riskLevel": "complianceRiskLevel",
+                                  "riskCleared": "complianceCleared",
+                              },
+                          }),
+                    _step("step-compliance-review", "Compliance Sign-off", "assignment", 2,
+                          config={"assignee_role": "MANAGER",
+                                  "instructions": "Review compliance check results and sign off."}),
+                ]),
+            ]),
+            _stage("stage-disburse", "Disbursement", 5, [
                 _proc("proc-disburse", "Disbursement Process", 1, [
                     _step("step-send-funds", "Process Disbursement", "assignment", 1,
                           config={"assignee_role": "WORKER"}, sla_hours=48),
@@ -367,16 +418,23 @@ async def _insert_all(db):
                 ], status="in_progress", entered_at="2026-02-02T14:00:00Z"),
                 _rt_stage("stage-underwriting", "Underwriting", 3, [
                     _rt_proc("proc-risk", "Risk Assessment", 1, [
-                        _rt_step("step-auto-credit", "Auto Credit Check", "automation", 1),
+                        _rt_step("step-auto-credit", "Auto Credit Check (Webhook)", "automation", 1),
                         _rt_step("step-risk-review", "Risk Review", "assignment", 2),
                     ]),
                     _rt_proc("proc-decision", "Approval Decision", 2, [
-                        _rt_step("step-amount-check", "Amount Decision", "decision", 1),
-                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 2),
-                        _rt_step("step-vp-approval", "VP Approval", "approval", 3),
+                        _rt_step("step-routing-decision", "Loan Routing (Decision Table)", "decision", 1),
+                        _rt_step("step-amount-check", "Amount Decision", "decision", 2),
+                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 3),
+                        _rt_step("step-vp-approval", "VP Approval", "approval", 4),
                     ]),
                 ]),
-                _rt_stage("stage-disburse", "Disbursement", 4, [
+                _rt_stage("stage-compliance", "Compliance Review", 4, [
+                    _rt_proc("proc-compliance", "Compliance Subprocess", 1, [
+                        _rt_step("step-compliance-check", "AML/KYC Compliance Check", "subprocess", 1),
+                        _rt_step("step-compliance-review", "Compliance Sign-off", "assignment", 2),
+                    ]),
+                ]),
+                _rt_stage("stage-disburse", "Disbursement", 5, [
                     _rt_proc("proc-disburse", "Disbursement Process", 1, [
                         _rt_step("step-send-funds", "Process Disbursement", "assignment", 1),
                         _rt_step("step-confirm-notify", "Confirmation Notification", "automation", 2),
@@ -417,7 +475,7 @@ async def _insert_all(db):
                    completed_at="2026-01-22T16:00:00Z", completed_by="user-2"),
                 _rt_stage("stage-underwriting", "Underwriting", 3, [
                     _rt_proc("proc-risk", "Risk Assessment", 1, [
-                        _rt_step("step-auto-credit", "Auto Credit Check", "automation", 1,
+                        _rt_step("step-auto-credit", "Auto Credit Check (Webhook)", "automation", 1,
                                  status="completed", started_at="2026-01-22T16:00:00Z",
                                  completed_at="2026-01-22T16:00:00Z"),
                         _rt_step("step-risk-review", "Risk Review", "assignment", 2,
@@ -425,12 +483,19 @@ async def _insert_all(db):
                                  assigned_to="user-1"),
                     ], status="in_progress", started_at="2026-01-22T16:00:00Z"),
                     _rt_proc("proc-decision", "Approval Decision", 2, [
-                        _rt_step("step-amount-check", "Amount Decision", "decision", 1),
-                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 2),
-                        _rt_step("step-vp-approval", "VP Approval", "approval", 3),
+                        _rt_step("step-routing-decision", "Loan Routing (Decision Table)", "decision", 1),
+                        _rt_step("step-amount-check", "Amount Decision", "decision", 2),
+                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 3),
+                        _rt_step("step-vp-approval", "VP Approval", "approval", 4),
                     ]),
                 ], status="in_progress", entered_at="2026-01-22T16:00:00Z"),
-                _rt_stage("stage-disburse", "Disbursement", 4, [
+                _rt_stage("stage-compliance", "Compliance Review", 4, [
+                    _rt_proc("proc-compliance", "Compliance Subprocess", 1, [
+                        _rt_step("step-compliance-check", "AML/KYC Compliance Check", "subprocess", 1),
+                        _rt_step("step-compliance-review", "Compliance Sign-off", "assignment", 2),
+                    ]),
+                ]),
+                _rt_stage("stage-disburse", "Disbursement", 5, [
                     _rt_proc("proc-disburse", "Disbursement Process", 1, [
                         _rt_step("step-send-funds", "Process Disbursement", "assignment", 1),
                         _rt_step("step-confirm-notify", "Confirmation Notification", "automation", 2),
@@ -447,7 +512,7 @@ async def _insert_all(db):
             "_id": "LOAN-003", "case_type_id": "ct-loan", "case_type_name": "Loan Origination",
             "title": "Commercial Loan - Acme Corp", "status": "in_progress", "priority": "critical",
             "owner_id": "user-1", "team_id": "team-1",
-            "custom_fields": {"loanAmount": 500000, "loanType": "Commercial", "applicantName": "Acme Corp", "applicantIncome": 2000000, "creditChecked": True},
+            "custom_fields": {"loanAmount": 500000, "loanType": "Commercial", "applicantName": "Acme Corp", "applicantIncome": 2000000, "creditChecked": True, "creditScore": 780, "approvalTier": "executive"},
             "current_stage_id": "stage-underwriting", "current_process_id": "proc-decision", "current_step_id": "step-vp-approval",
             "stages": [
                 _rt_stage("stage-intake", "Intake Review", 1, [
@@ -471,7 +536,7 @@ async def _insert_all(db):
                    completed_at="2026-01-12T14:00:00Z", completed_by="user-2"),
                 _rt_stage("stage-underwriting", "Underwriting", 3, [
                     _rt_proc("proc-risk", "Risk Assessment", 1, [
-                        _rt_step("step-auto-credit", "Auto Credit Check", "automation", 1,
+                        _rt_step("step-auto-credit", "Auto Credit Check (Webhook)", "automation", 1,
                                  status="completed", started_at="2026-01-12T14:00:00Z",
                                  completed_at="2026-01-12T14:00:00Z"),
                         _rt_step("step-risk-review", "Risk Review", "assignment", 2,
@@ -479,17 +544,26 @@ async def _insert_all(db):
                                  completed_at="2026-01-13T10:00:00Z", assigned_to="user-1"),
                     ], status="completed", started_at="2026-01-12T14:00:00Z", completed_at="2026-01-13T10:00:00Z"),
                     _rt_proc("proc-decision", "Approval Decision", 2, [
-                        _rt_step("step-amount-check", "Amount Decision", "decision", 1,
+                        _rt_step("step-routing-decision", "Loan Routing (Decision Table)", "decision", 1,
                                  status="completed", started_at="2026-01-13T10:00:00Z",
                                  completed_at="2026-01-13T10:00:00Z"),
-                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 2,
+                        _rt_step("step-amount-check", "Amount Decision", "decision", 2,
+                                 status="completed", started_at="2026-01-13T10:00:00Z",
+                                 completed_at="2026-01-13T10:00:00Z"),
+                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 3,
                                  status="skipped"),
-                        _rt_step("step-vp-approval", "VP Approval", "approval", 3,
+                        _rt_step("step-vp-approval", "VP Approval", "approval", 4,
                                  status="in_progress", started_at="2026-01-15T09:00:00Z",
                                  assigned_to="user-admin"),
                     ], status="in_progress", started_at="2026-01-13T10:00:00Z"),
                 ], status="in_progress", entered_at="2026-01-12T14:00:00Z"),
-                _rt_stage("stage-disburse", "Disbursement", 4, [
+                _rt_stage("stage-compliance", "Compliance Review", 4, [
+                    _rt_proc("proc-compliance", "Compliance Subprocess", 1, [
+                        _rt_step("step-compliance-check", "AML/KYC Compliance Check", "subprocess", 1),
+                        _rt_step("step-compliance-review", "Compliance Sign-off", "assignment", 2),
+                    ]),
+                ]),
+                _rt_stage("stage-disburse", "Disbursement", 5, [
                     _rt_proc("proc-disburse", "Disbursement Process", 1, [
                         _rt_step("step-send-funds", "Process Disbursement", "assignment", 1),
                         _rt_step("step-confirm-notify", "Confirmation Notification", "automation", 2),

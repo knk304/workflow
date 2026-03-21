@@ -5,9 +5,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { RouterLink } from '@angular/router';
 import { signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
-import { StepInstance } from '@core/models';
+import { StepInstance, ApprovalChain } from '@core/models';
 import { DataService } from '@core/services/data.service';
 import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
 
@@ -21,6 +22,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
     MatIconModule,
     MatExpansionModule,
     MatProgressBarModule,
+    RouterLink,
     DynamicFormComponent,
   ],
   template: `
@@ -95,7 +97,43 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                   <h5 class="text-xs font-semibold text-amber-700 uppercase mb-2">
                     <mat-icon class="!text-sm align-middle mr-1">gavel</mat-icon> Approval Required
                   </h5>
-                  <p class="text-xs text-amber-600">Review and approve or reject this item.</p>
+                  @if (approvalChain) {
+                    <div class="text-xs text-amber-600 mb-2">
+                      Mode: <span class="font-semibold">{{ approvalChain.mode }}</span>
+                      &bull; Status: <span class="font-semibold">{{ approvalChain.status }}</span>
+                    </div>
+                    <div class="space-y-1.5">
+                      @for (approver of approvalChain.approvers; track approver.userId) {
+                        <div class="flex items-center gap-2 text-xs px-2 py-1.5 rounded border"
+                             [ngClass]="approverRowClass(approver.status)">
+                          <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                               [ngClass]="approverIconClass(approver.status)">
+                            @switch (approver.status) {
+                              @case ('approved') { <mat-icon class="!text-xs">check</mat-icon> }
+                              @case ('rejected') { <mat-icon class="!text-xs">close</mat-icon> }
+                              @case ('delegated') { <mat-icon class="!text-xs">forward</mat-icon> }
+                              @default { <mat-icon class="!text-xs">schedule</mat-icon> }
+                            }
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <span class="font-medium">{{ approver.userName || approver.userId }}</span>
+                            @if (approver.comment) {
+                              <span class="text-slate-500 ml-1">&mdash; {{ approver.comment }}</span>
+                            }
+                          </div>
+                          <span class="text-[10px] px-1.5 py-0.5 rounded-full uppercase font-semibold"
+                                [ngClass]="approverBadgeClass(approver.status)">
+                            {{ approver.status }}
+                          </span>
+                          @if (approver.decidedAt) {
+                            <span class="text-[10px] text-slate-400 shrink-0">{{ approver.decidedAt | date:'short' }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-xs text-amber-600">Review and approve or reject this item.</p>
+                  }
                 </div>
               }
               @case ('attachment') {
@@ -132,6 +170,22 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                     <mat-icon class="!text-sm align-middle mr-1">call_split</mat-icon> Decision
                   </h5>
                   <p class="text-xs text-purple-600">This step evaluates conditions automatically.</p>
+                  @if (step.config?.['mode'] === 'decision_table' && step.config?.['decisionTableId']) {
+                    <div class="mt-1.5 flex items-center gap-1.5 text-xs text-purple-700 bg-purple-100/60 px-2 py-1 rounded">
+                      <mat-icon class="!text-sm">table_chart</mat-icon>
+                      Decision Table: <span class="font-semibold">{{ step.config?.['decisionTableId'] }}</span>
+                    </div>
+                  } @else if (step.config?.['branches']?.length) {
+                    <div class="mt-1.5 space-y-1">
+                      @for (branch of step.config?.['branches'] || []; track $index) {
+                        <div class="flex items-center gap-1.5 text-xs text-purple-700">
+                          <mat-icon class="!text-xs">arrow_right</mat-icon>
+                          <span class="font-medium">{{ branch.label || 'Branch ' + ($index + 1) }}</span>
+                          <span class="text-purple-400">&rarr; {{ branch.nextStepId || 'default' }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
               }
               @case ('automation') {
@@ -140,6 +194,25 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                     <mat-icon class="!text-sm align-middle mr-1">settings_suggest</mat-icon> Automation
                   </h5>
                   <p class="text-xs text-teal-600">This step executes automated actions.</p>
+                  @if (step.config?.['webhook']?.['url']) {
+                    <div class="mt-2 flex items-center gap-1.5 text-xs text-teal-700 bg-teal-100/60 px-2 py-1 rounded">
+                      <mat-icon class="!text-sm">webhook</mat-icon>
+                      <span class="font-mono truncate">{{ step.config?.['webhook']?.['method'] || 'POST' }} {{ step.config?.['webhook']?.['url'] }}</span>
+                    </div>
+                  }
+                  @if (step.config?.['actions']?.length) {
+                    <div class="mt-2 space-y-1">
+                      @for (action of step.config?.['actions'] || []; track $index) {
+                        <div class="flex items-center gap-1.5 text-xs text-teal-700">
+                          <mat-icon class="!text-xs">play_arrow</mat-icon>
+                          <span>{{ action.type }}</span>
+                          @if (action.config?.['field']) {
+                            <span class="text-teal-500">&rarr; {{ action.config['field'] }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
               }
               @case ('subprocess') {
@@ -147,13 +220,36 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                   <h5 class="text-xs font-semibold text-cyan-700 uppercase mb-2">
                     <mat-icon class="!text-sm align-middle mr-1">account_tree</mat-icon> Subprocess
                   </h5>
-                  <p class="text-xs text-cyan-600">
-                    @if (step.childCaseId) {
-                      Child case {{ step.childCaseId }} is being processed.
-                    } @else {
-                      A child case will be created for this step.
-                    }
-                  </p>
+                  @if (step.childCaseId) {
+                    <div class="flex items-center gap-2 text-xs text-cyan-700">
+                      <mat-icon class="!text-sm">open_in_new</mat-icon>
+                      <a [routerLink]="['/portal/cases', step.childCaseId]"
+                         class="font-medium underline hover:text-cyan-900">
+                        {{ step.childCaseId }}
+                      </a>
+                      @if (isStepStatus('waiting')) {
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase font-semibold">
+                          Waiting for resolution
+                        </span>
+                      } @else if (isStepStatus('completed')) {
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase font-semibold">
+                          Resolved
+                        </span>
+                      }
+                    </div>
+                  } @else if (step.config?.['childCaseTypeId']) {
+                    <p class="text-xs text-cyan-600">
+                      A child case of type <span class="font-semibold">{{ step.config?.['childCaseTypeId'] }}</span> will be created.
+                    </p>
+                  } @else {
+                    <p class="text-xs text-cyan-600">A child case will be created for this step.</p>
+                  }
+                  @if (step.config?.['fieldMapping']) {
+                    <div class="mt-2 text-[10px] text-cyan-500">
+                      <mat-icon class="!text-xs align-middle mr-0.5">sync_alt</mat-icon>
+                      {{ objectKeys(step.config?.['fieldMapping'] || {}).length }} field(s) mapped to child case
+                    </div>
+                  }
                 </div>
               }
             }
@@ -206,6 +302,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
   `,
 })
 export class StepCardComponent implements OnChanges {
+
   @Input() step!: StepInstance;
   @Input() isCurrent = false;
   @Input() caseId = '';
@@ -217,6 +314,8 @@ export class StepCardComponent implements OnChanges {
   selectedFiles: File[] = [];
   isUploading = signal(false);
   cachedFormFields: DynamicField[] = [];
+  approvalChain: ApprovalChain | null = null;
+  objectKeys = Object.keys;
   private lastFormFieldsJson = '';
 
   constructor(private dataService: DataService) {}
@@ -224,6 +323,27 @@ export class StepCardComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['step']) {
       this.updateCachedFormFields();
+      this.loadApprovalChain();
+    }
+  }
+
+  private loadApprovalChain(): void {
+    if (this.step?.type === 'approval' && this.step.approvalChainId) {
+      this.dataService.getApprovalById(this.step.approvalChainId).subscribe({
+        next: chain => this.approvalChain = chain,
+        error: () => this.approvalChain = null,
+      });
+    } else if (this.step?.type === 'approval' && this.caseId) {
+      this.dataService.getApprovals(this.caseId).subscribe({
+        next: chains => {
+          this.approvalChain = chains.find(c =>
+            c.caseId === this.caseId && c.status === 'pending'
+          ) || chains[chains.length - 1] || null;
+        },
+        error: () => this.approvalChain = null,
+      });
+    } else {
+      this.approvalChain = null;
     }
   }
 
@@ -315,5 +435,33 @@ export class StepCardComponent implements OnChanges {
     if (this.step.status === 'completed') return 'text-emerald-700';
     if (this.isCurrent) return 'text-blue-700';
     return 'text-slate-600';
+  }
+
+  approverRowClass(status: string): string {
+    return {
+      approved: 'bg-emerald-50 border-emerald-200',
+      rejected: 'bg-red-50 border-red-200',
+      delegated: 'bg-blue-50 border-blue-200',
+    }[status] || 'bg-white border-slate-200';
+  }
+
+  approverIconClass(status: string): string {
+    return {
+      approved: 'bg-emerald-500 text-white',
+      rejected: 'bg-red-500 text-white',
+      delegated: 'bg-blue-500 text-white',
+    }[status] || 'bg-slate-200 text-slate-500';
+  }
+
+  approverBadgeClass(status: string): string {
+    return {
+      approved: 'bg-emerald-100 text-emerald-700',
+      rejected: 'bg-red-100 text-red-700',
+      delegated: 'bg-blue-100 text-blue-700',
+    }[status] || 'bg-amber-100 text-amber-700';
+  }
+
+  isStepStatus(status: string): boolean {
+    return this.step?.status === status;
   }
 }

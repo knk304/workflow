@@ -22,7 +22,7 @@ import {
 } from '@core/models';
 import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-builder.component';
 import { DataService } from '@core/services/data.service';
-import { FormDefinition, FormField } from '@core/models';
+import { FormDefinition, FormField, DecisionTable } from '@core/models';
 
 @Component({
   selector: 'app-step-config-panel',
@@ -366,8 +366,14 @@ import { FormDefinition, FormField } from '@core/models';
                 </mat-form-field>
               } @else {
                 <mat-form-field class="w-full" subscriptSizing="dynamic">
-                  <mat-label>Decision Table ID</mat-label>
-                  <input matInput [(ngModel)]="step.config.decisionTableId" (ngModelChange)="emitChange()">
+                  <mat-label>Decision Table</mat-label>
+                  <mat-select [(ngModel)]="step.config.decisionTableId" (ngModelChange)="emitChange()">
+                    <mat-option [value]="null">— None —</mat-option>
+                    @for (dt of decisionTables; track dt.id) {
+                      <mat-option [value]="dt.id">{{ dt.name }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Select a decision table to evaluate</mat-hint>
                 </mat-form-field>
               }
             </div>
@@ -497,6 +503,7 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
 
   private dataService = inject(DataService);
   formDefinitions: FormDefinition[] = [];
+  decisionTables: DecisionTable[] = [];
 
   skipWhenCondition: RuleCondition | null = null;
   branchConditions: (RuleCondition | null)[] = [];
@@ -529,6 +536,7 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
 
   ngOnInit(): void {
     this.dataService.getFormDefinitions().subscribe(forms => this.formDefinitions = forms);
+    this.dataService.getDecisionTables().subscribe(tables => this.decisionTables = tables);
   }
 
   ngOnChanges(): void {

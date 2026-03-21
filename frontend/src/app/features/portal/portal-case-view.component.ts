@@ -219,7 +219,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                   <div class="stage-chevron px-5 py-2.5 min-w-[130px] text-center text-xs font-semibold"
                        [class.stage-chevron-completed]="stage.status === 'completed'"
                        [class.stage-chevron-active]="stage.stageDefinitionId === c.currentStageId && stage.status !== 'completed'"
-                       [class.stage-chevron-pending]="stage.status === 'pending'">>
+                       [class.stage-chevron-pending]="stage.status === 'pending'">
                     {{ stage.name }}
                   </div>
                   @if (si < c.stages.length - 1) {
@@ -414,7 +414,6 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   }
 
   onCompleteStep(event: { step: StepInstance; formData: Record<string, any> }): void {
-    debugger;
     if (!this.c) return;
     this.store.dispatch(
       CasesActions.completeStep({
