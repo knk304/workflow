@@ -33,8 +33,8 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
   template: `
     <mat-card class="!shadow-sm">
       <mat-card-header class="!px-4 !py-3 border-b border-gray-100">
-        <mat-card-title class="!text-sm !font-semibold flex items-center gap-2">
-          <mat-icon class="!text-lg text-[#056DAE]">layers</mat-icon>
+        <mat-card-title class="!text-sm !font-semibold !flex items-center gap-2 !m-0  pb-4">
+          <mat-icon class="!text-base !w-5 !h-5 text-[#056DAE]">layers</mat-icon>
           Stage Configuration
         </mat-card-title>
       </mat-card-header>

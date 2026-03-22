@@ -159,9 +159,9 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                                 <p class="text-xs text-gray-400">{{ step.type }}</p>
                               </div>
                               @if (step.required) {
-                                <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Required</span>
+                                <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">Required</span>
                               }
-                              <button mat-icon-button class="!w-7 !h-7" (click)="removeStep(process, si); $event.stopPropagation()">
+                              <button mat-icon-button class="!w-7 !h-7 !p-0 !leading-none shrink-0 flex items-center justify-center" (click)="removeStep(process, si); $event.stopPropagation()">
                                 <mat-icon class="!text-base text-gray-400 hover:text-red-500">close</mat-icon>
                               </button>
                             </div>

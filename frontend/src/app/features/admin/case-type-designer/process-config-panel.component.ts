@@ -28,8 +28,8 @@ import { DataService } from '@core/services/data.service';
   template: `
     <mat-card class="!shadow-sm">
       <mat-card-header class="!px-4 !py-3 border-b border-gray-100">
-        <mat-card-title class="!text-sm !font-semibold flex items-center gap-2">
-          <mat-icon class="!text-lg text-[#056DAE]">{{ process.isParallel ? 'call_split' : 'format_list_numbered' }}</mat-icon>
+        <mat-card-title class="!text-sm !font-semibold !flex items-center gap-2 !m-0">
+          <mat-icon class="!text-base !w-5 !h-5 text-[#056DAE]">{{ process.isParallel ? 'call_split' : 'format_list_numbered' }}</mat-icon>
           Process Configuration
         </mat-card-title>
       </mat-card-header>

@@ -45,8 +45,8 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
   template: `
     <mat-card class="!shadow-sm">
       <mat-card-header class="!px-3 !py-2 border-b border-gray-100">
-        <mat-card-title class="!text-xs !font-semibold flex items-center gap-1.5">
-          <span class="text-sm">{{ stepIcon(step.type) }}</span>
+        <mat-card-title class="!text-xs !font-semibold !flex items-center gap-1.5 !m-0">
+          <span class="text-sm leading-none">{{ stepIcon(step.type) }}</span>
           Step Configuration
         </mat-card-title>
       </mat-card-header>
