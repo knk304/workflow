@@ -14,7 +14,7 @@ import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Comment, Mention, User } from '../../core/models';
 import * as CommentsActions from '../../state/comments/comments.actions';
-import { selectComments, selectCommentsLoading } from '../../state/comments/comments.selectors';
+import { selectComments, selectCommentsByCase, selectCommentsByTask, selectCommentsLoading } from '../../state/comments/comments.selectors';
 import { selectUser } from '../../state/auth/auth.selectors';
 import { WebSocketService } from '../../core/services/websocket.service';
 
@@ -216,7 +216,11 @@ export class CommentsComponent implements OnInit, OnChanges, OnDestroy {
     private store: Store,
     private wsService: WebSocketService,
   ) {
-    this.comments$ = this.store.select(selectComments);
+    this.comments$ = this.store.select(
+      this.caseId ? selectCommentsByCase(this.caseId)
+                  : this.taskId ? selectCommentsByTask(this.taskId)
+                  : selectComments
+    );
     this.isLoading$ = this.store.select(selectCommentsLoading);
 
     this.commentForm = this.formBuilder.group({
@@ -247,6 +251,12 @@ export class CommentsComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['caseId'] || changes['taskId']) {
+      // Re-scope the observable to the new entity
+      this.comments$ = this.store.select(
+        this.caseId ? selectCommentsByCase(this.caseId)
+                    : this.taskId ? selectCommentsByTask(this.taskId)
+                    : selectComments
+      );
       this.loadComments();
     }
   }

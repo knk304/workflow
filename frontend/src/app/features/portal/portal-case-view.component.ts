@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, map, Observable } from 'rxjs';
 import { CaseInstance, StageInstance, StepInstance, User } from '@core/models';
 import { statusLabel } from '@core/utils/status-labels';
 import * as CasesActions from '@state/cases/cases.actions';
@@ -19,7 +19,9 @@ import {
   selectCasesLoading,
 } from '@state/cases/cases.selectors';
 import { selectUser } from '@state/auth/auth.selectors';
+import { selectCommentsByCase } from '@state/comments/comments.selectors';
 import { StepCardComponent } from '@features/portal/shared/step-card.component';
+import { CommentsComponent } from '@features/comments/comments.component';
 
 @Component({
   selector: 'app-portal-case-view',
@@ -36,6 +38,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
     MatSnackBarModule,
     MatTooltipModule,
     StepCardComponent,
+    CommentsComponent,
   ],
   template: `
     @if (isLoading) {
@@ -45,7 +48,10 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
     } @else if (c) {
       <div class="-m-5 flex gap-0 h-[calc(100vh-108px)]">
         <!-- ========== LEFT SIDEBAR ========== -->
-        <div class="w-72 flex-shrink-0 border-r border-slate-200 sidebar-gradient overflow-y-auto flex flex-col">
+        <div class="flex-shrink-0 border-r border-slate-200 sidebar-gradient overflow-y-auto flex flex-col"
+             [style.width.px]="sidebarWidth()">
+          <!-- Resize handle -->
+          <div class="resize-handle" (mousedown)="startResize($event)"></div>
           <!-- Case Header -->
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-2 mb-2">
@@ -148,6 +154,16 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                     (click)="sidebarTab = 'history'">
               History
             </button>
+            <button class="flex-1 text-xs font-semibold px-2 py-1.5 rounded-md transition-colors text-center relative"
+                    [ngClass]="sidebarTab === 'comments' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
+                    (click)="sidebarTab = 'comments'">
+              Comments
+              @if ((commentCount$ | async); as count) {
+                @if (count > 0) {
+                  <span class="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-white text-[8px] font-bold flex items-center justify-center">{{ count }}</span>
+                }
+              }
+            </button>
             <button class="flex-1 text-xs font-semibold px-2 py-1.5 rounded-md transition-colors text-center"
                     [ngClass]="sidebarTab === 'audit' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
                     (click)="sidebarTab = 'audit'">
@@ -208,6 +224,14 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                 <mat-icon class="!text-sm">history</mat-icon>
                 Open Audit Logs
               </a>
+            </div>
+          }
+
+          @if (sidebarTab === 'comments') {
+            <div class="py-4 border-t border-white/10 flex-1 overflow-y-auto">
+              <div class="comments-sidebar-wrapper">
+                <app-comments [caseId]="c.id"></app-comments>
+              </div>
             </div>
           }
 
@@ -372,6 +396,20 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
   styles: [`
     .sidebar-gradient {
       background: linear-gradient(135deg, var(--wf-primary) 0%, var(--wf-primary-dark) 100%);
+      position: relative;
+    }
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      right: -4px;
+      width: 8px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 10;
+      background: transparent;
+    }
+    .resize-handle:hover, .resize-handle:active {
+      background: rgba(255,255,255,0.25);
     }
     .sidebar-btn {
       font-size: 12px;
@@ -384,6 +422,14 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
     }
     .sidebar-btn:hover {
       background: rgba(255,255,255,0.18);
+    }
+    .comments-sidebar-wrapper {
+      padding: 0 20px;
+      color: #1e293b;
+      background-color: #f8fafc;
+    }
+    .comments-sidebar-wrapper :deep(h3) {
+      color: #1e293b !important;
     }
     .stage-chevron {
       clip-path: polygon(0% 0%, 88% 0%, 100% 50%, 88% 100%, 0% 100%, 12% 50%);
@@ -409,8 +455,12 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   c: CaseInstance | null = null;
   currentUser: User | null = null;
   isLoading = false;
-  sidebarTab: 'details' | 'history' | 'audit' = 'details';
-
+  sidebarTab: 'details' | 'history' | 'audit' | 'comments' = 'details';
+  commentCount$: Observable<number> | null = null;
+  sidebarWidth = signal(288); // default ~w-72
+  private isResizing = false;
+  private resizeStartX = 0;
+  private resizeStartWidth = 288;
   objectKeys = Object.keys;
   statusLabel = statusLabel;
 
@@ -426,6 +476,7 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.store.dispatch(CasesActions.loadCaseInstance({ id }));
+      this.commentCount$ = this.store.select(selectCommentsByCase(id)).pipe(map(list => list.length));
     }
     this.store.select(selectCasesLoading).pipe(takeUntil(this.destroy$)).subscribe((v) => (this.isLoading = v));
     this.store.select(selectSelectedCaseInstance).pipe(takeUntil(this.destroy$)).subscribe((v) => (this.c = v));
@@ -435,6 +486,26 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  startResize(event: MouseEvent): void {
+    this.isResizing = true;
+    this.resizeStartX = event.clientX;
+    this.resizeStartWidth = this.sidebarWidth();
+    event.preventDefault();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    if (!this.isResizing) return;
+    const delta = event.clientX - this.resizeStartX;
+    const newWidth = Math.min(600, Math.max(200, this.resizeStartWidth + delta));
+    this.sidebarWidth.set(newWidth);
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp(): void {
+    this.isResizing = false;
   }
 
   currentStage(): StageInstance | null {
