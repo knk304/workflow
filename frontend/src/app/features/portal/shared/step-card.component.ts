@@ -163,16 +163,16 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                     <!-- Interactive decision area for current pending approver -->
                     @if (approvalChain.status === 'pending' && currentUserPendingApprover()) {
                       @if (approvalAction() === null && !showDelegateForm()) {
-                        <div class="flex gap-2 mt-3">
-                          <button mat-flat-button color="primary" class="!text-xs !h-7 flex-1"
+                        <div class="flex gap-2 mt-3 items-center">
+                          <button mat-flat-button color="primary" class="!text-xs !h-8 !px-4"
                                   (click)="approvalAction.set('approve')">
                             <mat-icon class="!text-sm mr-1">thumb_up</mat-icon> Approve
                           </button>
-                          <button mat-stroked-button color="warn" class="!text-xs !h-7 flex-1"
+                          <button mat-stroked-button color="warn" class="!text-xs !h-8 !px-4"
                                   (click)="approvalAction.set('reject')">
                             <mat-icon class="!text-sm mr-1">thumb_down</mat-icon> Reject
                           </button>
-                          <button mat-icon-button class="!w-7 !h-7" matTooltip="Delegate"
+                          <button mat-icon-button class="!w-8 !h-8" matTooltip="Delegate"
                                   (click)="showDelegateForm.set(true)">
                             <mat-icon class="!text-sm">forward</mat-icon>
                           </button>

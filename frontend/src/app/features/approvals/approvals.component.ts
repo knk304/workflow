@@ -1,23 +1,19 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatDialogModule } from '@angular/material/dialog';
 import { ApprovalChain, ApprovalStatus } from '../../core/models';
 import * as ApprovalsActions from '../../state/approvals/approvals.actions';
 import {
@@ -36,194 +32,161 @@ type SortField = 'createdAt' | 'status' | 'caseId';
   imports: [
     CommonModule,
     FormsModule,
-    MatCardModule,
+    RouterLink,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
-    MatDividerModule,
     MatProgressBarModule,
     MatTooltipModule,
-    MatBadgeModule,
-    MatProgressSpinnerModule,
     MatMenuModule,
-    MatTabsModule,
-    MatDialogModule,
   ],
   template: `
-    <div class="p-6 max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
+    <div class="space-y-5 animate-fade-in">
+
+      <!-- Page Header -->
+      <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Approvals</h1>
-          <p class="text-gray-500 mt-1">Manage approval chains, decisions and delegation</p>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Approvals</h1>
+          <p class="text-sm text-slate-500 mt-0.5">Review, decide, and delegate approval chains across all cases</p>
         </div>
-        <div class="flex items-center gap-3">
-          <button mat-raised-button color="primary" (click)="showCreatePanel.set(!showCreatePanel())">
-            <mat-icon>add</mat-icon> New Approval Chain
+        <div class="flex items-center gap-2">
+          <button mat-stroked-button (click)="showCreatePanel.set(!showCreatePanel())">
+            <mat-icon>add</mat-icon>
+            New Chain
           </button>
-          <button mat-icon-button matTooltip="Refresh" (click)="refresh()">
-            <mat-icon>refresh</mat-icon>
+          <button mat-raised-button color="primary" (click)="refresh()" [disabled]="isLoading()">
+            <mat-icon [class.animate-spin]="isLoading()">refresh</mat-icon>
+            Refresh
           </button>
         </div>
       </div>
 
-      <!-- Summary Statistics -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <mat-card class="!shadow-sm cursor-pointer hover:!shadow-md transition-shadow" (click)="setFilter('all')">
-          <mat-card-content class="p-4 flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <mat-icon class="text-blue-600">list_alt</mat-icon>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-gray-900">{{ stats().total }}</p>
-              <p class="text-sm text-gray-500">Total Chains</p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="!shadow-sm cursor-pointer hover:!shadow-md transition-shadow" (click)="setFilter('pending')">
-          <mat-card-content class="p-4 flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-              <mat-icon class="text-yellow-600">hourglass_empty</mat-icon>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-yellow-600">{{ stats().pending }}</p>
-              <p class="text-sm text-gray-500">Pending</p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="!shadow-sm cursor-pointer hover:!shadow-md transition-shadow" (click)="setFilter('approved')">
-          <mat-card-content class="p-4 flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <mat-icon class="text-green-600">check_circle</mat-icon>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-green-600">{{ stats().approved }}</p>
-              <p class="text-sm text-gray-500">Approved</p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="!shadow-sm cursor-pointer hover:!shadow-md transition-shadow" (click)="setFilter('rejected')">
-          <mat-card-content class="p-4 flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-              <mat-icon class="text-red-600">cancel</mat-icon>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-red-600">{{ stats().rejected }}</p>
-              <p class="text-sm text-gray-500">Rejected</p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
+      <!-- Loading bar -->
+      @if (isLoading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      }
 
       <!-- Error Banner -->
-      @if (error$ | async; as error) {
-        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <mat-icon class="text-red-600">error</mat-icon>
-            <span class="text-red-700">{{ error }}</span>
-          </div>
-          <button mat-icon-button (click)="clearError()">
-            <mat-icon class="text-red-400">close</mat-icon>
+      @if (error(); as err) {
+        <div class="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <mat-icon class="shrink-0 text-red-500">error_outline</mat-icon>
+          <span class="flex-1">{{ err }}</span>
+          <button mat-icon-button class="!w-7 !h-7" (click)="clearError()">
+            <mat-icon class="!text-base text-red-400">close</mat-icon>
           </button>
         </div>
       }
 
-      <!-- Filter & Search Bar -->
-      <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
-        <mat-tab-group class="flex-1" [(selectedIndex)]="activeTabIndex" (selectedIndexChange)="onTabChange($event)">
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <span class="flex items-center gap-1">All <span class="ml-1 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">{{ stats().total }}</span></span>
-            </ng-template>
-          </mat-tab>
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <span class="flex items-center gap-1">Pending <span class="ml-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">{{ stats().pending }}</span></span>
-            </ng-template>
-          </mat-tab>
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <span class="flex items-center gap-1">Approved <span class="ml-1 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">{{ stats().approved }}</span></span>
-            </ng-template>
-          </mat-tab>
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <span class="flex items-center gap-1">Rejected <span class="ml-1 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">{{ stats().rejected }}</span></span>
-            </ng-template>
-          </mat-tab>
-        </mat-tab-group>
-        <div class="flex items-center gap-3">
-          <mat-form-field class="!w-56" subscriptSizing="dynamic">
-            <mat-label>Search by Case ID</mat-label>
-            <mat-icon matPrefix class="mr-1">search</mat-icon>
-            <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="CASE-2026-...">
-            @if (searchTerm) {
-              <button matSuffix mat-icon-button (click)="searchTerm = ''; applyFilters()">
-                <mat-icon>close</mat-icon>
-              </button>
-            }
-          </mat-form-field>
-          <button mat-icon-button [matMenuTriggerFor]="sortMenu" matTooltip="Sort">
-            <mat-icon>sort</mat-icon>
+      <!-- Stats Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        @for (s of statCards; track s.filter) {
+          <button
+            class="bg-white rounded-xl border p-4 text-left transition-all hover:shadow-md"
+            [class.ring-2]="activeFilter === s.filter"
+            [ngClass]="activeFilter === s.filter ? s.ringClass : 'border-slate-200'"
+            (click)="setFilter(s.filter)"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" [ngClass]="s.iconBg">
+                <mat-icon class="!text-base !w-4 !h-4" [ngClass]="s.iconColor">{{ s.icon }}</mat-icon>
+              </div>
+              <span class="text-2xl font-bold" [ngClass]="s.numColor">{{ statCount(s.filter) }}</span>
+            </div>
+            <p class="text-xs font-medium text-slate-500">{{ s.label }}</p>
           </button>
-          <mat-menu #sortMenu="matMenu">
-            <button mat-menu-item (click)="setSortField('createdAt')">
-              <mat-icon>{{ sortField === 'createdAt' ? 'check' : '' }}</mat-icon>
-              Date Created
+        }
+      </div>
+
+      <!-- Toolbar: tab filters + search + sort -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Filter chips -->
+        <div class="inline-flex rounded-lg border border-slate-200 bg-white overflow-hidden">
+          @for (s of statCards; track s.filter; let i = $index) {
+            <button
+              class="px-3 py-1.5 text-xs font-semibold transition-colors"
+              [class.border-l]="i > 0"
+              [class.border-slate-200]="i > 0"
+              [ngClass]="activeFilter === s.filter ? s.chipActive : 'text-slate-500 hover:bg-slate-50'"
+              (click)="setFilter(s.filter)"
+            >
+              {{ s.label }}
+              <span class="ml-1 opacity-70">({{ statCount(s.filter) }})</span>
             </button>
-            <button mat-menu-item (click)="setSortField('status')">
-              <mat-icon>{{ sortField === 'status' ? 'check' : '' }}</mat-icon>
-              Status
-            </button>
-            <button mat-menu-item (click)="setSortField('caseId')">
-              <mat-icon>{{ sortField === 'caseId' ? 'check' : '' }}</mat-icon>
-              Case ID
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="toggleSortDirection()">
-              <mat-icon>{{ sortAsc ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-              {{ sortAsc ? 'Ascending' : 'Descending' }}
-            </button>
-          </mat-menu>
+          }
         </div>
+
+        <!-- Search -->
+        <div class="relative flex-1 min-w-48">
+          <mat-icon class="absolute left-2.5 top-1/2 -translate-y-1/2 !text-base !w-4 !h-4 text-slate-400">search</mat-icon>
+          <input
+            type="text"
+            placeholder="Search by case ID or chain ID…"
+            class="w-full pl-8 pr-8 py-1.5 text-sm border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-300 transition"
+            [value]="searchTerm"
+            (input)="searchTerm = $any($event.target).value; applyFilters()"
+          />
+          @if (searchTerm) {
+            <button class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    (click)="searchTerm = ''; applyFilters()">
+              <mat-icon class="!text-base !w-4 !h-4">close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Sort menu -->
+        <button mat-icon-button [matMenuTriggerFor]="sortMenu" matTooltip="Sort" class="shrink-0">
+          <mat-icon class="text-slate-500">sort</mat-icon>
+        </button>
+        <mat-menu #sortMenu="matMenu">
+          <button mat-menu-item (click)="setSortField('createdAt')">
+            <mat-icon>{{ sortField === 'createdAt' ? 'check' : 'calendar_today' }}</mat-icon>
+            Date Created
+          </button>
+          <button mat-menu-item (click)="setSortField('status')">
+            <mat-icon>{{ sortField === 'status' ? 'check' : 'flag' }}</mat-icon>
+            Status
+          </button>
+          <button mat-menu-item (click)="setSortField('caseId')">
+            <mat-icon>{{ sortField === 'caseId' ? 'check' : 'folder' }}</mat-icon>
+            Case ID
+          </button>
+          <button mat-menu-item (click)="toggleSortDirection()">
+            <mat-icon>{{ sortAsc ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+            {{ sortAsc ? 'Oldest first' : 'Newest first' }}
+          </button>
+        </mat-menu>
+
+        <span class="text-xs text-slate-400 shrink-0">
+          {{ filteredApprovals().length }} chain{{ filteredApprovals().length !== 1 ? 's' : '' }}
+        </span>
       </div>
 
       <!-- Create Panel -->
       @if (showCreatePanel()) {
-        <mat-card class="mb-6 !border-l-4 !border-l-blue-500">
-          <mat-card-content class="p-6">
-            <div class="flex items-center gap-2 mb-4">
-              <mat-icon class="text-blue-600">add_circle</mat-icon>
-              <h3 class="text-lg font-semibold">Create Approval Chain</h3>
-            </div>
+        <div class="bg-white rounded-xl border border-indigo-200 shadow-sm overflow-hidden">
+          <div class="bg-indigo-50 px-5 py-3 border-b border-indigo-100 flex items-center gap-2">
+            <mat-icon class="text-indigo-500 text-base">add_circle_outline</mat-icon>
+            <span class="text-sm font-semibold text-indigo-800">New Approval Chain</span>
+          </div>
+          <div class="p-5">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <mat-form-field>
+              <mat-form-field subscriptSizing="dynamic">
                 <mat-label>Case ID</mat-label>
                 <input matInput [(ngModel)]="newCaseId" placeholder="CASE-2026-00001">
               </mat-form-field>
-              <mat-form-field>
-                <mat-label>Approval Mode</mat-label>
+              <mat-form-field subscriptSizing="dynamic">
+                <mat-label>Mode</mat-label>
                 <mat-select [(ngModel)]="newMode">
-                  <mat-option value="sequential">
-                    <div class="flex items-center gap-2">
-                      <mat-icon class="!text-base">arrow_forward</mat-icon> Sequential
-                    </div>
-                  </mat-option>
-                  <mat-option value="parallel">
-                    <div class="flex items-center gap-2">
-                      <mat-icon class="!text-base">call_split</mat-icon> Parallel
-                    </div>
-                  </mat-option>
+                  <mat-option value="sequential">Sequential</mat-option>
+                  <mat-option value="parallel">Parallel</mat-option>
                 </mat-select>
               </mat-form-field>
-              <mat-form-field>
-                <mat-label>Approvers (comma-separated IDs)</mat-label>
+              <mat-form-field subscriptSizing="dynamic">
+                <mat-label>Approver IDs (comma-separated)</mat-label>
                 <input matInput [(ngModel)]="newApproverIds" placeholder="user-1, user-2">
-                <mat-hint>e.g. user-1, user-4</mat-hint>
               </mat-form-field>
               <div class="flex items-center gap-2">
                 <button mat-raised-button color="primary" [disabled]="!newCaseId.trim()" (click)="createChain()">
@@ -232,317 +195,253 @@ type SortField = 'createdAt' | 'status' | 'caseId';
                 <button mat-stroked-button (click)="showCreatePanel.set(false)">Cancel</button>
               </div>
             </div>
-            @if (newMode === 'sequential') {
-              <p class="text-xs text-gray-500 mt-2">
-                <mat-icon class="!text-xs !w-3 !h-3 align-middle">info</mat-icon>
-                Sequential: Approvers are notified one at a time in order. Next approver is notified only after the previous one decides.
-              </p>
-            } @else {
-              <p class="text-xs text-gray-500 mt-2">
-                <mat-icon class="!text-xs !w-3 !h-3 align-middle">info</mat-icon>
-                Parallel: All approvers are notified simultaneously. All must approve for the chain to be approved.
-              </p>
-            }
-          </mat-card-content>
-        </mat-card>
-      }
-
-      <!-- Loading State -->
-      @if (isLoading$ | async) {
-        <div class="flex justify-center py-12">
-          <mat-spinner diameter="48"></mat-spinner>
+            <p class="text-xs text-slate-400 mt-3 flex items-center gap-1">
+              <mat-icon class="!text-xs !w-3 !h-3">info</mat-icon>
+              @if (newMode === 'sequential') {
+                Sequential — approvers are notified one at a time in order.
+              } @else {
+                Parallel — all approvers are notified simultaneously; all must approve.
+              }
+            </p>
+          </div>
         </div>
       }
 
       <!-- Approval Cards -->
-      @for (chain of filteredApprovals(); track chain.id) {
-        <mat-card class="mb-4 !shadow-sm hover:!shadow-md transition-shadow"
-                  [class.!border-l-4]="true"
-                  [class.!border-l-yellow-400]="chain.status === 'pending'"
-                  [class.!border-l-green-500]="chain.status === 'approved'"
-                  [class.!border-l-red-500]="chain.status === 'rejected'"
-                  [class.!border-l-blue-400]="chain.status === 'delegated'">
-          <mat-card-content class="p-5">
-            <!-- Chain Header -->
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex-1">
-                <div class="flex items-center gap-3 flex-wrap">
-                  <h3 class="font-semibold text-gray-900">{{ chain.caseId }}</h3>
-                  <mat-chip [ngClass]="{
-                    '!bg-yellow-100 !text-yellow-800': chain.status === 'pending',
-                    '!bg-green-100 !text-green-800': chain.status === 'approved',
-                    '!bg-red-100 !text-red-800': chain.status === 'rejected',
-                    '!bg-blue-100 !text-blue-800': chain.status === 'delegated'
-                  }">
-                    <mat-icon class="!text-sm !w-4 !h-4 mr-1">{{ getStatusIcon(chain.status) }}</mat-icon>
-                    {{ chain.status | uppercase }}
-                  </mat-chip>
-                  <mat-chip class="!bg-gray-100 !text-gray-700">
-                    <mat-icon class="!text-sm !w-4 !h-4 mr-1">{{ chain.mode === 'sequential' ? 'arrow_forward' : 'call_split' }}</mat-icon>
-                    {{ chain.mode | titlecase }}
-                  </mat-chip>
+      <div class="space-y-3">
+        @for (chain of filteredApprovals(); track chain.id) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-shadow hover:shadow-md border-l-4"
+               [ngClass]="chainBorderClass(chain.status)">
+
+            <!-- Card Header -->
+            <div class="px-5 py-4">
+              <div class="flex items-start gap-3">
+
+                <!-- Status icon -->
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                     [ngClass]="chainIconBg(chain.status)">
+                  <mat-icon class="!text-lg !w-5 !h-5" [ngClass]="chainIconColor(chain.status)">
+                    {{ getStatusIcon(chain.status) }}
+                  </mat-icon>
                 </div>
-                <p class="text-sm text-gray-500 mt-1">
-                  Chain ID: {{ chain.id }} · Created {{ getRelativeTime(chain.createdAt) }}
-                </p>
-              </div>
-              <div class="flex items-center gap-1">
-                @if (chain.status === 'pending') {
-                  <button mat-icon-button [matMenuTriggerFor]="chainMenu" matTooltip="Actions">
-                    <mat-icon>more_vert</mat-icon>
+
+                <!-- Main info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <a [routerLink]="['/portal/cases', chain.caseId]"
+                       class="font-semibold text-slate-800 hover:text-indigo-600 transition-colors text-sm">
+                      {{ chain.caseId }}
+                    </a>
+                    <span class="wf-badge" [ngClass]="chainBadgeClass(chain.status)">
+                      {{ chain.status }}
+                    </span>
+                    <span class="wf-badge wf-badge--neutral flex items-center gap-0.5">
+                      <mat-icon class="!text-[10px] !w-3 !h-3">{{ chain.mode === 'sequential' ? 'arrow_forward' : 'call_split' }}</mat-icon>
+                      {{ chain.mode }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-xs text-slate-400 flex-wrap">
+                    <span class="font-mono">{{ chain.id }}</span>
+                    <span class="text-slate-200">·</span>
+                    <span>Created {{ getRelativeTime(chain.createdAt) }}</span>
+                    <span class="text-slate-200">·</span>
+                    <span>by {{ chain.createdBy }}</span>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-1 shrink-0">
+                  @if (chain.status === 'pending') {
+                    <button mat-stroked-button class="!text-xs !h-8 !px-3 !text-emerald-700 !border-emerald-300 hover:!bg-emerald-50"
+                            (click)="openDecisionDialog(chain.id, 'approve')">
+                      <mat-icon class="!text-sm mr-1">thumb_up</mat-icon> Approve
+                    </button>
+                    <button mat-stroked-button class="!text-xs !h-8 !px-3 !text-red-600 !border-red-300 hover:!bg-red-50"
+                            (click)="openDecisionDialog(chain.id, 'reject')">
+                      <mat-icon class="!text-sm mr-1">thumb_down</mat-icon> Reject
+                    </button>
+                    <button mat-icon-button class="!w-8 !h-8" matTooltip="Delegate"
+                            (click)="selectedChainId.set(chain.id); decisionAction.set(null)">
+                      <mat-icon class="!text-base text-slate-400">forward</mat-icon>
+                    </button>
+                  }
+                  <button mat-icon-button class="!w-8 !h-8" matTooltip="Toggle details"
+                          (click)="toggleExpand(chain.id)">
+                    <mat-icon class="!text-base text-slate-400">
+                      {{ expandedChainId() === chain.id ? 'expand_less' : 'expand_more' }}
+                    </mat-icon>
                   </button>
-                  <mat-menu #chainMenu="matMenu">
-                    <button mat-menu-item (click)="openDecisionDialog(chain.id, 'approve')">
-                      <mat-icon class="text-green-600">check_circle</mat-icon> Approve
-                    </button>
-                    <button mat-menu-item (click)="openDecisionDialog(chain.id, 'reject')">
-                      <mat-icon class="text-red-600">cancel</mat-icon> Reject
-                    </button>
-                    <button mat-menu-item (click)="selectedChainId.set(chain.id); decisionAction.set(null)">
-                      <mat-icon class="text-blue-600">forward</mat-icon> Delegate
-                    </button>
-                  </mat-menu>
-                }
-                <button mat-icon-button matTooltip="Toggle details"
-                        (click)="toggleExpand(chain.id)">
-                  <mat-icon>{{ expandedChainId() === chain.id ? 'expand_less' : 'expand_more' }}</mat-icon>
-                </button>
+                </div>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="mt-4">
+                <div class="flex items-center justify-between mb-1.5 text-xs text-slate-400">
+                  <span>
+                    {{ getApprovedCount(chain) }}/{{ chain.approvers.length }} approved
+                    @if (getRejectedCount(chain) > 0) { · <span class="text-red-500">{{ getRejectedCount(chain) }} rejected</span> }
+                    @if (getDelegatedCount(chain) > 0) { · {{ getDelegatedCount(chain) }} delegated }
+                  </span>
+                  <span class="font-medium" [ngClass]="chainIconColor(chain.status)">
+                    {{ getApprovalProgress(chain) | number:'1.0-0' }}%
+                  </span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-1.5 rounded-full transition-all"
+                       [ngClass]="chain.status === 'rejected' ? 'bg-red-500' : chain.status === 'approved' ? 'bg-emerald-500' : 'bg-indigo-500'"
+                       [style.width.%]="getApprovalProgress(chain)">
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Approver Timeline -->
-            <div class="flex items-center gap-2 flex-wrap">
-              @for (approver of chain.approvers; track approver.userId; let i = $index; let last = $last) {
-                <div class="flex items-center gap-2 p-3 rounded-lg border min-w-[200px] transition-all"
-                     [ngClass]="{
-                       'border-green-300 bg-green-50': approver.status === 'approved',
-                       'border-red-300 bg-red-50': approver.status === 'rejected',
-                       'border-yellow-300 bg-yellow-50': approver.status === 'pending',
-                       'border-blue-300 bg-blue-50': approver.status === 'delegated'
-                     }">
-                  <!-- Avatar circle -->
-                  <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                       [ngClass]="{
-                         'bg-green-500': approver.status === 'approved',
-                         'bg-red-500': approver.status === 'rejected',
-                         'bg-yellow-500': approver.status === 'pending',
-                         'bg-blue-500': approver.status === 'delegated'
-                       }">
-                    {{ getInitials(approver.userName || approver.userId) }}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="font-medium text-sm truncate">{{ approver.userName || approver.userId }}</div>
-                    <div class="flex items-center gap-1 mt-0.5">
-                      <mat-icon class="!text-sm !w-4 !h-4" [ngClass]="{
-                        'text-green-600': approver.status === 'approved',
-                        'text-red-600': approver.status === 'rejected',
-                        'text-yellow-600': approver.status === 'pending',
-                        'text-blue-600': approver.status === 'delegated'
-                      }">{{ getStatusIcon(approver.status) }}</mat-icon>
-                      <span class="text-xs capitalize">{{ approver.status }}</span>
+            <!-- Approver Row -->
+            <div class="px-5 pb-4">
+              <div class="flex items-center gap-2 flex-wrap">
+                @for (approver of chain.approvers; track approver.userId; let i = $index; let last = $last) {
+
+                  @if (!last && chain.mode === 'sequential') {
+                    <mat-icon class="text-slate-200 shrink-0 !text-base">chevron_right</mat-icon>
+                  }
+                  @if (!last && chain.mode === 'parallel') {
+                    <mat-icon class="text-slate-200 shrink-0 !text-base">add</mat-icon>
+                  }
+
+                  <div class="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs shrink-0"
+                       [ngClass]="approverRowClass(approver.status)">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                         [ngClass]="approverAvatarBg(approver.status)">
+                      {{ getInitials(approver.userName || approver.userId) }}
                     </div>
-                    @if (approver.comment && expandedChainId() === chain.id) {
-                      <p class="text-xs text-gray-500 mt-1 italic truncate" [matTooltip]="approver.comment">"{{ approver.comment }}"</p>
-                    }
-                    @if (approver.delegatedTo && expandedChainId() === chain.id) {
-                      <p class="text-xs text-blue-600 mt-0.5">
-                        <mat-icon class="!text-xs !w-3 !h-3 align-middle">forward</mat-icon>
-                        → {{ approver.delegatedTo }}
-                      </p>
-                    }
+                    <span class="font-medium text-slate-700">{{ approver.userName || approver.userId }}</span>
+                    <mat-icon class="!text-sm !w-3.5 !h-3.5 shrink-0" [ngClass]="chainIconColor(approver.status)">
+                      {{ getStatusIcon(approver.status) }}
+                    </mat-icon>
                     @if (approver.decidedAt) {
-                      <p class="text-xs text-gray-400 mt-0.5">{{ getRelativeTime(approver.decidedAt) }}</p>
+                      <span class="text-slate-400">{{ approver.decidedAt | date:'MMM d' }}</span>
                     }
                   </div>
-
-                  <!-- Inline Actions for pending approvers -->
-                  @if (approver.status === 'pending' && chain.status === 'pending') {
-                    <div class="flex flex-col gap-0.5">
-                      <button mat-icon-button matTooltip="Approve" class="!text-green-600 !w-8 !h-8"
-                              (click)="openDecisionDialog(chain.id, 'approve')">
-                        <mat-icon class="!text-xl">check_circle</mat-icon>
-                      </button>
-                      <button mat-icon-button matTooltip="Reject" class="!text-red-600 !w-8 !h-8"
-                              (click)="openDecisionDialog(chain.id, 'reject')">
-                        <mat-icon class="!text-xl">cancel</mat-icon>
-                      </button>
-                    </div>
-                  }
-                </div>
-
-                @if (!last && chain.mode === 'sequential') {
-                  <mat-icon class="text-gray-300 shrink-0">arrow_forward</mat-icon>
                 }
-                @if (!last && chain.mode === 'parallel') {
-                  <mat-icon class="text-gray-300 shrink-0">add</mat-icon>
-                }
-              }
+              </div>
             </div>
 
-            <!-- Decision Dialog (inline) -->
+            <!-- Decision form -->
             @if (decisionAction() && selectedChainId() === chain.id) {
-              <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div class="mx-5 mb-4 p-4 rounded-xl border"
+                   [ngClass]="decisionAction() === 'approve' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'">
                 <div class="flex items-center gap-2 mb-3">
-                  <mat-icon [ngClass]="{
-                    'text-green-600': decisionAction() === 'approve',
-                    'text-red-600': decisionAction() === 'reject'
-                  }">{{ decisionAction() === 'approve' ? 'check_circle' : 'cancel' }}</mat-icon>
-                  <h4 class="font-semibold">{{ decisionAction() === 'approve' ? 'Approve' : 'Reject' }} this chain?</h4>
+                  <mat-icon [ngClass]="decisionAction() === 'approve' ? 'text-emerald-600' : 'text-red-600'">
+                    {{ decisionAction() === 'approve' ? 'thumb_up' : 'thumb_down' }}
+                  </mat-icon>
+                  <h4 class="font-semibold text-sm text-slate-800">
+                    {{ decisionAction() === 'approve' ? 'Confirm Approval' : 'Confirm Rejection' }}
+                  </h4>
                 </div>
-                <mat-form-field class="w-full">
-                  <mat-label>Decision Comment</mat-label>
+                <mat-form-field class="w-full" subscriptSizing="dynamic">
+                  <mat-label>Comment (optional)</mat-label>
                   <textarea matInput [(ngModel)]="decisionComment" rows="2"
-                            [placeholder]="decisionAction() === 'approve' ? 'Reason for approval...' : 'Reason for rejection...'"></textarea>
+                            [placeholder]="decisionAction() === 'approve' ? 'Reason for approval…' : 'Reason for rejection…'"></textarea>
                 </mat-form-field>
-                <div class="flex items-center gap-2 mt-2">
-                  @if (decisionAction() === 'approve') {
-                    <button mat-raised-button color="primary" (click)="confirmDecision(chain.id)">
-                      <mat-icon>check</mat-icon> Confirm Approval
-                    </button>
-                  } @else {
-                    <button mat-raised-button color="warn" (click)="confirmDecision(chain.id)">
-                      <mat-icon>block</mat-icon> Confirm Rejection
-                    </button>
-                  }
-                  <button mat-stroked-button (click)="cancelDecision()">Cancel</button>
-                </div>
-              </div>
-            }
-
-            <!-- Delegation Panel -->
-            @if (!decisionAction() && selectedChainId() === chain.id) {
-              <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div class="flex items-center gap-2 mb-3">
-                  <mat-icon class="text-blue-600">forward</mat-icon>
-                  <h4 class="font-semibold">Delegate Approval</h4>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <mat-form-field>
-                    <mat-label>Delegate To (User ID)</mat-label>
-                    <input matInput [(ngModel)]="delegateToId" placeholder="user-2">
-                    <mat-hint>Enter the user ID to delegate to</mat-hint>
-                  </mat-form-field>
-                  <mat-form-field>
-                    <mat-label>Reason for delegation</mat-label>
-                    <input matInput [(ngModel)]="delegateComment" placeholder="Delegating because...">
-                  </mat-form-field>
-                </div>
-                <div class="flex items-center gap-2 mt-2">
-                  <button mat-raised-button color="primary" [disabled]="!delegateToId.trim()" (click)="delegate(chain.id)">
-                    <mat-icon>send</mat-icon> Delegate
+                <div class="flex items-center gap-2 mt-3">
+                  <button mat-raised-button
+                          [color]="decisionAction() === 'approve' ? 'primary' : 'warn'"
+                          class="!text-xs !h-8 !px-4"
+                          (click)="confirmDecision(chain.id)">
+                    <mat-icon class="!text-sm mr-1">{{ decisionAction() === 'approve' ? 'check' : 'block' }}</mat-icon>
+                    {{ decisionAction() === 'approve' ? 'Approve' : 'Reject' }}
                   </button>
-                  <button mat-stroked-button (click)="selectedChainId.set(null)">Cancel</button>
+                  <button mat-stroked-button class="!text-xs !h-8 !px-3" (click)="cancelDecision()">Cancel</button>
                 </div>
               </div>
             }
 
-            <!-- Expanded Details & Progress -->
+            <!-- Delegation form -->
+            @if (!decisionAction() && selectedChainId() === chain.id) {
+              <div class="mx-5 mb-4 p-4 rounded-xl border bg-indigo-50 border-indigo-200">
+                <div class="flex items-center gap-2 mb-3">
+                  <mat-icon class="text-indigo-600">forward</mat-icon>
+                  <h4 class="font-semibold text-sm text-slate-800">Delegate Approval</h4>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Delegate to (User ID)</mat-label>
+                    <input matInput [(ngModel)]="delegateToId" placeholder="user-2">
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Reason</mat-label>
+                    <input matInput [(ngModel)]="delegateComment" placeholder="Delegating because…">
+                  </mat-form-field>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                  <button mat-raised-button color="primary" class="!text-xs !h-8 !px-4"
+                          [disabled]="!delegateToId.trim()" (click)="delegate(chain.id)">
+                    <mat-icon class="!text-sm mr-1">send</mat-icon> Delegate
+                  </button>
+                  <button mat-stroked-button class="!text-xs !h-8 !px-3"
+                          (click)="selectedChainId.set(null)">Cancel</button>
+                </div>
+              </div>
+            }
+
+            <!-- Expanded history -->
             @if (expandedChainId() === chain.id) {
-              <mat-divider class="!my-4"></mat-divider>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <p class="text-xs text-gray-500 uppercase tracking-wider">Chain ID</p>
-                  <p class="text-sm font-mono text-gray-700">{{ chain.id }}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-gray-500 uppercase tracking-wider">Created</p>
-                  <p class="text-sm text-gray-700">{{ formatDate(chain.createdAt) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-gray-500 uppercase tracking-wider">Created By</p>
-                  <p class="text-sm text-gray-700">{{ chain.createdBy }}</p>
-                </div>
-              </div>
-
-              <!-- Approval History Timeline -->
-              <div class="mb-4">
-                <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Approval History</p>
-                <div class="space-y-2">
-                  @for (approver of getDecidedApprovers(chain); track approver.userId) {
-                    <div class="flex items-center gap-3 text-sm">
-                      <div class="w-2 h-2 rounded-full shrink-0"
-                           [ngClass]="{
-                             'bg-green-500': approver.status === 'approved',
-                             'bg-red-500': approver.status === 'rejected',
-                             'bg-blue-500': approver.status === 'delegated'
-                           }"></div>
-                      <span class="font-medium">{{ approver.userName || approver.userId }}</span>
-                      <span class="capitalize" [ngClass]="{
-                        'text-green-600': approver.status === 'approved',
-                        'text-red-600': approver.status === 'rejected',
-                        'text-blue-600': approver.status === 'delegated'
-                      }">{{ approver.status }}</span>
-                      @if (approver.comment) {
-                        <span class="text-gray-400 italic">"{{ approver.comment }}"</span>
-                      }
-                      @if (approver.decidedAt) {
-                        <span class="text-gray-400 ml-auto text-xs">{{ formatDate(approver.decidedAt) }}</span>
-                      }
-                    </div>
-                  }
-                  @if (getDecidedApprovers(chain).length === 0) {
-                    <p class="text-sm text-gray-400 italic">No decisions recorded yet</p>
-                  }
-                </div>
+              <div class="border-t border-slate-100 px-5 py-4">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Decision History</p>
+                @if (getDecidedApprovers(chain).length === 0) {
+                  <p class="text-xs text-slate-400 italic">No decisions recorded yet.</p>
+                } @else {
+                  <div class="space-y-2">
+                    @for (approver of getDecidedApprovers(chain); track approver.userId) {
+                      <div class="flex items-center gap-3 text-xs">
+                        <div class="w-1.5 h-1.5 rounded-full shrink-0"
+                             [ngClass]="approver.status === 'approved' ? 'bg-emerald-500' : approver.status === 'rejected' ? 'bg-red-500' : 'bg-indigo-400'">
+                        </div>
+                        <span class="font-medium text-slate-700">{{ approver.userName || approver.userId }}</span>
+                        <span [ngClass]="chainIconColor(approver.status)" class="capitalize">{{ approver.status }}</span>
+                        @if (approver.comment) {
+                          <span class="text-slate-400 italic truncate">"{{ approver.comment }}"</span>
+                        }
+                        @if (approver.decidedAt) {
+                          <span class="text-slate-400 ml-auto shrink-0">{{ formatDate(approver.decidedAt) }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
 
-            <!-- Progress bar (always visible) -->
-            <div class="mt-4">
-              <div class="flex items-center justify-between mb-1">
-                <p class="text-xs text-gray-500">
-                  {{ getApprovedCount(chain) }}/{{ chain.approvers.length }} approved
-                  @if (getRejectedCount(chain) > 0) {
-                    · {{ getRejectedCount(chain) }} rejected
-                  }
-                  @if (getDelegatedCount(chain) > 0) {
-                    · {{ getDelegatedCount(chain) }} delegated
-                  }
-                </p>
-                <p class="text-xs font-medium" [ngClass]="{
-                  'text-yellow-600': chain.status === 'pending',
-                  'text-green-600': chain.status === 'approved',
-                  'text-red-600': chain.status === 'rejected'
-                }">{{ getApprovalProgress(chain) | number:'1.0-0' }}%</p>
-              </div>
-              <mat-progress-bar
-                mode="determinate"
-                [value]="getApprovalProgress(chain)"
-                [color]="chain.status === 'rejected' ? 'warn' : 'primary'"
-              ></mat-progress-bar>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      }
+          </div>
+        }
 
-      <!-- Empty states -->
-      @if (!filteredApprovals().length && !(isLoading$ | async)) {
-        <div class="text-center py-16">
-          <mat-icon class="!text-6xl !w-16 !h-16 text-gray-300 mb-4">verified</mat-icon>
-          @if (searchTerm || activeFilter !== 'all') {
-            <p class="text-gray-500 text-lg">No matching approval chains found</p>
-            <p class="text-gray-400 text-sm mt-1">Try adjusting your filters or search term</p>
-            <button mat-stroked-button class="mt-4" (click)="clearFilters()">
-              <mat-icon>filter_list_off</mat-icon> Clear Filters
-            </button>
-          } @else {
-            <p class="text-gray-500 text-lg">No approval chains yet</p>
-            <p class="text-gray-400 text-sm mt-1">Create your first approval chain to get started</p>
-            <button mat-raised-button color="primary" class="mt-4" (click)="showCreatePanel.set(true)">
-              <mat-icon>add</mat-icon> Create Approval Chain
-            </button>
-          }
-        </div>
-      }
+        <!-- Empty state -->
+        @if (!filteredApprovals().length && !isLoading()) {
+          <div class="text-center py-16 text-slate-400">
+            <mat-icon class="!text-5xl !w-12 !h-12 mb-3 text-slate-200">verified</mat-icon>
+            @if (searchTerm || activeFilter !== 'all') {
+              <p class="text-lg font-medium text-slate-500">No matching chains</p>
+              <p class="text-sm mt-1">Try adjusting filters or search.</p>
+              <button mat-stroked-button class="mt-4" (click)="clearFilters()">Clear Filters</button>
+            } @else {
+              <p class="text-lg font-medium text-slate-500">No approval chains yet</p>
+              <p class="text-sm mt-1">Create one to get started.</p>
+              <button mat-raised-button color="primary" class="mt-4" (click)="showCreatePanel.set(true)">
+                <mat-icon>add</mat-icon> New Chain
+              </button>
+            }
+          </div>
+        }
+      </div>
+
     </div>
   `,
 })
-export class ApprovalsComponent implements OnInit {
+export class ApprovalsComponent implements OnInit, OnDestroy {
   private allApprovals = signal<ApprovalChain[]>([]);
-  approvals$ = this.store.select(selectApprovalsList);
-  pendingApprovals$ = this.store.select(selectPendingApprovals);
-  isLoading$ = this.store.select(selectApprovalsLoading);
-  error$ = this.store.select(selectApprovalsError);
+  private destroy$ = new Subject<void>();
+
+  isLoading = signal(false);
+  error = signal<string | null>(null);
 
   showCreatePanel = signal(false);
   selectedChainId = signal<string | null>(null);
@@ -550,7 +449,6 @@ export class ApprovalsComponent implements OnInit {
   decisionAction = signal<'approve' | 'reject' | null>(null);
 
   activeFilter: FilterTab = 'all';
-  activeTabIndex = 0;
   searchTerm = '';
   sortField: SortField = 'createdAt';
   sortAsc = false;
@@ -605,11 +503,31 @@ export class ApprovalsComponent implements OnInit {
     return list;
   });
 
+  readonly statCards = [
+    { filter: 'all' as FilterTab, label: 'Total Chains', icon: 'list_alt', iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', numColor: 'text-slate-900', ringClass: 'ring-indigo-400', chipActive: 'bg-indigo-600 text-white' },
+    { filter: 'pending' as FilterTab, label: 'Pending', icon: 'hourglass_empty', iconBg: 'bg-amber-100', iconColor: 'text-amber-600', numColor: 'text-amber-600', ringClass: 'ring-amber-400', chipActive: 'bg-amber-500 text-white' },
+    { filter: 'approved' as FilterTab, label: 'Approved', icon: 'check_circle', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', numColor: 'text-emerald-600', ringClass: 'ring-emerald-400', chipActive: 'bg-emerald-600 text-white' },
+    { filter: 'rejected' as FilterTab, label: 'Rejected', icon: 'cancel', iconBg: 'bg-red-100', iconColor: 'text-red-600', numColor: 'text-red-600', ringClass: 'ring-red-400', chipActive: 'bg-red-600 text-white' },
+  ];
+
   constructor(private store: Store, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
     this.store.dispatch(ApprovalsActions.loadApprovals({}));
-    this.approvals$.subscribe(list => this.allApprovals.set(list));
+    this.store.select(selectApprovalsList)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(list => this.allApprovals.set(list));
+    this.store.select(selectApprovalsLoading)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(v => this.isLoading.set(v));
+    this.store.select(selectApprovalsError)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(e => this.error.set(e ?? null));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   refresh(): void {
@@ -623,13 +541,6 @@ export class ApprovalsComponent implements OnInit {
   // ─── Filters & Sorting ───────────────────────────
   setFilter(filter: FilterTab): void {
     this.activeFilter = filter;
-    this.activeTabIndex = ['all', 'pending', 'approved', 'rejected'].indexOf(filter);
-    this.applyFilters();
-  }
-
-  onTabChange(index: number): void {
-    const tabs: FilterTab[] = ['all', 'pending', 'approved', 'rejected'];
-    this.activeFilter = tabs[index];
     this.applyFilters();
   }
 
@@ -656,7 +567,6 @@ export class ApprovalsComponent implements OnInit {
   clearFilters(): void {
     this.searchTerm = '';
     this.activeFilter = 'all';
-    this.activeTabIndex = 0;
     this.applyFilters();
   }
 
@@ -731,6 +641,36 @@ export class ApprovalsComponent implements OnInit {
   }
 
   // ─── Helpers ──────────────────────────────────────
+  // ─── Style Helpers ───────────────────────────────
+  statCount(filter: FilterTab): number {
+    const s = this.stats();
+    return filter === 'all' ? s.total : (s[filter as keyof typeof s] as number);
+  }
+
+  chainBorderClass(status: string): string {
+    return { pending: '!border-l-amber-400', approved: '!border-l-emerald-500', rejected: '!border-l-red-500', delegated: '!border-l-indigo-400' }[status] || '!border-l-slate-300';
+  }
+
+  chainIconBg(status: string): string {
+    return { pending: 'bg-amber-100', approved: 'bg-emerald-100', rejected: 'bg-red-100', delegated: 'bg-indigo-100' }[status] || 'bg-slate-100';
+  }
+
+  chainIconColor(status: string): string {
+    return { pending: 'text-amber-600', approved: 'text-emerald-600', rejected: 'text-red-600', delegated: 'text-indigo-500' }[status] || 'text-slate-400';
+  }
+
+  chainBadgeClass(status: string): string {
+    return { pending: 'wf-badge--warning', approved: 'wf-badge--success', rejected: 'wf-badge--danger', delegated: 'wf-badge--info' }[status] || 'wf-badge--neutral';
+  }
+
+  approverRowClass(status: string): string {
+    return { approved: 'border-emerald-200 bg-emerald-50', rejected: 'border-red-200 bg-red-50', pending: 'border-slate-200 bg-slate-50', delegated: 'border-indigo-200 bg-indigo-50' }[status] || 'border-slate-200';
+  }
+
+  approverAvatarBg(status: string): string {
+    return { approved: 'bg-emerald-500', rejected: 'bg-red-500', pending: 'bg-slate-400', delegated: 'bg-indigo-500' }[status] || 'bg-slate-400';
+  }
+
   getStatusIcon(status: string): string {
     return { approved: 'check_circle', rejected: 'cancel', pending: 'schedule', delegated: 'forward' }[status] || 'help';
   }
