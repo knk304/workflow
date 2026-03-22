@@ -114,9 +114,10 @@ a:hover {
   box-shadow: var(--wf-shadow-md);
 }
 
-/* ===== Material Overrides – Form Fields ===== */
+/* ===== Material Overrides – Form Fields (Dense / Compact) ===== */
+
 .mat-mdc-form-field {
-  font-size: 14px;
+  font-size: 13px;
   /* Material 19 fill-appearance custom properties */
   --mdc-filled-text-field-active-indicator-color: var(--wf-border);
   --mdc-filled-text-field-hover-active-indicator-color: var(--wf-primary-light);
@@ -126,6 +127,38 @@ a:hover {
   --mdc-filled-text-field-error-hover-active-indicator-color: var(--wf-danger);
   --mdc-filled-text-field-container-color: var(--wf-surface);
   --mdc-filled-text-field-disabled-container-color: #f1f5f9;
+  --mdc-filled-text-field-label-text-size: 13px;
+  --mdc-filled-text-field-input-text-size: 13px;
+}
+.mat-mdc-form-field .mat-mdc-form-field-infix {
+  min-height: 44px;
+  padding-top: 22px;
+  padding-bottom: 4px;
+}
+.mat-mdc-form-field .mdc-text-field--filled .mat-mdc-form-field-infix {
+  min-height: 44px;
+}
+.mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  height: auto;
+  min-height: 48px;
+}
+.mat-mdc-form-field .mat-mdc-floating-label {
+  font-size: 13px;
+}
+.mat-mdc-form-field .mat-mdc-input-element {
+  font-size: 13px !important;
+}
+.mat-mdc-form-field .mat-mdc-input-element::placeholder {
+  font-size: 12px;
+}
+.mat-mdc-form-field .mat-mdc-select-value-text {
+  font-size: 13px;
+}
+.mat-mdc-form-field .mat-mdc-select-placeholder {
+  font-size: 12px;
+}
+.mat-mdc-form-field .mat-mdc-form-field-error {
+  font-size: 11px;
 }
 
 /* ===== Material Overrides – Buttons ===== */

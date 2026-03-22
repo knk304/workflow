@@ -40,15 +40,20 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
   styles: [`
     :host ::ng-deep .dense-field .mat-mdc-form-field-infix {
       min-height: 36px !important;
-      padding-top: 20px !important;
-      padding-bottom: 4px !important;
+      padding-top: 18px !important;
+      padding-bottom: 2px !important;
     }
     :host ::ng-deep .dense-field .mat-mdc-text-field-wrapper {
       height: auto;
-      min-height: 40px;
+      min-height: 38px;
     }
     :host ::ng-deep .dense-field .mat-mdc-form-field-subscript-wrapper {
       display: none;
+    }
+    :host ::ng-deep .dense-field .mat-mdc-input-element,
+    :host ::ng-deep .dense-field .mat-mdc-floating-label,
+    :host ::ng-deep .dense-field .mat-mdc-select-value-text {
+      font-size: 12px;
     }
   `],
   template: `

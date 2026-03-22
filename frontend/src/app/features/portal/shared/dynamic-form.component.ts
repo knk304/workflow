@@ -51,12 +51,27 @@ export interface DynamicField {
     MatButtonModule,
     MatIconModule,
   ],
+  styles: [`
+    :host {
+      font-size: 13px;
+    }
+    :host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+      height: 14px;
+    }
+    :host ::ng-deep .mat-mdc-form-field-bottom-align::before {
+      height: 10px;
+    }
+    :host ::ng-deep textarea.mat-mdc-input-element {
+      min-height: 28px;
+      font-size: 13px;
+    }
+  `],
   template: `
-    <form [formGroup]="form" class="space-y-4" (ngSubmit)="onSubmit()">
+    <form [formGroup]="form" class="space-y-1" (ngSubmit)="onSubmit()">
       @for (field of sortedFields; track field.id) {
         @switch (field.type) {
           @case ('text') {
-            <mat-form-field class="w-full" >
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
               <mat-label>{{ field.label }}</mat-label>
               <input matInput [formControlName]="field.id"
                      [placeholder]="field.placeholder || ''">
@@ -67,11 +82,11 @@ export interface DynamicField {
           }
 
           @case ('textarea') {
-            <mat-form-field class="w-full" >
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
               <mat-label>{{ field.label }}</mat-label>
               <textarea matInput [formControlName]="field.id"
                         [placeholder]="field.placeholder || ''"
-                        rows="3"></textarea>
+                        rows="2"></textarea>
               @if (form.get(field.id)?.hasError('required') && form.get(field.id)?.touched) {
                 <mat-error>{{ field.label }} is required</mat-error>
               }
@@ -79,7 +94,7 @@ export interface DynamicField {
           }
 
           @case ('number') {
-            <mat-form-field class="w-full" >
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
               <mat-label>{{ field.label }}</mat-label>
               <input matInput type="number" [formControlName]="field.id"
                      [placeholder]="field.placeholder || ''">
@@ -96,7 +111,7 @@ export interface DynamicField {
           }
 
           @case ('date') {
-            <mat-form-field class="w-full" >
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
               <mat-label>{{ field.label }}</mat-label>
               <input matInput [matDatepicker]="picker" [formControlName]="field.id">
               <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
@@ -108,7 +123,7 @@ export interface DynamicField {
           }
 
           @case ('select') {
-            <mat-form-field class="w-full" >
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
               <mat-label>{{ field.label }}</mat-label>
               <mat-select [formControlName]="field.id">
                 @for (opt of field.validation?.options || []; track opt) {
@@ -142,7 +157,7 @@ export interface DynamicField {
             @if (field.gridConfig) {
               <div class="py-1">
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">{{ field.label }}</label>
-                <div class="grid gap-3" [style.grid-template-columns]="'repeat(' + field.gridConfig.columns + ', 1fr)'">
+                <div class="grid gap-2" [style.grid-template-columns]="'repeat(' + field.gridConfig.columns + ', 1fr)'">
                   @for (cell of field.gridConfig.cells; track $index) {
                     <div>
                       @if (cell) {
