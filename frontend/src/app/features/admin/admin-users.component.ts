@@ -119,13 +119,13 @@ import { User, Team } from '../../core/models';
               <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef class="!pl-4">User</th>
                 <td mat-cell *matCellDef="let user" class="!pl-4">
-                  <div class="flex items-center gap-3 py-2">
-                    <div class="w-9 h-9 rounded-full bg-[#056DAE] text-white flex items-center justify-center font-bold text-sm">
+                  <div class="flex items-center gap-2 py-1">
+                    <div class="w-7 h-7 rounded-full bg-[#056DAE] text-white flex items-center justify-center font-bold text-xs">
                       {{ user.avatar || user.name.charAt(0) }}
                     </div>
                     <div>
-                      <p class="font-medium text-gray-900 text-sm">{{ user.name }}</p>
-                      <p class="text-xs text-gray-500">{{ user.email }}</p>
+                      <p class="font-medium text-gray-900 text-xs">{{ user.name }}</p>
+                      <p class="text-[11px] text-gray-500">{{ user.email }}</p>
                     </div>
                   </div>
                 </td>
@@ -159,7 +159,7 @@ import { User, Team } from '../../core/models';
               <ng-container matColumnDef="createdAt">
                 <th mat-header-cell *matHeaderCellDef>Joined</th>
                 <td mat-cell *matCellDef="let user">
-                  <span class="text-sm text-gray-600">{{ user.createdAt | date:'mediumDate' }}</span>
+                  <span class="text-xs text-gray-600">{{ user.createdAt | date:'mediumDate' }}</span>
                 </td>
               </ng-container>
 
@@ -168,10 +168,10 @@ import { User, Team } from '../../core/models';
                 <th mat-header-cell *matHeaderCellDef class="!text-right !pr-4">Actions</th>
                 <td mat-cell *matCellDef="let user" class="!text-right !pr-4">
                   <button mat-icon-button matTooltip="Edit User" (click)="openEditDialog(user)" data-cy="edit-user-btn">
-                    <mat-icon class="text-[#056DAE]">edit</mat-icon>
+                    <mat-icon class="text-[#056DAE] !text-[18px]">edit</mat-icon>
                   </button>
                   <button mat-icon-button matTooltip="Delete User" (click)="confirmDelete(user)" data-cy="delete-user-btn">
-                    <mat-icon class="text-red-500">delete</mat-icon>
+                    <mat-icon class="text-red-500 !text-[18px]">delete</mat-icon>
                   </button>
                 </td>
               </ng-container>

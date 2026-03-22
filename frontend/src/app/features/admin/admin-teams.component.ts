@@ -95,32 +95,34 @@ import { User, Team } from '../../core/models';
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" data-cy="teams-grid">
           @for (team of teams; track team.id) {
             <mat-card class="!shadow-sm" data-cy="team-card">
-              <mat-card-header class="!p-4 border-b border-gray-100">
+              <div class="p-4 border-b border-gray-100">
                 <div class="flex items-center justify-between w-full">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-[#d0e8f7] flex items-center justify-center">
-                      <mat-icon class="text-[#056DAE]">groups</mat-icon>
+                    <div class="w-10 h-10 rounded-lg bg-[#d0e8f7] shrink-0" style="display:flex;align-items:center;justify-content:center;">
+                      <mat-icon style="font-size:20px;width:20px;height:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:#056DAE;">groups</mat-icon>
                     </div>
                     <div>
-                      <mat-card-title class="!text-base !font-semibold">{{ team.name }}</mat-card-title>
+                      <p class="text-base font-semibold text-gray-900 leading-tight">{{ team.name }}</p>
                       @if (team.description) {
                         <p class="text-xs text-gray-500 mt-0.5">{{ team.description }}</p>
                       }
                     </div>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-1">
                     <span class="text-xs bg-[#EAF4FB] text-[#003B70] px-2.5 py-1 rounded-full font-medium">
                       {{ team.memberIds.length }} {{ team.memberIds.length === 1 ? 'member' : 'members' }}
                     </span>
-                    <button mat-icon-button matTooltip="Edit Team" (click)="openEditDialog(team)" data-cy="edit-team-btn">
-                      <mat-icon class="text-[#056DAE] !text-xl">edit</mat-icon>
+                    <button mat-icon-button matTooltip="Edit Team" (click)="openEditDialog(team)" data-cy="edit-team-btn"
+                      style="width:28px;height:28px;line-height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;line-height:1;color:#056DAE;">edit</mat-icon>
                     </button>
-                    <button mat-icon-button matTooltip="Delete Team" (click)="confirmDelete(team)" data-cy="delete-team-btn">
-                      <mat-icon class="text-red-500 !text-xl">delete</mat-icon>
+                    <button mat-icon-button matTooltip="Delete Team" (click)="confirmDelete(team)" data-cy="delete-team-btn"
+                      style="width:28px;height:28px;line-height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;line-height:1;color:#ef4444;">delete</mat-icon>
                     </button>
                   </div>
                 </div>
-              </mat-card-header>
+              </div>
               <mat-card-content class="!p-4">
                 @if (team.memberIds.length === 0) {
                   <p class="text-sm text-gray-400 italic">No members assigned</p>

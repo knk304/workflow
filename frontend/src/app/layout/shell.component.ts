@@ -153,7 +153,7 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
 
     <!-- Top Navigation Bar -->
     <nav class="top-nav sticky top-16 z-40 bg-white border-b border-slate-200 shadow-sm">
-      <div class="flex items-center gap-1 px-4 h-12 overflow-x-auto">
+      <div class="flex items-center gap-2 px-4 h-12 overflow-x-auto">
 
         <!-- My Work (Portal Worklist) -->
         <a routerLink="/portal/worklist" routerLinkActive="nav-active" class="nav-link">
@@ -294,7 +294,7 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 4px 12px;
+        padding: 4px 14px;
         border-radius: 6px;
         font-size: 14px;
         font-weight: 500;

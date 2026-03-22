@@ -172,13 +172,13 @@ import {
                 <th mat-header-cell *matHeaderCellDef class="!text-right !pr-4">Actions</th>
                 <td mat-cell *matCellDef="let d" class="!text-right !pr-4">
                   <button mat-icon-button matTooltip="Open Designer" [routerLink]="['/admin/case-types', d.id, 'designer']">
-                    <mat-icon class="text-[#056DAE]">edit</mat-icon>
+                    <mat-icon class="text-[#056DAE] !text-[18px]">edit</mat-icon>
                   </button>
                   <button mat-icon-button matTooltip="Duplicate" (click)="duplicate(d)">
-                    <mat-icon class="text-gray-500">content_copy</mat-icon>
+                    <mat-icon class="text-gray-500 !text-[18px]">content_copy</mat-icon>
                   </button>
                   <button mat-icon-button matTooltip="Delete" (click)="deleteDef(d)">
-                    <mat-icon class="text-red-500">delete</mat-icon>
+                    <mat-icon class="text-red-500 !text-[18px]">delete</mat-icon>
                   </button>
                 </td>
               </ng-container>

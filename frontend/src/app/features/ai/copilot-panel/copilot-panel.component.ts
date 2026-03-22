@@ -61,8 +61,8 @@ interface ChatMessage {
             <span class="font-semibold text-sm">AI Copilot</span>
             <span class="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full font-medium">Beta</span>
           </div>
-          <button mat-icon-button class="text-white" (click)="togglePanel()">
-            <mat-icon class="text-lg">close</mat-icon>
+          <button mat-icon-button class="text-white !h-7 !w-7 !min-w-0 !flex !items-center !justify-center" (click)="togglePanel()">
+            <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">close</mat-icon>
           </button>
         </div>
 

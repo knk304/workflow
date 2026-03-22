@@ -129,10 +129,10 @@ import {
                 <th mat-header-cell *matHeaderCellDef class="!text-right !pr-4">Actions</th>
                 <td mat-cell *matCellDef="let dt" class="!text-right !pr-4">
                   <button mat-icon-button matTooltip="Edit" [routerLink]="['/admin/decision-tables', dt.id]">
-                    <mat-icon class="text-[#056DAE]">edit</mat-icon>
+                    <mat-icon class="text-[#056DAE] !text-[18px]">edit</mat-icon>
                   </button>
                   <button mat-icon-button matTooltip="Delete" (click)="deleteTable(dt)">
-                    <mat-icon class="text-red-500">delete</mat-icon>
+                    <mat-icon class="text-red-500 !text-[18px]">delete</mat-icon>
                   </button>
                 </td>
               </ng-container>
