@@ -9,6 +9,9 @@ class NotificationType(str, Enum):
     status_change = "status_change"
     sla_warning = "sla_warning"
     comment = "comment"
+    info = "info"
+    approval = "approval"
+    escalation = "escalation"
 
 
 class EntityType(str, Enum):

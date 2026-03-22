@@ -14,14 +14,14 @@ def _to_response(doc: dict) -> NotificationResponse:
     return NotificationResponse(
         id=str(doc["_id"]),
         userId=doc["userId"],
-        type=doc["type"],
-        title=doc["title"],
-        message=doc["message"],
-        entityType=doc["entityType"],
-        entityId=doc["entityId"],
-        isRead=doc.get("isRead", False),
-        readAt=doc.get("readAt"),
-        createdAt=doc["createdAt"],
+        type=doc.get("type", "info"),
+        title=doc.get("title", ""),
+        message=doc.get("message", ""),
+        entityType=doc.get("entityType", doc.get("entity_type", "case")),
+        entityId=doc.get("entityId", doc.get("entity_id", doc.get("caseId", ""))),
+        isRead=doc.get("isRead", doc.get("read", False)),
+        readAt=doc.get("readAt", doc.get("read_at")),
+        createdAt=doc.get("createdAt", doc.get("created_at", "")),
     )
 
 
