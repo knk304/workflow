@@ -204,10 +204,13 @@ class AuditLogResponse(BaseModel):
     id: str
     entityType: str
     entityId: str
+    category: str = ""
     action: str
     actorId: str
     actorName: str
+    details: dict[str, Any] = {}
     changes: dict[str, Any] = {}
+    correlationId: str = ""
     timestamp: str
 
 

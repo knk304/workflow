@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from engine.rule_engine import rule_engine
+from engine.audit_logger import log_automation_executed, log_rule_evaluated
 
 
 async def activate(case: dict, stage_id: str, process_id: str,
@@ -12,6 +13,8 @@ async def activate(case: dict, stage_id: str, process_id: str,
     now = datetime.now(timezone.utc).isoformat()
     results = []
 
+    rules_evaluated: list = []
+
     # Execute direct actions
     for action in config.get("actions", []):
         result = await _execute_action(action, case, data, db, now)
@@ -20,10 +23,26 @@ async def activate(case: dict, stage_id: str, process_id: str,
     # Evaluate conditional rules
     for rule in config.get("rules", []):
         condition = rule.get("condition", {})
-        if not condition or rule_engine.evaluate(condition, data):
+        trace: list = []
+        matched = not condition or rule_engine.evaluate(condition, data, trace)
+        rules_evaluated.append({
+            "condition": condition,
+            "matched": matched,
+            "trace": trace,
+        })
+        if condition:
+            await log_rule_evaluated(db, case["_id"],
+                                     f"automation_rule:{step['definition_id']}",
+                                     condition, data, matched, trace)
+        if matched:
             for action in rule.get("actions", []):
                 result = await _execute_action(action, case, data, db, now)
                 results.append(result)
+
+    # Log full automation execution
+    await log_automation_executed(db, case["_id"], stage_id, process_id,
+                                  step["definition_id"], step["name"],
+                                  results, rules_evaluated)
 
     return {"auto_complete": True, "action_results": results}
 

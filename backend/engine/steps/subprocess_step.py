@@ -1,6 +1,7 @@
 """Subprocess step handler — spawns a child case and waits for resolution."""
 
 from datetime import datetime, timezone
+from engine.audit_logger import log_subprocess_created, log_subprocess_resolved
 
 
 async def activate(case: dict, stage_id: str, process_id: str,
@@ -39,6 +40,10 @@ async def activate(case: dict, stage_id: str, process_id: str,
     if not child_case:
         return {"auto_complete": True, "error": f"Failed to create child case type {child_type_id}"}
 
+    await log_subprocess_created(db, case["_id"], child_case["_id"],
+                                 step["definition_id"], step["name"],
+                                 child_type_id, field_mapping)
+
     return {
         "auto_complete": False,  # step stays in 'waiting'
         "status_override": "waiting",
@@ -61,6 +66,11 @@ async def on_child_resolved(parent_case: dict, step: dict, child_case: dict, db)
     if updates:
         updates["updated_at"] = now
         await db.cases.update_one({"_id": parent_case["_id"]}, {"$set": updates})
+
+    await log_subprocess_resolved(db, parent_case["_id"], child_case["_id"],
+                                   step["definition_id"],
+                                   child_case.get("resolution_status", "resolved_completed"),
+                                   list(propagate.keys()))
 
     return {"propagated_fields": list(propagate.keys())}
 

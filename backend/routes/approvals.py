@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from auth_deps import get_current_user
 from database import get_db
 from id_utils import find_by_id, update_by_id, delete_by_id
+from engine.audit_logger import log_approval_decision, log_approval_delegated
 from models.phase2 import (
     ApprovalChainCreate, ApprovalChainResponse, ApprovalDecision,
     ApprovalDelegation, Approver, ApprovalStatus, ApprovalMode,
@@ -160,15 +161,7 @@ async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends
     )
 
     # Write audit log
-    await db.audit_logs.insert_one({
-        "entityType": "approval",
-        "entityId": approval_id,
-        "action": "approved",
-        "actorId": user_id,
-        "actorName": user.get("name", user.get("email", "")),
-        "changes": {"case_id": doc["case_id"], "notes": body.notes},
-        "timestamp": now,
-    })
+    await log_approval_decision(db, doc["case_id"], approval_id, "approved", body.notes, user)
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
     return await _to_response(updated_doc, db)
@@ -202,15 +195,7 @@ async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(
         {"$set": {"approvers": approvers, "status": "rejected", "completed_at": now}},
     )
 
-    await db.audit_logs.insert_one({
-        "entityType": "approval",
-        "entityId": approval_id,
-        "action": "rejected",
-        "actorId": user_id,
-        "actorName": user.get("name", user.get("email", "")),
-        "changes": {"case_id": doc["case_id"], "notes": body.notes},
-        "timestamp": now,
-    })
+    await log_approval_decision(db, doc["case_id"], approval_id, "rejected", body.notes, user)
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
     return await _to_response(updated_doc, db)
@@ -245,6 +230,9 @@ async def delegate(approval_id: str, body: ApprovalDelegation, user: dict = Depe
     )
 
     await _notify_approver(db, body.delegate_to, doc["case_id"], approval_id)
+
+    await log_approval_delegated(db, doc["case_id"], approval_id,
+                                  user_id, body.delegate_to, user)
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
     return await _to_response(updated_doc, db)

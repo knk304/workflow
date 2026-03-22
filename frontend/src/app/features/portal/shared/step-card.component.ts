@@ -1,13 +1,20 @@
-import { Component, Input, Output, EventEmitter, ViewChild, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, OnChanges, OnDestroy, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject, Subscription } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
+import * as ApprovalsActions from '@state/approvals/approvals.actions';
+import { selectApprovalsByCaseId } from '@state/approvals/approvals.selectors';
 import { StepInstance, ApprovalChain, User } from '@core/models';
 import { statusLabel } from '@core/utils/status-labels';
 import { DataService } from '@core/services/data.service';
@@ -18,14 +25,31 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatExpansionModule,
     MatProgressBarModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatTooltipModule,
     RouterLink,
     DynamicFormComponent,
   ],
+  styles: [`
+    :host ::ng-deep .dense-field .mat-mdc-form-field-infix {
+      min-height: 32px !important;
+      padding-top: 4px !important;
+      padding-bottom: 4px !important;
+    }
+    :host ::ng-deep .dense-field .mat-mdc-text-field-wrapper {
+      height: 36px;
+    }
+    :host ::ng-deep .dense-field .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+  `],
   template: `
     <div class="border rounded-xl p-4 transition-all"
          [ngClass]="cardClass()">
@@ -135,6 +159,79 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                         </div>
                       }
                     </div>
+
+                    <!-- Interactive decision area for current pending approver -->
+                    @if (approvalChain.status === 'pending' && currentUserPendingApprover()) {
+                      @if (approvalAction() === null && !showDelegateForm()) {
+                        <div class="flex gap-2 mt-3">
+                          <button mat-flat-button color="primary" class="!text-xs !h-7 flex-1"
+                                  (click)="approvalAction.set('approve')">
+                            <mat-icon class="!text-sm mr-1">thumb_up</mat-icon> Approve
+                          </button>
+                          <button mat-stroked-button color="warn" class="!text-xs !h-7 flex-1"
+                                  (click)="approvalAction.set('reject')">
+                            <mat-icon class="!text-sm mr-1">thumb_down</mat-icon> Reject
+                          </button>
+                          <button mat-icon-button class="!w-7 !h-7" matTooltip="Delegate"
+                                  (click)="showDelegateForm.set(true)">
+                            <mat-icon class="!text-sm">forward</mat-icon>
+                          </button>
+                        </div>
+                      }
+                      @if (approvalAction() !== null) {
+                        <div class="mt-3 p-2.5 bg-white rounded border border-amber-200 space-y-2">
+                          <p class="text-xs font-semibold text-amber-800 capitalize">{{ approvalAction() }}</p>
+                          <mat-form-field class="w-full dense-field">
+                            <mat-label>Comment (optional)</mat-label>
+                            <input matInput [(ngModel)]="approvalComment" placeholder="Add a comment...">
+                          </mat-form-field>
+                          <div class="flex gap-2">
+                            <button mat-flat-button [color]="approvalAction() === 'approve' ? 'primary' : 'warn'"
+                                    class="!text-xs !h-7 flex-1" (click)="confirmApprovalAction()">
+                              Confirm {{ approvalAction() }}
+                            </button>
+                            <button mat-stroked-button class="!text-xs !h-7"
+                                    (click)="approvalAction.set(null); approvalComment = ''">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      }
+                      @if (showDelegateForm()) {
+                        <div class="mt-3 p-2.5 bg-white rounded border border-amber-200 space-y-2">
+                          <p class="text-xs font-semibold text-amber-800">Delegate approval</p>
+                          <mat-form-field class="w-full dense-field">
+                            <mat-label>Delegate to (User ID)</mat-label>
+                            <input matInput [(ngModel)]="delegateToUserId" placeholder="user-id">
+                          </mat-form-field>
+                          <mat-form-field class="w-full dense-field">
+                            <mat-label>Reason</mat-label>
+                            <input matInput [(ngModel)]="delegateReason" placeholder="Reason for delegation">
+                          </mat-form-field>
+                          <div class="flex gap-2">
+                            <button mat-flat-button color="primary" class="!text-xs !h-7 flex-1"
+                                    [disabled]="!delegateToUserId.trim()"
+                                    (click)="confirmDelegate()">
+                              Delegate
+                            </button>
+                            <button mat-stroked-button class="!text-xs !h-7"
+                                    (click)="showDelegateForm.set(false); delegateToUserId = ''; delegateReason = ''">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    }
+                    @if (approvalChain.status === 'approved') {
+                      <div class="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+                        <mat-icon class="!text-sm">check_circle</mat-icon> Fully approved
+                      </div>
+                    }
+                    @if (approvalChain.status === 'rejected') {
+                      <div class="mt-2 flex items-center gap-1.5 text-xs text-red-700 font-medium">
+                        <mat-icon class="!text-sm">cancel</mat-icon> Rejected
+                      </div>
+                    }
                   } @else {
                     <p class="text-xs text-amber-600">Review and approve or reject this item.</p>
                   }
@@ -290,7 +387,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
 
           <!-- Action button for current step -->
           @if (step.status === 'in_progress' || step.status === 'pending') {
-            @if (isCurrent && step.type !== 'decision' && step.type !== 'automation' && step.type !== 'subprocess') {
+            @if (isCurrent && step.type !== 'decision' && step.type !== 'automation' && step.type !== 'subprocess' && step.type !== 'approval') {
               @if (canActOnStep()) {
                 <button mat-flat-button color="primary" class="!mt-3 !text-xs !h-8"
                         [disabled]="(step.type === 'assignment' && hasFormFields && !isFormValid) ||
@@ -319,7 +416,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
     </div>
   `,
 })
-export class StepCardComponent implements OnChanges {
+export class StepCardComponent implements OnChanges, OnDestroy {
 
   @Input() step!: StepInstance;
   @Input() isCurrent = false;
@@ -334,11 +431,18 @@ export class StepCardComponent implements OnChanges {
   isUploading = signal(false);
   cachedFormFields: DynamicField[] = [];
   approvalChain: ApprovalChain | null = null;
+  approvalAction = signal<'approve' | 'reject' | null>(null);
+  showDelegateForm = signal(false);
+  approvalComment = '';
+  delegateToUserId = '';
+  delegateReason = '';
   objectKeys = Object.keys;
   statusLabel = statusLabel;
   private lastFormFieldsJson = '';
+  private chainSub?: Subscription;
+  private destroy$ = new Subject<void>();
 
-  constructor(private dataService: DataService) {}
+  constructor(private dataService: DataService, private store: Store) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['step']) {
@@ -347,24 +451,61 @@ export class StepCardComponent implements OnChanges {
     }
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.chainSub?.unsubscribe();
+  }
+
   private loadApprovalChain(): void {
+    this.chainSub?.unsubscribe();
     if (this.step?.type === 'approval' && this.step.approvalChainId) {
       this.dataService.getApprovalById(this.step.approvalChainId).subscribe({
         next: chain => this.approvalChain = chain,
         error: () => this.approvalChain = null,
       });
     } else if (this.step?.type === 'approval' && this.caseId) {
-      this.dataService.getApprovals(this.caseId).subscribe({
-        next: chains => {
+      this.store.dispatch(ApprovalsActions.loadApprovals({ caseId: this.caseId }));
+      this.chainSub = this.store.select(selectApprovalsByCaseId(this.caseId))
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(chains => {
           this.approvalChain = chains.find(c =>
             c.caseId === this.caseId && c.status === 'pending'
           ) || chains[chains.length - 1] || null;
-        },
-        error: () => this.approvalChain = null,
-      });
+        });
     } else {
       this.approvalChain = null;
     }
+  }
+
+  currentUserPendingApprover(): boolean {
+    if (!this.currentUser || !this.approvalChain) return false;
+    return this.approvalChain.approvers.some(
+      a => a.userId === this.currentUser!.id && a.status === 'pending'
+    );
+  }
+
+  confirmApprovalAction(): void {
+    if (!this.approvalChain || !this.approvalAction()) return;
+    const decision = { comment: this.approvalComment };
+    if (this.approvalAction() === 'approve') {
+      this.store.dispatch(ApprovalsActions.approveChain({ id: this.approvalChain.id, decision }));
+    } else {
+      this.store.dispatch(ApprovalsActions.rejectChain({ id: this.approvalChain.id, decision }));
+    }
+    this.approvalAction.set(null);
+    this.approvalComment = '';
+  }
+
+  confirmDelegate(): void {
+    if (!this.approvalChain || !this.delegateToUserId.trim()) return;
+    this.store.dispatch(ApprovalsActions.delegateApproval({
+      id: this.approvalChain.id,
+      delegation: { delegateTo: this.delegateToUserId.trim(), comment: this.delegateReason },
+    }));
+    this.showDelegateForm.set(false);
+    this.delegateToUserId = '';
+    this.delegateReason = '';
   }
 
   private updateCachedFormFields(): void {

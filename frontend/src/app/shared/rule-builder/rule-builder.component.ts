@@ -73,7 +73,7 @@ const OPERATORS = [
              [class.border-blue-200]="cond.logic === 'all'"
              [class.border-amber-200]="cond.logic === 'any'">
           <div class="flex items-center gap-2 mb-2">
-            <mat-form-field appearance="outline" class="!w-28 dense-field">
+            <mat-form-field class="!w-28 dense-field">
               <mat-select [(ngModel)]="cond.logic" (ngModelChange)="emitChange()">
                 <mat-option value="all">ALL of</mat-option>
                 <mat-option value="any">ANY of</mat-option>
@@ -110,7 +110,7 @@ const OPERATORS = [
       } @else {
         <!-- Simple condition row -->
         <div class="flex items-center gap-2" [class.ml-4]="depth > 0">
-          <mat-form-field appearance="outline" class="flex-1 dense-field">
+          <mat-form-field class="flex-1 dense-field">
             <mat-label>Field</mat-label>
             @if (fields.length > 0) {
               <mat-select [(ngModel)]="cond.field" (ngModelChange)="emitChange()">
@@ -123,7 +123,7 @@ const OPERATORS = [
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="!w-44 dense-field">
+          <mat-form-field class="!w-44 dense-field">
             <mat-select [(ngModel)]="cond.operator" (ngModelChange)="emitChange()">
               @for (op of operators; track op.value) {
                 <mat-option [value]="op.value">{{ op.label }}</mat-option>
@@ -132,7 +132,7 @@ const OPERATORS = [
           </mat-form-field>
 
           @if (cond.operator !== 'is_empty' && cond.operator !== 'is_not_empty') {
-            <mat-form-field appearance="outline" class="flex-1 dense-field">
+            <mat-form-field class="flex-1 dense-field">
               <mat-label>Value</mat-label>
               <input matInput [(ngModel)]="cond.value" (ngModelChange)="emitChange()" placeholder="value">
             </mat-form-field>

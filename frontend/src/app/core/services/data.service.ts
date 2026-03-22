@@ -41,7 +41,8 @@ export abstract class DataService {
   abstract markNotificationAsRead(notificationId: string): Observable<Notification>;
 
   // Audit
-  abstract getAuditLogs(entityId: string): Observable<AuditLog[]>;
+  abstract getAuditLogs(entityId: string, category?: string): Observable<AuditLog[]>;
+  abstract getAuditLogCount(entityId: string, category?: string): Observable<{ count: number }>;
 
   // ===== Phase 2 =====
 

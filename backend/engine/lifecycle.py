@@ -10,6 +10,11 @@ Depends on:
 from datetime import datetime, timezone
 from database import get_db
 from engine.rule_engine import rule_engine
+from engine.audit_logger import (
+    log_case_created, log_case_resolved,
+    log_stage_entered, log_stage_changed, log_stage_skipped,
+    log_stage_advanced_manually, log_rule_evaluated,
+)
 
 
 class TransitionDeniedError(Exception):
@@ -132,15 +137,9 @@ async def instantiate_case(
     await db.cases.insert_one(case_doc)
 
     # Write audit log
-    await db.audit_logs.insert_one({
-        "entityType": "case",
-        "entityId": case_id,
-        "action": "created",
-        "actorId": created_by or owner_id,
-        "actorName": "",
-        "changes": {"case_type": case_type["name"], "title": title},
-        "timestamp": now,
-    })
+    await log_case_created(db, case_id, case_type["name"], title,
+                           priority, created_by or owner_id,
+                           custom_fields, parent_case_id)
 
     # Enter first primary stage
     first_stage = _get_first_primary_stage(stages_runtime)
@@ -170,6 +169,8 @@ async def _enter_stage(case_id: str, stage: dict, db):
         "status": "in_progress",
         "updated_at": now,
     }})
+
+    await log_stage_entered(db, case_id, stage["definition_id"], stage.get("name", ""))
 
     # Start first process
     processes = sorted(stage.get("processes", []), key=lambda p: p.get("order", 0))
@@ -214,21 +215,36 @@ async def advance_to_next_stage(case_id: str, completed_stage_id: str, db):
         skip_when = stage_def.get("skip_when") if stage_def else None
         data = case.get("custom_fields", {})
 
-        if skip_when and rule_engine.evaluate(skip_when, data):
-            # Skip this stage
-            now = datetime.now(timezone.utc).isoformat()
-            for s in stages:
-                if s["definition_id"] == stage["definition_id"]:
-                    s["status"] = "skipped"
-                    break
-            await db.cases.update_one({"_id": case_id}, {"$set": {"stages": stages, "updated_at": now}})
-            continue
+        if skip_when:
+            trace: list = []
+            should_skip = rule_engine.evaluate(skip_when, data, trace)
+            await log_rule_evaluated(db, case_id,
+                                     f"stage_skip_when:{stage['definition_id']}",
+                                     skip_when, data, should_skip, trace)
+            if should_skip:
+                # Skip this stage
+                now = datetime.now(timezone.utc).isoformat()
+                for s in stages:
+                    if s["definition_id"] == stage["definition_id"]:
+                        s["status"] = "skipped"
+                        break
+                await db.cases.update_one({"_id": case_id}, {"$set": {"stages": stages, "updated_at": now}})
+                await log_stage_skipped(db, case_id, stage["definition_id"],
+                                        stage.get("name", ""), "skip_when condition met",
+                                        skip_when, trace)
+                continue
 
         # Evaluate entry_criteria
         entry_criteria = stage_def.get("entry_criteria") if stage_def else None
-        if entry_criteria and not rule_engine.evaluate(entry_criteria, data):
-            # Cannot enter — park
-            return
+        if entry_criteria:
+            trace_ec: list = []
+            can_enter = rule_engine.evaluate(entry_criteria, data, trace_ec)
+            await log_rule_evaluated(db, case_id,
+                                     f"stage_entry_criteria:{stage['definition_id']}",
+                                     entry_criteria, data, can_enter, trace_ec)
+            if not can_enter:
+                # Cannot enter — park
+                return
 
         # Enter this stage
         await _enter_stage(case_id, stage, db)
@@ -272,15 +288,7 @@ async def change_stage(case_id: str, target_stage_id: str, reason: str,
     await db.cases.update_one({"_id": case_id}, {"$set": {"stages": stages, "updated_at": now}})
 
     # Write audit log
-    await db.audit_logs.insert_one({
-        "entityType": "case",
-        "entityId": case_id,
-        "action": "stage_changed",
-        "actorId": user_id,
-        "actorName": user.get("name", "") if user else "system",
-        "changes": {"from_stage": current_stage_id, "to_stage": target_stage_id, "reason": reason},
-        "timestamp": now,
-    })
+    await log_stage_changed(db, case_id, current_stage_id, target_stage_id, reason, user)
 
     # Find target stage and enter it
     target_stage = None
@@ -319,15 +327,7 @@ async def resolve_case(case_id: str, resolution_status: str,
     }})
 
     # Write audit log
-    await db.audit_logs.insert_one({
-        "entityType": "case",
-        "entityId": case_id,
-        "action": "resolved",
-        "actorId": user_id,
-        "actorName": user.get("name", "") if user else "system",
-        "changes": {"resolution_status": resolution_status},
-        "timestamp": now,
-    })
+    await log_case_resolved(db, case_id, resolution_status, user)
 
     # If this is a child case, complete the parent subprocess step
     case = await db.cases.find_one({"_id": case_id})
@@ -381,15 +381,7 @@ async def manual_advance_stage(case_id: str, user: dict) -> dict:
         raise TransitionDeniedError("Not all processes are complete in this stage")
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.audit_logs.insert_one({
-        "entityType": "case",
-        "entityId": case_id,
-        "action": "stage_advanced_manually",
-        "actorId": str(user["_id"]),
-        "actorName": user.get("name", ""),
-        "changes": {"stage": current_stage_id},
-        "timestamp": now,
-    })
+    await log_stage_advanced_manually(db, case_id, current_stage_id, user)
 
     await advance_to_next_stage(case_id, current_stage_id, db)
     return await db.cases.find_one({"_id": case_id})

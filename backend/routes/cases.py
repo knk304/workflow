@@ -31,6 +31,7 @@ from engine.lifecycle import (
     resolve_case, TransitionDeniedError,
 )
 from engine.step_engine import complete_step
+from engine.audit_logger import log_case_updated
 
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
@@ -115,15 +116,7 @@ async def _case_to_response(doc: dict) -> dict:
 
 
 async def _write_audit(db, entity_id: str, action: str, user: dict, changes: dict | None = None):
-    await db.audit_logs.insert_one({
-        "entityType": "case",
-        "entityId": entity_id,
-        "action": action,
-        "actorId": str(user["_id"]),
-        "actorName": user.get("fullName", user.get("name", user.get("email", ""))),
-        "changes": changes or {},
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
+    await log_case_updated(db, entity_id, changes or {}, user)
 
 
 # ── Create ──────────────────────────────────────────────────
@@ -334,10 +327,13 @@ async def case_history(case_id: str, user: dict = Depends(get_current_user)):
             "id": str(log["_id"]),
             "entityType": log["entityType"],
             "entityId": log["entityId"],
+            "category": log.get("category", ""),
             "action": log["action"],
             "actorId": log.get("actorId", ""),
             "actorName": log.get("actorName", ""),
+            "details": log.get("details", {}),
             "changes": log.get("changes", {}),
+            "correlationId": log.get("correlationId", ""),
             "timestamp": log.get("timestamp", ""),
         })
     return results

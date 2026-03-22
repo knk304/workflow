@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+from engine.audit_logger import log_assignment_created
 
 
 async def activate(case: dict, stage_id: str, process_id: str,
@@ -52,6 +53,12 @@ async def activate(case: dict, stage_id: str, process_id: str,
         "created_at": now.isoformat(),
     }
     await db.assignments.insert_one(assignment)
+
+    await log_assignment_created(db, case["_id"], assignment["_id"],
+                                 step["definition_id"], step["name"],
+                                 "form" if config.get("form_id") else "action",
+                                 config.get("assignee_user_id"),
+                                 config.get("assignee_role"))
 
     # Optionally set case status
     if config.get("set_case_status"):

@@ -7,6 +7,10 @@ After completion, triggers process_engine.check_process_completion().
 
 from datetime import datetime, timezone
 from engine.rule_engine import rule_engine
+from engine.audit_logger import (
+    log_step_activated, log_step_completed, log_step_skipped,
+    log_rule_evaluated,
+)
 from engine.steps import (
     assignment_step,
     approval_step,
@@ -56,17 +60,27 @@ async def activate_step(case_id: str, stage_id: str, process_id: str,
 
     # Evaluate skip_when
     skip_when = step_config.get("skip_when") if step_config else None
-    if skip_when and rule_engine.evaluate(skip_when, data):
-        await _update_step_status(case_id, stage_id, process_id, step_def_id,
-                                  "skipped", now, db, skipped_reason="skip_when condition met")
-        # Check if process is complete
-        from engine.process_engine import check_process_completion
-        await check_process_completion(case_id, stage_id, process_id, db)
-        return await db.cases.find_one({"_id": case_id})
+    if skip_when:
+        trace: list = []
+        should_skip = rule_engine.evaluate(skip_when, data, trace)
+        await log_rule_evaluated(db, case_id, f"step_skip_when:{step_def_id}",
+                                 skip_when, data, should_skip, trace)
+        if should_skip:
+            await _update_step_status(case_id, stage_id, process_id, step_def_id,
+                                      "skipped", now, db, skipped_reason="skip_when condition met")
+            await log_step_skipped(db, case_id, stage_id, process_id, step_def_id,
+                                   step["name"], step["type"], "skip_when condition met",
+                                   skip_when, trace)
+            # Check if process is complete
+            from engine.process_engine import check_process_completion
+            await check_process_completion(case_id, stage_id, process_id, db)
+            return await db.cases.find_one({"_id": case_id})
 
     # Mark step in_progress
     await _update_step_status(case_id, stage_id, process_id, step_def_id,
                               "in_progress", now, db, set_started=True)
+    await log_step_activated(db, case_id, stage_id, process_id, step_def_id,
+                             step["name"], step["type"])
 
     # Resolve form fields for human steps (assignment, approval, attachment)
     # Populate from FormDefinition if form_id is set and no inline form_fields
@@ -210,15 +224,10 @@ async def complete_step(case_id: str, step_def_id: str, data: dict, user: dict, 
                               "completed", now, db, set_completed=True, extras=extras)
 
     # Write audit log
-    await db.audit_logs.insert_one({
-        "entityType": "case",
-        "entityId": case_id,
-        "action": f"step_completed:{step['name']}",
-        "actorId": str(user["_id"]),
-        "actorName": user.get("name", user.get("email", "")),
-        "changes": {"step_id": step_def_id, "step_type": step["type"]},
-        "timestamp": now,
-    })
+    await log_step_completed(db, case_id, stage_id, process_id, step_def_id,
+                             step["name"], step["type"], user,
+                             completion_data={"notes": data.get("notes"),
+                                              "form_data_keys": list((data.get("form_data") or {}).keys())})
 
     # Check process completion
     from engine.process_engine import check_process_completion

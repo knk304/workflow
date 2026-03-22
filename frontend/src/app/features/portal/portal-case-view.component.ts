@@ -138,15 +138,20 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
 
           <!-- Sidebar Nav Tabs -->
           <div class="px-5 py-2 border-t border-white/10 flex gap-1">
-            <button class="flex-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors text-center"
+            <button class="flex-1 text-xs font-semibold px-2 py-1.5 rounded-md transition-colors text-center"
                     [ngClass]="sidebarTab === 'details' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
                     (click)="sidebarTab = 'details'">
               Details
             </button>
-            <button class="flex-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors text-center"
+            <button class="flex-1 text-xs font-semibold px-2 py-1.5 rounded-md transition-colors text-center"
                     [ngClass]="sidebarTab === 'history' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
                     (click)="sidebarTab = 'history'">
               History
+            </button>
+            <button class="flex-1 text-xs font-semibold px-2 py-1.5 rounded-md transition-colors text-center"
+                    [ngClass]="sidebarTab === 'audit' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
+                    (click)="sidebarTab = 'audit'">
+              Audit
             </button>
           </div>
 
@@ -190,6 +195,19 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                   }
                 </div>
               }
+            </div>
+          }
+
+          @if (sidebarTab === 'audit') {
+            <div class="px-5 py-4 border-t border-white/10 flex-1">
+              <h4 class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider mb-3">Audit Logs</h4>
+              <p class="text-[10px] text-primary-300 mb-4 leading-relaxed">View every action, decision, and state change for this case.</p>
+              <a class="sidebar-btn w-full flex items-center justify-center gap-1.5 rounded"
+                 [routerLink]="['/admin/audit-logs']"
+                 [queryParams]="{ entityId: c.id }">
+                <mat-icon class="!text-sm">history</mat-icon>
+                Open Audit Logs
+              </a>
             </div>
           }
 
@@ -391,7 +409,7 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   c: CaseInstance | null = null;
   currentUser: User | null = null;
   isLoading = false;
-  sidebarTab: 'details' | 'history' = 'details';
+  sidebarTab: 'details' | 'history' | 'audit' = 'details';
 
   objectKeys = Object.keys;
   statusLabel = statusLabel;

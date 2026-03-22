@@ -9,6 +9,7 @@ import { AdminCaseTypeDefinitionsComponent } from './features/admin/admin-case-t
 import { CaseTypeDesignerComponent } from './features/admin/case-type-designer/case-type-designer.component';
 import { AdminDecisionTablesComponent } from './features/admin/admin-decision-tables/admin-decision-tables.component';
 import { DecisionTableEditorComponent } from './features/admin/decision-table-editor/decision-table-editor.component';
+import { AdminAuditLogsComponent } from './features/admin/admin-audit-logs.component';
 import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
 import { ApprovalsComponent } from './features/approvals/approvals.component';
 import { DocumentsComponent } from './features/documents/documents.component';
@@ -134,6 +135,11 @@ export const routes: Routes = [
             path: 'decision-tables/:id',
             component: DecisionTableEditorComponent,
             data: { title: 'Decision Table Editor' },
+          },
+          {
+            path: 'audit-logs',
+            component: AdminAuditLogsComponent,
+            data: { title: 'Audit Logs' },
           },
         ],
       },

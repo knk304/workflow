@@ -73,17 +73,25 @@ export interface Team {
 }
 
 // Audit Log
+export type AuditCategory =
+  | 'case' | 'stage' | 'process' | 'step'
+  | 'decision' | 'rule' | 'approval' | 'assignment'
+  | 'automation' | 'subprocess' | 'field' | 'sla';
+
 export interface AuditLog {
   id: string;
   entityType: string;
   entityId: string;
+  category: AuditCategory | string;
   action: string;
   actorId: string;
   actorName: string;
+  details: Record<string, any>;
   changes: {
-    before: Record<string, any>;
-    after: Record<string, any>;
+    before?: Record<string, any>;
+    after?: Record<string, any>;
   };
+  correlationId: string;
   timestamp: string;
 }
 

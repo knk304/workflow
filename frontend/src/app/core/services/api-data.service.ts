@@ -105,10 +105,20 @@ export class ApiDataService extends DataService {
   }
 
   // ─── Audit ───────────────────────────────────────
-  getAuditLogs(entityId: string): Observable<AuditLog[]> {
-    return this.http.get<AuditLog[]>(`${this.caseUrl}/audit-logs`, {
-      params: new HttpParams().set('entityId', entityId),
-    });
+  getAuditLogs(entityId: string, category?: string): Observable<AuditLog[]> {
+    let params = new HttpParams().set('entityId', entityId).set('limit', '200');
+    if (category) {
+      params = params.set('category', category);
+    }
+    return this.http.get<AuditLog[]>(`${this.caseUrl}/audit-logs`, { params });
+  }
+
+  getAuditLogCount(entityId: string, category?: string): Observable<{ count: number }> {
+    let params = new HttpParams().set('entityId', entityId);
+    if (category) {
+      params = params.set('category', category);
+    }
+    return this.http.get<{ count: number }>(`${this.caseUrl}/audit-logs/count`, { params });
   }
 
   // ─── Workflows ──────────────────────────────────

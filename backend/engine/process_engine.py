@@ -10,6 +10,10 @@ Responsibilities:
 
 from datetime import datetime, timezone
 from engine.rule_engine import rule_engine
+from engine.audit_logger import (
+    log_process_started, log_process_skipped, log_process_completed,
+    log_stage_completed, log_rule_evaluated,
+)
 
 
 async def start_process(case: dict, stage_id: str, process: dict, db) -> dict:
@@ -22,15 +26,24 @@ async def start_process(case: dict, stage_id: str, process: dict, db) -> dict:
 
     # Evaluate start_when condition
     start_when = process.get("start_when")
-    if start_when and not rule_engine.evaluate(start_when, data):
-        # Skip this process
-        await _update_process_status(case["_id"], stage_id, process["definition_id"],
-                                     "skipped", now, db)
-        return await db.cases.find_one({"_id": case["_id"]})
+    if start_when:
+        trace: list = []
+        result = rule_engine.evaluate(start_when, data, trace)
+        await log_rule_evaluated(db, case["_id"], f"process_start_when:{process['definition_id']}",
+                                 start_when, data, result, trace)
+        if not result:
+            # Skip this process
+            await _update_process_status(case["_id"], stage_id, process["definition_id"],
+                                         "skipped", now, db)
+            await log_process_skipped(db, case["_id"], stage_id, process["definition_id"],
+                                      process.get("name", ""), start_when, data, trace)
+            return await db.cases.find_one({"_id": case["_id"]})
 
     # Mark process in_progress
     await _update_process_status(case["_id"], stage_id, process["definition_id"],
                                  "in_progress", now, db, set_started=True)
+    await log_process_started(db, case["_id"], stage_id, process["definition_id"],
+                              process.get("name", ""), start_when, trace=[] if not start_when else trace)
 
     # Activate first step
     steps = process.get("steps", [])
@@ -68,6 +81,8 @@ async def check_process_completion(case_id: str, stage_id: str, process_id: str,
         now = datetime.now(timezone.utc).isoformat()
         await _update_process_status(case_id, stage_id, process_id, "completed",
                                      now, db, set_completed=True)
+        await log_process_completed(db, case_id, stage_id, process_id,
+                                    process.get("name", ""))
 
         # Check if stage is complete
         await check_stage_completion(case_id, stage_id, db)
@@ -108,6 +123,7 @@ async def check_stage_completion(case_id: str, stage_id: str, db) -> bool:
 
         # Apply on_complete action
         on_complete = stage.get("on_complete", "auto_advance")
+        await log_stage_completed(db, case_id, stage_id, stage.get("name", ""), on_complete)
 
         if on_complete == "resolve_case":
             from engine.lifecycle import resolve_case

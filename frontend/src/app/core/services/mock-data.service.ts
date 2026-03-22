@@ -169,26 +169,32 @@ export class MockDataService extends DataService {
       id: 'audit-1',
       entityType: 'case',
       entityId: 'CASE-2026-00001',
-      action: 'created',
+      category: 'case',
+      action: 'case_created',
       actorId: 'user-1',
       actorName: 'Alice Johnson',
+      details: { case_type: 'Loan Origination', title: 'Loan Application #1' },
       changes: {
         before: {},
         after: { status: 'open', stage: 'intake' },
       },
+      correlationId: 'mock-corr-1',
       timestamp: '2026-03-10T00:00:00.000Z',
     },
     {
       id: 'audit-2',
-      entityType: 'task',
+      entityType: 'case',
       entityId: 'task-1',
-      action: 'assigned',
+      category: 'assignment',
+      action: 'assignment_created',
       actorId: 'user-1',
       actorName: 'Alice Johnson',
+      details: { step_name: 'Review Application', type: 'form', assigned_to: 'user-1' },
       changes: {
         before: { assigneeId: null },
         after: { assigneeId: 'user-1' },
       },
+      correlationId: 'mock-corr-2',
       timestamp: '2026-03-10T00:00:00.000Z',
     },
   ];
@@ -259,8 +265,22 @@ export class MockDataService extends DataService {
     return of(this.mockNotifications.filter((n) => n.userId === userId)).pipe(delay(300));
   }
 
-  getAuditLogs(entityId: string): Observable<AuditLog[]> {
-    return of(this.mockAuditLogs.filter((a) => a.entityId === entityId)).pipe(delay(300));
+  getAuditLogs(entityId: string, category?: string): Observable<AuditLog[]> {
+    let logs = this.mockAuditLogs.filter((a) => a.entityId === entityId);
+    if (category) {
+      const cats = category.split(',');
+      logs = logs.filter((a) => cats.includes((a as any).category || ''));
+    }
+    return of(logs).pipe(delay(300));
+  }
+
+  getAuditLogCount(entityId: string, category?: string): Observable<{ count: number }> {
+    let logs = this.mockAuditLogs.filter((a) => a.entityId === entityId);
+    if (category) {
+      const cats = category.split(',');
+      logs = logs.filter((a) => cats.includes((a as any).category || ''));
+    }
+    return of({ count: logs.length }).pipe(delay(100));
   }
 
   addComment(comment: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Observable<Comment> {

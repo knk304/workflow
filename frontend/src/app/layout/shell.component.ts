@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
+import { map } from 'rxjs/operators';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,8 +11,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { Store } from '@ngrx/store';
 import { selectUser, selectIsAuthenticated } from '@state/auth/auth.selectors';
 import { selectUnreadNotificationCount } from '@state/notifications/notifications.selectors';
+import { selectPendingApprovals } from '@state/approvals/approvals.selectors';
 import * as AuthActions from '@state/auth/auth.actions';
 import * as NotificationsActions from '@state/notifications/notifications.actions';
+import * as ApprovalsActions from '@state/approvals/approvals.actions';
 import { SemanticSearchComponent } from '../features/ai/search-bar/semantic-search.component';
 import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-panel.component';
 
@@ -41,7 +44,7 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
         <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
           <mat-icon class="text-lg">hub</mat-icon>
         </div>
-        <span class="font-bold text-lg tracking-tight">Workflow</span>
+        <span class="font-bold text-lg tracking-tight">Case Management</span>
       </div>
       <span class="flex-1"></span>
 
@@ -105,7 +108,10 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
         </a>
 
         <!-- Approvals -->
-        <a routerLink="/approvals" routerLinkActive="nav-active" class="nav-link">
+        <a routerLink="/approvals" routerLinkActive="nav-active" class="nav-link"
+           [matBadge]="(pendingCount$ | async) || null"
+           matBadgeColor="warn"
+           matBadgeSize="small">
           <mat-icon class="nav-icon">approval</mat-icon>
           <span>Approvals</span>
         </a>
@@ -177,6 +183,10 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
             <a mat-menu-item routerLink="/admin/decision-tables" routerLinkActive="menu-active">
               <mat-icon>table_chart</mat-icon>
               <span>Decision Tables</span>
+            </a>
+            <a mat-menu-item routerLink="/admin/audit-logs" routerLinkActive="menu-active">
+              <mat-icon>history</mat-icon>
+              <span>Audit Logs</span>
             </a>
           </mat-menu>
         } @else if (currentUserData?.role === 'MANAGER') {
@@ -256,6 +266,9 @@ export class ShellComponent implements OnInit {
   currentUser$ = this.store.select(selectUser);
   isAuthenticated$ = this.store.select(selectIsAuthenticated);
   unreadCount$ = this.store.select(selectUnreadNotificationCount);
+  pendingCount$ = this.store.select(selectPendingApprovals).pipe(
+    map(list => list.length || null)
+  );
 
   isPortalActive = false;
   isToolsActive = false;
@@ -274,6 +287,7 @@ export class ShellComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.store.dispatch(ApprovalsActions.loadApprovals({}));
     this.currentUser$.subscribe((user) => {
       if (user && user.id) {
         this.store.dispatch(
