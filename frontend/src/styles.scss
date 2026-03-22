@@ -4,3 +4,15 @@
 @tailwind utilities;
 
 /* Custom Tailwind configuration will be applied via tailwind.config.js */
+
+/* Shell top-nav menu dropdown overrides */
+.mat-mdc-menu-content,
+.mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
+  font-size: 14px !important;
+}
+.mat-mdc-menu-content .mat-mdc-menu-item .mat-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin-right: 8px;
+}

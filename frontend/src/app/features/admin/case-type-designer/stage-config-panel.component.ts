@@ -51,8 +51,8 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
               <div>
                 <label class="text-xs font-medium text-gray-600 mb-1 block">Stage Type</label>
                 <span class="text-sm px-2 py-1 rounded"
-                  [class.bg-blue-100]="stage.stageType === 'primary'"
-                  [class.text-blue-700]="stage.stageType === 'primary'"
+                  [class.bg-primary-100]="stage.stageType === 'primary'"
+                  [class.text-primary-700]="stage.stageType === 'primary'"
                   [class.bg-orange-100]="stage.stageType === 'alternate'"
                   [class.text-orange-700]="stage.stageType === 'alternate'">
                   {{ stage.stageType | titlecase }}

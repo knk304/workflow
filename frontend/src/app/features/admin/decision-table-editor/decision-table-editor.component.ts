@@ -110,7 +110,7 @@ import {
                   @for (inp of dt.inputs; track inp) {
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">{{ inp }}</th>
                   }
-                  <th class="px-3 py-2 text-left text-xs font-semibold text-blue-600">&#8594; {{ dt.outputField }}</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-primary-500">&#8594; {{ dt.outputField }}</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 w-12">Pri</th>
                   <th class="px-3 py-2 w-10"></th>
                 </tr>
@@ -122,7 +122,7 @@ import {
                     @for (inp of dt.inputs; track inp) {
                       <td class="px-1 py-1">
                         <input
-                          class="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-blue-400 focus:outline-none"
+                          class="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-primary-400 focus:outline-none"
                           [ngModel]="row.conditions[inp] || ''"
                           (ngModelChange)="row.conditions[inp] = $event"
                           placeholder="—"
@@ -131,14 +131,14 @@ import {
                     }
                     <td class="px-1 py-1">
                       <input
-                        class="w-full px-2 py-1 text-sm border border-blue-200 rounded bg-blue-50 focus:border-blue-400 focus:outline-none font-medium"
+                        class="w-full px-2 py-1 text-sm border border-primary-200 rounded bg-primary-50 focus:border-primary-400 focus:outline-none font-medium"
                         [(ngModel)]="row.output"
                         placeholder="output"
                       >
                     </td>
                     <td class="px-1 py-1">
                       <input
-                        class="w-12 px-2 py-1 text-sm text-center border border-gray-200 rounded focus:border-blue-400 focus:outline-none"
+                        class="w-12 px-2 py-1 text-sm text-center border border-gray-200 rounded focus:border-primary-400 focus:outline-none"
                         type="number"
                         [(ngModel)]="row.priority"
                         min="1"

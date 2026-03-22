@@ -8,7 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 import { signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
-import { StepInstance, ApprovalChain } from '@core/models';
+import { StepInstance, ApprovalChain, User } from '@core/models';
 import { DataService } from '@core/services/data.service';
 import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
 
@@ -287,12 +287,26 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
           <!-- Action button for current step -->
           @if (step.status === 'in_progress' || step.status === 'pending') {
             @if (isCurrent && step.type !== 'decision' && step.type !== 'automation') {
-              <button mat-flat-button color="primary" class="!mt-3 !text-xs !h-8"
-                      [disabled]="(step.type === 'assignment' && hasFormFields && !isFormValid) ||
-                                  (step.type === 'attachment' && selectedFiles.length === 0)"
+              @if (canActOnStep()) {
+                <button mat-flat-button color="primary" class="!mt-3 !text-xs !h-8"
+                        [disabled]="(step.type === 'assignment' && hasFormFields && !isFormValid) ||
+                                    (step.type === 'attachment' && selectedFiles.length === 0)"
+                        (click)="completeStep()">
+                  <mat-icon class="!text-sm mr-1">check_circle</mat-icon>
+                  {{ completeLabel }}
+                </button>
+              } @else {
+                <div class="mt-3 text-xs text-slate-400 flex items-center gap-1">
+                  <mat-icon class="!text-sm">lock</mat-icon>
+                  {{ assignmentHint }}
+                </div>
+              }
+            }
+            @if (isCurrent && (step.type === 'decision' || step.type === 'automation') && step.status === 'in_progress') {
+              <button mat-stroked-button color="primary" class="!mt-3 !text-xs !h-8"
                       (click)="completeStep()">
-                <mat-icon class="!text-sm mr-1">check_circle</mat-icon>
-                {{ completeLabel }}
+                <mat-icon class="!text-sm mr-1">refresh</mat-icon>
+                Retry
               </button>
             }
           }
@@ -306,6 +320,7 @@ export class StepCardComponent implements OnChanges {
   @Input() step!: StepInstance;
   @Input() isCurrent = false;
   @Input() caseId = '';
+  @Input() currentUser: User | null = null;
   @Output() onComplete = new EventEmitter<{ step: StepInstance; formData: Record<string, any> }>();
 
   @ViewChild(DynamicFormComponent) dynamicForm?: DynamicFormComponent;
@@ -382,6 +397,46 @@ export class StepCardComponent implements OnChanges {
     return this.step.config?.['instructions'] || '';
   }
 
+  canActOnStep(): boolean {
+    if (!this.currentUser) return true; // no user info → don't block
+    if (this.currentUser.role === 'ADMIN') return true;
+
+    const cfg = this.step.config || {};
+    const userId = this.currentUser.id;
+    const userRole = this.currentUser.role;
+
+    if (this.step.type === 'approval') {
+      const roles: string[] = cfg['approver_roles'] || [];
+      const userIds: string[] = cfg['approver_user_ids'] || [];
+      if (roles.length || userIds.length) {
+        return roles.includes(userRole) || userIds.includes(userId);
+      }
+    }
+
+    // assignment / attachment / other steps
+    if (this.step.assignedTo) {
+      return this.step.assignedTo === userId;
+    }
+    const assigneeRole: string | undefined = cfg['assignee_role'];
+    if (assigneeRole) {
+      return userRole === assigneeRole;
+    }
+
+    return true; // no restrictions configured
+  }
+
+  get assignmentHint(): string {
+    const cfg = this.step.config || {};
+    if (this.step.type === 'approval') {
+      const roles: string[] = cfg['approver_roles'] || [];
+      if (roles.length) return `Assigned to ${roles.join(', ')} role(s)`;
+    }
+    if (this.step.assignedTo) return `Assigned to ${this.step.assignedTo}`;
+    const role = cfg['assignee_role'];
+    if (role) return `Assigned to ${role} role`;
+    return 'Not assigned to you';
+  }
+
   completeStep(): void {
     const formData = this.dynamicForm?.getValue() || {};
     if (this.step.type === 'attachment' && this.caseId && this.selectedFiles.length > 0) {
@@ -419,21 +474,21 @@ export class StepCardComponent implements OnChanges {
 
   cardClass(): string {
     if (this.step.status === 'completed') return 'border-emerald-200 bg-emerald-50/50';
-    if (this.isCurrent) return 'border-blue-300 bg-blue-50/50 shadow-sm';
+    if (this.isCurrent) return 'border-primary-300 bg-primary-50/50 shadow-sm';
     if (this.step.status === 'skipped') return 'border-slate-200 bg-slate-50 opacity-60';
     return 'border-slate-200 bg-white';
   }
 
   iconClass(): string {
     if (this.step.status === 'completed') return 'bg-emerald-500 text-white';
-    if (this.isCurrent) return 'bg-blue-600 text-white';
+    if (this.isCurrent) return 'bg-primary-500 text-white';
     if (this.step.status === 'skipped') return 'bg-slate-300 text-white';
     return 'bg-slate-200 text-slate-400';
   }
 
   titleClass(): string {
     if (this.step.status === 'completed') return 'text-emerald-700';
-    if (this.isCurrent) return 'text-blue-700';
+    if (this.isCurrent) return 'text-primary-700';
     return 'text-slate-600';
   }
 
@@ -441,7 +496,7 @@ export class StepCardComponent implements OnChanges {
     return {
       approved: 'bg-emerald-50 border-emerald-200',
       rejected: 'bg-red-50 border-red-200',
-      delegated: 'bg-blue-50 border-blue-200',
+      delegated: 'bg-primary-50 border-primary-200',
     }[status] || 'bg-white border-slate-200';
   }
 
@@ -449,7 +504,7 @@ export class StepCardComponent implements OnChanges {
     return {
       approved: 'bg-emerald-500 text-white',
       rejected: 'bg-red-500 text-white',
-      delegated: 'bg-blue-500 text-white',
+      delegated: 'bg-primary-500 text-white',
     }[status] || 'bg-slate-200 text-slate-500';
   }
 
@@ -457,7 +512,7 @@ export class StepCardComponent implements OnChanges {
     return {
       approved: 'bg-emerald-100 text-emerald-700',
       rejected: 'bg-red-100 text-red-700',
-      delegated: 'bg-blue-100 text-blue-700',
+      delegated: 'bg-primary-100 text-primary-700',
     }[status] || 'bg-amber-100 text-amber-700';
   }
 

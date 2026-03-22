@@ -11,12 +11,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
 import { Subject, takeUntil } from 'rxjs';
-import { CaseInstance, StageInstance, StepInstance } from '@core/models';
+import { CaseInstance, StageInstance, StepInstance, User } from '@core/models';
 import * as CasesActions from '@state/cases/cases.actions';
 import {
   selectSelectedCaseInstance,
   selectCasesLoading,
 } from '@state/cases/cases.selectors';
+import { selectUser } from '@state/auth/auth.selectors';
 import { StepCardComponent } from '@features/portal/shared/step-card.component';
 
 @Component({
@@ -45,7 +46,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
         <!-- ========== LEFT SIDEBAR ========== -->
         <div class="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
           <!-- Case Header -->
-          <div class="px-4 py-4 bg-slate-700 text-white">
+          <div class="px-4 py-4 bg-primary-800 text-white">
             <div class="flex items-center gap-2 mb-1">
               <mat-icon class="!text-lg">folder_open</mat-icon>
               <span class="text-xs font-medium opacity-80">{{ c.id }}</span>
@@ -93,7 +94,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
             </div>
             <div>
               <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Created</p>
-              <p class="text-xs text-blue-600 mt-0.5">{{ c.ownerId || 'System' }}</p>
+              <p class="text-xs text-primary-500 mt-0.5">{{ c.ownerId || 'System' }}</p>
               <p class="text-[10px] text-slate-400">{{ c.createdAt | date:'medium' }}</p>
             </div>
             <div>
@@ -126,12 +127,12 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
           <!-- Sidebar Nav -->
           <div class="px-4 py-3 space-y-1">
             <button class="w-full text-left text-xs font-semibold px-2 py-1.5 rounded transition-colors"
-                    [ngClass]="sidebarTab === 'details' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'"
+                    [ngClass]="sidebarTab === 'details' ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-50'"
                     (click)="sidebarTab = 'details'">
               Details
             </button>
             <button class="w-full text-left text-xs font-semibold px-2 py-1.5 rounded transition-colors"
-                    [ngClass]="sidebarTab === 'history' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'"
+                    [ngClass]="sidebarTab === 'history' ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-50'"
                     (click)="sidebarTab = 'history'">
               History
             </button>
@@ -188,7 +189,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                   <div class="flex items-center gap-1.5 mb-1">
                     <span class="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
                           [ngClass]="stage.status === 'completed' ? 'bg-emerald-500 text-white' :
-                                     stage.stageDefinitionId === c.currentStageId ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'">
+                                     stage.stageDefinitionId === c.currentStageId ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-500'">
                       {{ si + 1 }}
                     </span>
                     <span class="text-xs font-medium text-slate-700">{{ stage.name }}</span>
@@ -236,7 +237,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
               <!-- Current step assignment header -->
               @if (currentStepObj(stage); as curStep) {
                 <div class="flex items-center gap-3 mb-4">
-                  <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                  <div class="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold">
                     {{ (c.ownerId || 'U')[0].toUpperCase() }}
                   </div>
                   <div>
@@ -259,18 +260,34 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                 </div>
               }
 
-              <!-- Steps list -->
-              @if (stepsForStage(stage); as steps) {
+              <!-- Steps list grouped by process -->
+              @for (proc of stage.processes || []; track proc.processDefinitionId) {
+                @if ((stage.processes || []).length > 1) {
+                  <div class="flex items-center gap-2 mt-4 mb-2 first:mt-0">
+                    <div class="h-px flex-1 bg-slate-200"></div>
+                    <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">
+                      {{ proc.name }}
+                      @if (proc.status === 'completed') {
+                        <mat-icon class="!text-xs align-middle text-emerald-500 ml-0.5">check_circle</mat-icon>
+                      } @else if (proc.status === 'in_progress') {
+                        <mat-icon class="!text-xs align-middle text-blue-500 ml-0.5">pending</mat-icon>
+                      }
+                    </span>
+                    <div class="h-px flex-1 bg-slate-200"></div>
+                  </div>
+                }
                 <div class="space-y-3">
-                  @for (step of steps; track step.stepDefinitionId; let i = $index) {
+                  @for (step of proc.steps || []; track step.stepDefinitionId) {
                     <app-step-card
                       [step]="step"
                       [isCurrent]="isCurrentStep(step, stage)"
                       [caseId]="c.id"
+                      [currentUser]="currentUser"
                       (onComplete)="onCompleteStep($event)">
                     </app-step-card>
                   }
                 </div>
+              }
 
                 <!-- Stage advancement prompt -->
                 @if (allStepsComplete(stage)) {
@@ -286,11 +303,11 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                       </button>
                     </div>
                   } @else if (stage.onComplete === 'auto_advance') {
-                    <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
-                      <mat-icon class="text-blue-600">autorenew</mat-icon>
-                      <div class="flex-1">
-                        <p class="text-sm font-semibold text-blue-800">All steps complete</p>
-                        <p class="text-xs text-blue-600">Stage will auto-advance when the last step is completed</p>
+                    <div class="mb-4 px-4 py-3 bg-primary-50 border border-primary-200 rounded-lg flex items-start gap-2">
+                      <mat-icon class="text-primary-500 !text-xl mt-0.5">autorenew</mat-icon>
+                      <div>
+                        <p class="text-sm font-semibold text-primary-800">All steps complete</p>
+                        <p class="text-xs text-primary-600">Stage will auto-advance when the last step is completed</p>
                       </div>
                     </div>
                   } @else if (stage.onComplete === 'resolve_case') {
@@ -303,7 +320,6 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                     </div>
                   }
                 }
-              }
             } @else {
               <div class="text-center py-12 text-slate-400">
                 <mat-icon class="!text-5xl mb-2">check_circle_outline</mat-icon>
@@ -345,6 +361,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
 })
 export class PortalCaseViewComponent implements OnInit, OnDestroy {
   c: CaseInstance | null = null;
+  currentUser: User | null = null;
   isLoading = false;
   sidebarTab: 'details' | 'history' = 'details';
 
@@ -365,6 +382,7 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     }
     this.store.select(selectCasesLoading).pipe(takeUntil(this.destroy$)).subscribe((v) => (this.isLoading = v));
     this.store.select(selectSelectedCaseInstance).pipe(takeUntil(this.destroy$)).subscribe((v) => (this.c = v));
+    this.store.select(selectUser).pipe(takeUntil(this.destroy$)).subscribe((v) => (this.currentUser = v));
   }
 
   ngOnDestroy(): void {
@@ -382,18 +400,25 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   }
 
   stepsForStage(stage: StageInstance): StepInstance[] {
-    // Flatten steps from ALL processes in the stage (not just first)
-    const allSteps: StepInstance[] = [];
+    // Flatten steps from ALL processes, preserving process order then step order
+    const allSteps: { step: StepInstance; procOrder: number }[] = [];
     for (const proc of stage.processes || []) {
-      allSteps.push(...(proc.steps || []));
+      const procOrder = proc.order ?? 0;
+      for (const step of proc.steps || []) {
+        allSteps.push({ step, procOrder });
+      }
     }
-    return allSteps.sort((a, b) => a.order - b.order);
+    allSteps.sort((a, b) => a.procOrder - b.procOrder || a.step.order - b.step.order);
+    return allSteps.map((s) => s.step);
   }
 
   currentStepIndex(stage: StageInstance): number {
     const steps = this.stepsForStage(stage);
-    const idx = steps.findIndex((s) => s.status === 'in_progress' || s.status === 'pending');
-    return idx >= 0 ? idx : steps.length;
+    // Prefer in_progress step over pending — handles multi-process stages
+    const ipIdx = steps.findIndex((s) => s.status === 'in_progress');
+    if (ipIdx >= 0) return ipIdx;
+    const pendIdx = steps.findIndex((s) => s.status === 'pending');
+    return pendIdx >= 0 ? pendIdx : steps.length;
   }
 
   isCurrentStep(step: StepInstance, stage: StageInstance): boolean {

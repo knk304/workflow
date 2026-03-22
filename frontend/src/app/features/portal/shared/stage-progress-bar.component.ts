@@ -48,7 +48,7 @@ export class StageProgressBarComponent {
       return 'bg-emerald-500 text-white';
     }
     if (index === this.currentIndex) {
-      return 'bg-blue-600 text-white ring-4 ring-blue-100';
+      return 'bg-primary-500 text-white ring-4 ring-primary-100';
     }
     return 'bg-slate-200 text-slate-500';
   }
@@ -56,7 +56,7 @@ export class StageProgressBarComponent {
   stageLabelClass(index: number): string {
     const stage = this.stages[index];
     if (stage.status === 'completed') return 'text-emerald-600 font-medium';
-    if (index === this.currentIndex) return 'text-blue-600 font-semibold';
+    if (index === this.currentIndex) return 'text-primary-500 font-semibold';
     return 'text-slate-400';
   }
 

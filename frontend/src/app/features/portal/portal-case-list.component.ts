@@ -94,7 +94,7 @@ import {
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Title</th>
               <td mat-cell *matCellDef="let c">
                 <a [routerLink]="['/portal/cases', c.id]"
-                   class="text-blue-600 hover:text-blue-800 font-medium">{{ c.title }}</a>
+                   class="text-primary-500 hover:text-primary-800 font-medium">{{ c.title }}</a>
               </td>
             </ng-container>
 
@@ -232,7 +232,7 @@ export class PortalCaseListComponent implements OnInit {
 
   statusBadge(status: string): string {
     return {
-      open: 'bg-blue-100 text-blue-700',
+      open: 'bg-primary-100 text-primary-700',
       in_progress: 'bg-amber-100 text-amber-700',
       resolved: 'bg-green-100 text-green-700',
       closed: 'bg-slate-100 text-slate-600',

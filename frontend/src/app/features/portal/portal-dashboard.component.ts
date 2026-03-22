@@ -51,8 +51,8 @@ import {
         <mat-card class="!rounded-xl !shadow-sm border border-slate-100">
           <mat-card-content class="pt-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <mat-icon class="text-blue-600">assignment</mat-icon>
+              <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
+                <mat-icon class="text-primary-500">assignment</mat-icon>
               </div>
               <div>
                 <p class="text-2xl font-bold text-slate-800">{{ (myOpenCount$ | async) || 0 }}</p>
@@ -109,7 +109,7 @@ import {
       <mat-card class="!rounded-xl !shadow-sm border border-slate-100">
         <mat-card-header class="!pb-0">
           <mat-card-title class="!text-base !font-semibold text-slate-800">
-            <mat-icon class="align-middle mr-1 text-blue-600">assignment_ind</mat-icon>
+            <mat-icon class="align-middle mr-1 text-primary-500">assignment_ind</mat-icon>
             My Assignments
           </mat-card-title>
           <span class="flex-1"></span>
@@ -129,7 +129,7 @@ import {
                        [routerLink]="['/portal/cases', a.caseId]">
                     <div class="w-2 h-2 rounded-full" [ngClass]="priorityDot(a.priority)"></div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-slate-700 truncate">{{ a.stepName || a.name }}</p>
+                      <p class="text-sm font-medium text-primary-800 truncate">{{ a.stepName || a.name }}</p>
                       <p class="text-xs text-slate-400">{{ a.caseTitle }}</p>
                     </div>
                     <span class="text-xs px-2 py-0.5 rounded-full"

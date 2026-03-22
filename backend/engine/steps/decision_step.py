@@ -20,9 +20,31 @@ async def activate(case: dict, stage_id: str, process_id: str,
     if mode == "decision_table" and config.get("decision_table_id"):
         table = await db.decision_tables.find_one({"_id": config["decision_table_id"]})
         if table:
-            output, _ = decision_table_engine.evaluate(table, data)
-            next_step_id = output  # output is expected to be a step_id
+            # Apply field_mapping so decision table input names can differ
+            # from case custom_field names, e.g. {"loan_amount": "f-amount"}
+            eval_data = _map_fields(data, config.get("field_mapping"))
+            output, _ = decision_table_engine.evaluate(table, eval_data)
             branch_label = f"decision_table:{output}"
+
+            # Store result in case custom_fields using the table's output_field
+            output_field = table.get("output_field", "decision_result")
+            if output_field:
+                from datetime import datetime, timezone
+                await db.cases.update_one(
+                    {"_id": case["_id"]},
+                    {"$set": {
+                        f"custom_fields.{output_field}": output,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }},
+                )
+
+            # If output_mapping is configured, translate output to a step ID.
+            # Otherwise let the process flow naturally to the next step.
+            output_mapping = config.get("output_mapping")
+            if output_mapping and output in output_mapping:
+                next_step_id = output_mapping[output]
+            elif output_mapping:
+                next_step_id = output_mapping.get("_default")
     else:
         # first_match mode: evaluate branches in order
         for branch in config.get("branches", []):
@@ -47,3 +69,18 @@ async def complete(case: dict, stage_id: str, process_id: str,
                    step: dict, data: dict, user: dict, db) -> dict:
     """Decision steps auto-complete during activation — no manual completion."""
     return {}
+
+
+def _map_fields(data: dict, field_mapping: dict | None) -> dict:
+    """
+    Build evaluation data.  ``field_mapping`` maps decision-table input names
+    to case custom_field names, e.g. {"loan_amount": "f-amount"}.
+    Unmapped keys pass through from the original data.
+    """
+    if not field_mapping:
+        return data
+    mapped = dict(data)
+    for table_key, case_key in field_mapping.items():
+        if case_key in data:
+            mapped[table_key] = data[case_key]
+    return mapped

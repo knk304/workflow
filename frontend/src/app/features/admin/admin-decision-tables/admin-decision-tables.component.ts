@@ -62,8 +62,8 @@ import {
         <mat-card class="!shadow-sm">
           <mat-card-content class="!p-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <mat-icon class="text-blue-600">grid_on</mat-icon>
+              <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                <mat-icon class="text-primary-500">grid_on</mat-icon>
               </div>
               <div>
                 <p class="text-2xl font-bold text-gray-900">{{ totalRows() }}</p>
@@ -116,7 +116,7 @@ import {
               <ng-container matColumnDef="output">
                 <th mat-header-cell *matHeaderCellDef>Output</th>
                 <td mat-cell *matCellDef="let dt">
-                  <span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-mono">{{ dt.outputField }}</span>
+                  <span class="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded font-mono">{{ dt.outputField }}</span>
                 </td>
               </ng-container>
 

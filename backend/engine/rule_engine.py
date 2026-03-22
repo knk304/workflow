@@ -22,6 +22,17 @@ class RuleEngineError(Exception):
 class RuleEngine:
     """Evaluates conditions against a data dict."""
 
+    # Shorthand operator prefixes → canonical operator names
+    _SHORTHAND_OPS = [
+        (">=", "gte"),
+        ("<=", "lte"),
+        ("!=", "neq"),
+        (">",  "gt"),
+        ("<",  "lt"),
+        ("==", "eq"),
+        ("=",  "eq"),
+    ]
+
     def evaluate(self, condition: dict, data: dict, trace: Optional[list] = None) -> bool:
         """
         Entry point.  Returns True if the condition matches the data.
@@ -40,6 +51,12 @@ class RuleEngine:
             return self._evaluate_all(condition["all"], data, trace)
         if "any" in condition:
             return self._evaluate_any(condition["any"], data, trace)
+
+        # Normalise shorthand dict like {"loan_amount": ">100000"}
+        if "field" not in condition and "operator" not in condition:
+            normalised = self._normalise_shorthand(condition)
+            if normalised is not None:
+                return self.evaluate(normalised, data, trace)
 
         # Simple
         return self._evaluate_simple(condition, data, trace)
@@ -65,6 +82,57 @@ class RuleEngine:
                 return True
         trace.append("OR → False")
         return False
+
+    # ── Shorthand normalisation ──────────────────────────────
+
+    def _normalise_shorthand(self, condition: dict) -> Optional[dict]:
+        """
+        Convert shorthand conditions like {"loan_amount": ">100000"} into
+        structured format.  Multiple keys become an AND group.
+        Returns None if the dict doesn't look like shorthand.
+        """
+        parts: list[dict] = []
+        for key, raw in condition.items():
+            parsed = self._parse_shorthand_value(key, raw)
+            if parsed is None:
+                return None  # not a shorthand dict
+            parts.append(parsed)
+
+        if len(parts) == 1:
+            return parts[0]
+        return {"all": parts}
+
+    # Regex for range shorthand like "10000-100000"
+    _RANGE_RE = re.compile(r"^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$")
+
+    def _parse_shorthand_value(self, field: str, raw: Any) -> Optional[dict]:
+        """Parse a single shorthand entry like (\"loan_amount\", \">100000\")."""
+        if not isinstance(raw, str):
+            # Plain non-string value → eq comparison
+            return {"field": field, "operator": "eq", "value": raw}
+
+        # Check range shorthand first (e.g. "10000-100000")
+        m = self._RANGE_RE.match(raw.strip())
+        if m:
+            low = self._coerce_value(m.group(1))
+            high = self._coerce_value(m.group(2))
+            return {"field": field, "operator": "between", "value": [low, high]}
+
+        for prefix, op in self._SHORTHAND_OPS:
+            if raw.startswith(prefix):
+                val_str = raw[len(prefix):].strip()
+                return {"field": field, "operator": op, "value": self._coerce_value(val_str)}
+
+        # No recognised operator prefix → equality check
+        return {"field": field, "operator": "eq", "value": self._coerce_value(raw)}
+
+    @staticmethod
+    def _coerce_value(val: str) -> Any:
+        """Best-effort coerce a string to int/float, else keep as string."""
+        try:
+            return int(val) if "." not in val else float(val)
+        except ValueError:
+            return val
 
     # ── Simple ─────────────────────────────────────────────
 

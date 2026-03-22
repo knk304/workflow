@@ -87,7 +87,7 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
         </button>
         <div class="flex-1 min-w-0">
           <input
-            class="text-xl font-bold text-gray-900 bg-transparent border-0 border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full max-w-md transition-colors"
+            class="text-xl font-bold text-gray-900 bg-transparent border-0 border-b-2 border-transparent hover:border-gray-300 focus:border-primary-500 focus:outline-none w-full max-w-md transition-colors"
             [(ngModel)]="caseType.name"
             (blur)="markDirty()"
           />
@@ -133,7 +133,7 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                 <div class="space-y-4">
                   @for (process of selectedStage()!.processes; track process.id; let pi = $index) {
                     <mat-card class="!shadow-sm border"
-                      [class.border-blue-300]="selectedProcessId() === process.id && configPanelMode() === 'process'"
+                      [class.border-primary-300]="selectedProcessId() === process.id && configPanelMode() === 'process'"
                       (click)="selectProcess(process, $event)">
                       <mat-card-header class="!px-4 !py-3 border-b border-gray-100 cursor-pointer">
                         <mat-card-title class="!text-sm !font-semibold flex items-center gap-2">
@@ -147,8 +147,8 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                           @for (step of process.steps; track step.id; let si = $index) {
                             <div
                               class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:bg-gray-50"
-                              [class.border-blue-400]="selectedStepId() === step.id"
-                              [class.bg-blue-50]="selectedStepId() === step.id"
+                              [class.border-primary-400]="selectedStepId() === step.id"
+                              [class.bg-primary-50]="selectedStepId() === step.id"
                               [class.border-gray-200]="selectedStepId() !== step.id"
                               (click)="selectStep(step, process, $event)"
                             >
@@ -236,7 +236,7 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
             </div>
 
             <!-- Right: Config Panel -->
-            <div class="w-80 flex-shrink-0">
+            <div class="w-100 flex-shrink-0">
               @switch (configPanelMode()) {
                 @case ('stage') {
                   <app-stage-config-panel
@@ -337,14 +337,14 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                       @for (field of schemaFields; track field.name; let i = $index) {
                         <tr class="border-b border-gray-100 hover:bg-gray-50">
                           <td class="px-4 py-2">
-                            <input class="w-full border-0 bg-transparent text-sm font-medium text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-400 rounded px-1 py-0.5"
+                            <input class="w-full border-0 bg-transparent text-sm font-medium text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-400 rounded px-1 py-0.5"
                                    [value]="field.name" (change)="renameSchemaField(i, $any($event.target).value)">
                           </td>
                           <td class="px-4 py-2">
                             <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{{ field.type }}</span>
                           </td>
                           <td class="px-4 py-2">
-                            <input class="w-full border border-gray-200 rounded text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            <input class="w-full border border-gray-200 rounded text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
                                    [value]="field.defaultValue || ''" (change)="updateSchemaDefault(i, $any($event.target).value)" placeholder="—">
                           </td>
                           <td class="px-4 py-2 text-center">
@@ -352,7 +352,7 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                           </td>
                           <td class="px-4 py-2">
                             @if (field.type === 'select') {
-                              <input class="w-full border border-gray-200 rounded text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                              <input class="w-full border border-gray-200 rounded text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
                                      [value]="(field.options || []).join(', ')" (change)="updateSchemaOptions(i, $any($event.target).value)" placeholder="option1, option2, ...">
                             } @else {
                               <span class="text-xs text-gray-400">—</span>
@@ -423,7 +423,7 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                       <div class="mt-3 flex items-center gap-2">
                         <span class="text-[10px] text-gray-400">Used by steps:</span>
                         @for (stepName of getStepsUsingForm(form.id); track stepName) {
-                          <span class="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">{{ stepName }}</span>
+                          <span class="text-[10px] px-1.5 py-0.5 bg-primary-50 text-primary-500 rounded">{{ stepName }}</span>
                         }
                         @if (getStepsUsingForm(form.id).length === 0) {
                           <span class="text-[10px] text-gray-400 italic">not linked</span>
@@ -493,13 +493,13 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                     @for (cat of caseType.attachmentCategories; track cat.id; let ci = $index) {
                       <div class="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 bg-white">
                         <div class="flex-1 min-w-0">
-                          <input class="text-sm font-medium bg-transparent border-0 w-full focus:outline-none focus:ring-1 focus:ring-blue-400 rounded px-1"
+                          <input class="text-sm font-medium bg-transparent border-0 w-full focus:outline-none focus:ring-1 focus:ring-primary-400 rounded px-1"
                                  [(ngModel)]="cat.name" (ngModelChange)="markDirty()">
                         </div>
                         <mat-slide-toggle class="!text-xs" [(ngModel)]="cat.requiredForResolution" (ngModelChange)="markDirty()">
                           Required
                         </mat-slide-toggle>
-                        <input class="text-xs border border-gray-200 rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        <input class="text-xs border border-gray-200 rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-primary-400"
                                [value]="(cat.allowedTypes || []).join(', ')" (change)="updateCategoryTypes(ci, $any($event.target).value)" placeholder="pdf, jpg, ...">
                         <button mat-icon-button class="!w-7 !h-7" (click)="removeAttachmentCategory(ci)">
                           <mat-icon class="!text-base text-gray-400 hover:text-red-500">close</mat-icon>
@@ -524,7 +524,7 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
               <mat-card-content class="!p-4">
                 <div class="flex flex-wrap gap-2 mb-3">
                   @for (action of caseType.caseWideActions; track action; let ai = $index) {
-                    <span class="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full flex items-center gap-1">
+                    <span class="text-xs px-2.5 py-1 bg-primary-50 text-primary-700 rounded-full flex items-center gap-1">
                       {{ action }}
                       <mat-icon class="!text-xs cursor-pointer hover:text-red-500" (click)="removeCaseAction(ai)">close</mat-icon>
                     </span>

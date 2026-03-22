@@ -143,8 +143,9 @@ class TestCompleteStep:
         case = await instantiate_case("test-loan", "Test", "user-1")
         user = {"_id": "user-1", "name": "Alice"}
         await complete_step(case["_id"], "step-fill-form", {}, user, patched_db)
-        with pytest.raises(ValueError, match="not active"):
-            await complete_step(case["_id"], "step-fill-form", {}, user, patched_db)
+        # Completing an already-completed step is idempotent — returns current state
+        result = await complete_step(case["_id"], "step-fill-form", {}, user, patched_db)
+        assert result is not None
 
     @pytest.mark.asyncio
     async def test_complete_raises_for_missing_step(self, patched_db):

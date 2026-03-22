@@ -156,7 +156,7 @@ import {
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <a [routerLink]="['/portal/cases', a.caseId]"
-                   class="font-semibold text-sm text-blue-600 hover:text-blue-800 truncate">
+                   class="font-semibold text-sm text-primary-500 hover:text-primary-800 truncate">
                   {{ a.stepName || a.name }}
                 </a>
                 <span class="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -248,7 +248,7 @@ export class PortalWorklistComponent implements OnInit {
 
   statusBadge(status: string): string {
     return {
-      open: 'bg-blue-100 text-blue-700',
+      open: 'bg-primary-100 text-primary-700',
       in_progress: 'bg-amber-100 text-amber-700',
       completed: 'bg-green-100 text-green-700',
       on_hold: 'bg-slate-100 text-slate-600',

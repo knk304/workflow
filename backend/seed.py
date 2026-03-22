@@ -181,14 +181,19 @@ async def _insert_all(db):
                 _proc("proc-decision", "Approval Decision", 2, [
                     _step("step-routing-decision", "Loan Routing (Decision Table)", "decision", 1,
                           config={"mode": "decision_table",
-                                  "decision_table_id": "dt-loan-routing"}),
+                                  "decision_table_id": "dt-loan-routing",
+                                  "field_mapping": {
+                                      "loan_amount": "f-amount",
+                                      "loan_type": "f-loan-type",
+                                      "applicant_income": "f-income",
+                                  }}),
                     _step("step-amount-check", "Amount Decision", "decision", 2,
                           config={"mode": "first_match", "branches": [
                               {"id": "branch-high", "label": "High Value (>100K)",
-                               "condition": {"field": "loanAmount", "operator": "gt", "value": 100000},
+                               "condition": {"field": "f-amount", "operator": "gt", "value": 100000},
                                "next_step_id": "step-vp-approval"},
                               {"id": "branch-standard", "label": "Standard (<=100K)",
-                               "condition": {"field": "loanAmount", "operator": "lte", "value": 100000},
+                               "condition": {"field": "f-amount", "operator": "lte", "value": 100000},
                                "next_step_id": "step-mgr-approval"},
                           ], "default_step_id": "step-mgr-approval"}),
                     _step("step-mgr-approval", "Manager Approval", "approval", 3,

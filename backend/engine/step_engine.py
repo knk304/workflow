@@ -165,7 +165,12 @@ async def complete_step(case_id: str, step_def_id: str, data: dict, user: dict, 
         # Already completed — idempotent, just return current case state
         return await db.cases.find_one({"_id": case_id})
     if step["status"] not in ("in_progress", "waiting"):
-        raise ValueError(f"Step {step_def_id} is not active (status: {step['status']})") 
+        raise ValueError(f"Step {step_def_id} is not active (status: {step['status']})")
+
+    # Decision/automation steps auto-complete on activation.
+    # If they're stuck as in_progress, re-trigger activation.
+    if step["type"] in ("decision", "automation") and step["status"] == "in_progress":
+        return await activate_step(case_id, stage_id, process_id, step_def_id, db) 
 
     # Load config from case type definition
     case_type_def = await db.case_type_definitions.find_one({"_id": case["case_type_id"]})

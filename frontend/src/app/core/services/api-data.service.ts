@@ -820,7 +820,7 @@ export class ApiDataService extends DataService {
     if (req.outputField !== undefined) body['output_field'] = req.outputField;
     if (req.rows !== undefined) body['rows'] = req.rows;
     if (req.defaultOutput !== undefined) body['default_output'] = req.defaultOutput;
-    return this.http.patch<any>(`${this.caseUrl}/decision-tables/${id}`, body).pipe(
+    return this.http.put<any>(`${this.caseUrl}/decision-tables/${id}`, body).pipe(
       map(d => this.mapDecisionTable(d))
     );
   }

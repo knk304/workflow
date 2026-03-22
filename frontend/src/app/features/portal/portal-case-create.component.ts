@@ -64,11 +64,11 @@ import { filter, take } from 'rxjs/operators';
                   @for (ct of caseTypes; track ct.id) {
                     <div class="border rounded-xl p-4 cursor-pointer transition-all"
                          [class]="selectedCaseType?.id === ct.id
-                           ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                           : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'"
+                           ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
+                           : 'border-slate-200 hover:border-primary-300 hover:bg-slate-50'"
                          (click)="selectCaseType(ct)">
                       <div class="flex items-center gap-2 mb-1">
-                        <mat-icon class="text-blue-600">{{ ct.icon || 'folder' }}</mat-icon>
+                        <mat-icon class="text-primary-500">{{ ct.icon || 'folder' }}</mat-icon>
                         <span class="font-semibold text-sm text-slate-700">{{ ct.name }}</span>
                       </div>
                       <p class="text-xs text-slate-500">{{ ct.description }}</p>

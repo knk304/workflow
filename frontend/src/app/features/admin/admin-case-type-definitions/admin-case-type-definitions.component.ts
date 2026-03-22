@@ -139,8 +139,8 @@ import {
                   <div class="flex flex-wrap gap-1">
                     @for (stage of d.stages; track stage.id) {
                       <span class="text-xs px-1.5 py-0.5 rounded"
-                        [class.bg-blue-100]="stage.stageType === 'primary'"
-                        [class.text-blue-700]="stage.stageType === 'primary'"
+                        [class.bg-primary-100]="stage.stageType === 'primary'"
+                        [class.text-primary-700]="stage.stageType === 'primary'"
                         [class.bg-orange-100]="stage.stageType === 'alternate'"
                         [class.text-orange-700]="stage.stageType === 'alternate'">
                         {{ stage.name }}
