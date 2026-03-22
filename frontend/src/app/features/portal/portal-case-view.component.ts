@@ -558,11 +558,16 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
 
   onCompleteStep(event: { step: StepInstance; formData: Record<string, any> }): void {
     if (!this.c) return;
+    // Serialize Date objects to ISO strings for NgRx strict serialization
+    const formData: Record<string, any> = {};
+    for (const [key, value] of Object.entries(event.formData)) {
+      formData[key] = value instanceof Date ? value.toISOString() : value;
+    }
     this.store.dispatch(
       CasesActions.completeStep({
         caseId: this.c.id,
         stepId: event.step.stepDefinitionId,
-        request: { formData: event.formData },
+        request: { formData },
       })
     );
     this.snackBar.open(`Step "${event.step.name}" completed`, 'OK', { duration: 3000 });
