@@ -43,25 +43,30 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
         <mat-spinner diameter="40"></mat-spinner>
       </div>
     } @else if (c) {
-      <div class="flex gap-0 h-full min-h-[calc(100vh-120px)]">
+      <div class="-m-5 flex gap-0 h-[calc(100vh-108px)]">
         <!-- ========== LEFT SIDEBAR ========== -->
-        <div class="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
+        <div class="w-72 flex-shrink-0 border-r border-slate-200 sidebar-gradient overflow-y-auto flex flex-col">
           <!-- Case Header -->
-          <div class="px-4 py-4 bg-primary-800 text-white">
-            <div class="flex items-center gap-2 mb-1">
-              <mat-icon class="!text-lg">folder_open</mat-icon>
-              <span class="text-xs font-medium opacity-80">{{ c.id }}</span>
+          <div class="px-5 pt-5 pb-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
+                <mat-icon class="!text-lg text-white/90">folder_open</mat-icon>
+              </div>
+              <div>
+                <span class="text-[10px] font-semibold text-primary-200 uppercase tracking-wider">{{ c.caseTypeName || c.caseTypeId }}</span>
+                <p class="text-sm font-bold text-white leading-tight">{{ c.id }}</p>
+              </div>
             </div>
-            <h2 class="text-base font-bold leading-tight">{{ c.caseTypeId }}</h2>
+            <p class="text-xs text-primary-100 leading-snug mt-1">{{ c.title }}</p>
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-200">
-            <button mat-stroked-button class="!text-xs !h-8 flex-1" routerLink="/portal/cases">
-              <mat-icon class="!text-sm mr-1">arrow_back</mat-icon> Back
+          <div class="flex items-center gap-2 px-5 py-3 border-t border-white/10">
+            <button class="sidebar-btn flex-1 flex items-center justify-center gap-1 rounded" routerLink="/portal/cases">
+              <mat-icon class="!text-sm">arrow_back</mat-icon> Back
             </button>
-            <button mat-stroked-button class="!text-xs !h-8" [matMenuTriggerFor]="actionsMenu">
-              Actions <mat-icon class="!text-sm ml-0.5">arrow_drop_down</mat-icon>
+            <button class="sidebar-btn flex items-center justify-center gap-1 rounded" [matMenuTriggerFor]="actionsMenu">
+              Actions <mat-icon class="!text-sm">arrow_drop_down</mat-icon>
             </button>
             <mat-menu #actionsMenu="matMenu">
               @if (c.status !== 'resolved_completed' && c.status !== 'withdrawn') {
@@ -77,63 +82,69 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
                 <button mat-menu-item class="!text-red-600" (click)="onWithdraw()">
                   <mat-icon>cancel</mat-icon> Withdraw Case
                 </button>
+              } @else {
+                <button mat-menu-item disabled>
+                  <mat-icon>info</mat-icon> Case {{ statusLabel(c.status) }}
+                </button>
               }
             </mat-menu>
           </div>
 
           <!-- Case Properties -->
-          <div class="px-4 py-3 space-y-3 border-b border-slate-200">
-            <div>
-              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Priority</p>
-              <span class="text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block"
-                    [ngClass]="priorityBadge(c.priority)">{{ c.priority }}</span>
+          <div class="px-5 py-4 space-y-3.5 border-t border-white/10">
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider">Priority</p>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                    [ngClass]="priorityBadge(c.priority)">{{ c.priority | titlecase }}</span>
             </div>
-            <div>
-              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status</p>
-              <span class="text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block"
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider">Status</p>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold"
                     [ngClass]="statusBadge(c.status)">{{ statusLabel(c.status) }}</span>
             </div>
             <div>
-              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Created</p>
-              <p class="text-xs text-primary-500 mt-0.5">{{ c.ownerId || 'System' }}</p>
-              <p class="text-[10px] text-slate-400">{{ c.createdAt | date:'medium' }}</p>
+              <p class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider">Created</p>
+              <p class="text-xs text-white font-medium mt-0.5">{{ c.ownerId || 'System' }}</p>
+              <p class="text-[10px] text-primary-300">{{ c.createdAt | date:'medium' }}</p>
             </div>
             <div>
-              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Updated</p>
-              <p class="text-[10px] text-slate-400">{{ c.updatedAt | date:'medium' }}</p>
+              <p class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider">Updated</p>
+              <p class="text-[10px] text-primary-300">{{ c.updatedAt | date:'medium' }}</p>
             </div>
             @if (c.slaTargetDate) {
-              <div>
-                <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">SLA</p>
-                <div class="flex items-center gap-1 mt-0.5">
-                  <span class="text-xs font-medium" [ngClass]="slaTextClass(c)">
-                    @if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) {
-                      {{ -c.slaDaysRemaining }}d overdue
-                    } @else if (c.slaDaysRemaining != null && c.slaDaysRemaining === 0) {
-                      Due today
-                    } @else if (c.slaDaysRemaining != null) {
-                      {{ c.slaDaysRemaining }}d remaining
-                    } @else {
-                      {{ c.slaTargetDate | date:'shortDate' }}
-                    }
-                  </span>
+              <div class="p-2.5 rounded-lg" [ngClass]="slaBgClass(c)">
+                <p class="text-[10px] font-semibold uppercase tracking-wider mb-0.5"
+                   [ngClass]="c.slaDaysRemaining != null && c.slaDaysRemaining < 0 ? 'text-red-300' : 'text-primary-300'">SLA</p>
+                <div class="flex items-center gap-1.5">
+                  @if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) {
+                    <mat-icon class="!text-sm text-red-400">warning</mat-icon>
+                    <span class="text-xs font-bold text-red-300">{{ -c.slaDaysRemaining }}d overdue</span>
+                  } @else if (c.slaDaysRemaining != null && c.slaDaysRemaining === 0) {
+                    <mat-icon class="!text-sm text-amber-400">schedule</mat-icon>
+                    <span class="text-xs font-bold text-amber-300">Due today</span>
+                  } @else if (c.slaDaysRemaining != null) {
+                    <mat-icon class="!text-sm text-emerald-400">schedule</mat-icon>
+                    <span class="text-xs font-medium text-emerald-300">{{ c.slaDaysRemaining }}d remaining</span>
+                  } @else {
+                    <span class="text-xs text-primary-200">{{ c.slaTargetDate | date:'shortDate' }}</span>
+                  }
                   @if (c.escalationLevel > 0) {
-                    <mat-icon class="!text-xs text-red-500">warning</mat-icon>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/30 text-red-300 font-bold uppercase ml-auto">Esc {{ c.escalationLevel }}</span>
                   }
                 </div>
               </div>
             }
           </div>
 
-          <!-- Sidebar Nav -->
-          <div class="px-4 py-3 space-y-1">
-            <button class="w-full text-left text-xs font-semibold px-2 py-1.5 rounded transition-colors"
-                    [ngClass]="sidebarTab === 'details' ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-50'"
+          <!-- Sidebar Nav Tabs -->
+          <div class="px-5 py-2 border-t border-white/10 flex gap-1">
+            <button class="flex-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors text-center"
+                    [ngClass]="sidebarTab === 'details' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
                     (click)="sidebarTab = 'details'">
               Details
             </button>
-            <button class="w-full text-left text-xs font-semibold px-2 py-1.5 rounded transition-colors"
-                    [ngClass]="sidebarTab === 'history' ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-50'"
+            <button class="flex-1 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors text-center"
+                    [ngClass]="sidebarTab === 'history' ? 'bg-white/20 text-white' : 'text-primary-300 hover:bg-white/10 hover:text-white'"
                     (click)="sidebarTab = 'history'">
               History
             </button>
@@ -141,40 +152,40 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
 
           <!-- Sidebar Content Panel -->
           @if (sidebarTab === 'details') {
-            <div class="px-4 py-3 border-t border-slate-200">
-              <h4 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Case Details</h4>
-              <div class="space-y-2">
+            <div class="px-5 py-4 border-t border-white/10 flex-1">
+              <h4 class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider mb-3">Case Details</h4>
+              <div class="space-y-2.5">
                 <div>
-                  <p class="text-[10px] text-slate-400">Title</p>
-                  <p class="text-xs text-slate-700">{{ c.title }}</p>
+                  <p class="text-[10px] text-primary-400">Title</p>
+                  <p class="text-xs text-white">{{ c.title }}</p>
                 </div>
                 <div>
-                  <p class="text-[10px] text-slate-400">Description</p>
-                  <p class="text-xs text-slate-700">{{ c.description || '—' }}</p>
+                  <p class="text-[10px] text-primary-400">Description</p>
+                  <p class="text-xs text-primary-100">{{ c.description || '—' }}</p>
                 </div>
                 <div>
-                  <p class="text-[10px] text-slate-400">Owner</p>
-                  <p class="text-xs text-slate-700">{{ c.ownerId || 'Unassigned' }}</p>
+                  <p class="text-[10px] text-primary-400">Owner</p>
+                  <p class="text-xs text-white">{{ c.ownerId || 'Unassigned' }}</p>
                 </div>
                 <div>
-                  <p class="text-[10px] text-slate-400">Case Type</p>
-                  <p class="text-xs text-slate-700">{{ c.caseTypeId }}</p>
+                  <p class="text-[10px] text-primary-400">Case Type</p>
+                  <p class="text-xs text-primary-100">{{ c.caseTypeName || c.caseTypeId }}</p>
                 </div>
                 @if (c.resolvedAt) {
                   <div>
-                    <p class="text-[10px] text-slate-400">Resolved</p>
-                    <p class="text-xs text-slate-700">{{ c.resolvedAt | date:'medium' }}</p>
+                    <p class="text-[10px] text-primary-400">Resolved</p>
+                    <p class="text-xs text-white">{{ c.resolvedAt | date:'medium' }}</p>
                   </div>
                 }
               </div>
               @if (c.data && objectKeys(c.data).length > 0) {
-                <mat-divider class="!my-3"></mat-divider>
-                <h4 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Case Data</h4>
-                <div class="space-y-1">
+                <div class="h-px bg-white/10 my-3"></div>
+                <h4 class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider mb-2">Case Data</h4>
+                <div class="space-y-1.5">
                   @for (key of objectKeys(c.data); track key) {
                     <div class="flex justify-between text-xs">
-                      <span class="text-slate-500">{{ key }}</span>
-                      <span class="text-slate-700 font-medium truncate ml-2 max-w-[120px]">{{ c.data[key] }}</span>
+                      <span class="text-primary-300">{{ key }}</span>
+                      <span class="text-white font-medium truncate ml-2 max-w-[140px]">{{ c.data[key] }}</span>
                     </div>
                   }
                 </div>
@@ -183,24 +194,25 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
           }
 
           @if (sidebarTab === 'history') {
-            <div class="px-4 py-3 border-t border-slate-200">
-              <h4 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Stage History</h4>
+            <div class="px-5 py-4 border-t border-white/10 flex-1">
+              <h4 class="text-[10px] font-semibold text-primary-300 uppercase tracking-wider mb-3">Stage History</h4>
               @for (stage of c.stages; track stage.stageDefinitionId; let si = $index) {
                 <div class="mb-3">
-                  <div class="flex items-center gap-1.5 mb-1">
-                    <span class="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center"
                           [ngClass]="stage.status === 'completed' ? 'bg-emerald-500 text-white' :
-                                     stage.stageDefinitionId === c.currentStageId ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-500'">
+                                     stage.stageDefinitionId === c.currentStageId ? 'bg-white text-primary-800' : 'bg-white/20 text-primary-300'">
                       {{ si + 1 }}
                     </span>
-                    <span class="text-xs font-medium text-slate-700">{{ stage.name }}</span>
+                    <span class="text-xs font-medium" [ngClass]="stage.status === 'completed' ? 'text-emerald-300' :
+                          stage.stageDefinitionId === c.currentStageId ? 'text-white' : 'text-primary-300'">{{ stage.name }}</span>
                   </div>
                   @if (stepsForStage(stage); as steps) {
-                    <div class="ml-5 space-y-0.5">
+                    <div class="ml-6 space-y-0.5">
                       @for (step of steps; track step.stepDefinitionId) {
                         <div class="flex items-center gap-1.5 text-[10px]">
-                          <mat-icon class="!text-xs" [ngClass]="stepIconClass(step)">{{ stepIcon(step) }}</mat-icon>
-                          <span [ngClass]="step.status === 'completed' ? 'text-slate-600' : 'text-slate-400'">{{ step.name }}</span>
+                          <mat-icon class="!text-xs" [ngClass]="stepIconClassSidebar(step)">{{ stepIcon(step) }}</mat-icon>
+                          <span [ngClass]="step.status === 'completed' ? 'text-primary-100' : 'text-primary-400'">{{ step.name }}</span>
                         </div>
                       }
                     </div>
@@ -340,6 +352,21 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
     }
   `,
   styles: [`
+    .sidebar-gradient {
+      background: linear-gradient(135deg, var(--wf-primary) 0%, var(--wf-primary-dark) 100%);
+    }
+    .sidebar-btn {
+      font-size: 12px;
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+    }
+    .sidebar-btn:hover {
+      background: rgba(255,255,255,0.18);
+    }
     .stage-chevron {
       clip-path: polygon(0% 0%, 88% 0%, 100% 50%, 88% 100%, 0% 100%, 12% 50%);
     }
@@ -482,6 +509,12 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     return 'text-slate-600';
   }
 
+  slaBgClass(c: CaseInstance): string {
+    if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) return 'bg-red-500/20';
+    if (c.slaDaysRemaining != null && c.slaDaysRemaining <= 2) return 'bg-amber-500/15';
+    return 'bg-white/5';
+  }
+
   statusBadge(status: string): string {
     return {
       open: 'bg-blue-100 text-blue-700',
@@ -520,5 +553,12 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     if (step.status === 'completed') return 'text-emerald-500';
     if (step.status === 'in_progress') return 'text-blue-500';
     return 'text-slate-300';
+  }
+
+  stepIconClassSidebar(step: StepInstance): string {
+    if (step.status === 'completed') return 'text-emerald-400';
+    if (step.status === 'in_progress') return 'text-white';
+    if (step.status === 'waiting') return 'text-amber-400';
+    return 'text-primary-500';
   }
 }
