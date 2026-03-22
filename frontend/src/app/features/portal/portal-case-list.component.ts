@@ -15,6 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { CaseInstance } from '@core/models';
+import { statusLabel } from '@core/utils/status-labels';
 import * as CasesActions from '@state/cases/cases.actions';
 import {
   selectCaseInstances,
@@ -110,7 +111,7 @@ import {
               <td mat-cell *matCellDef="let c">
                 <span class="text-xs px-2 py-0.5 rounded-full font-medium"
                       [ngClass]="statusBadge(c.status)">
-                  {{ c.status }}
+                  {{ statusLabel(c.status) }}
                 </span>
               </td>
             </ng-container>
@@ -195,6 +196,7 @@ export class PortalCaseListComponent implements OnInit {
   displayedColumns = ['title', 'caseType', 'status', 'priority', 'stage', 'sla', 'created'];
   searchTerm = '';
   statusFilter = '';
+  statusLabel = statusLabel;
   priorityFilter = '';
   pageSize = 25;
   caseCount$: Observable<number> = this.store.select(selectCaseInstanceCount);

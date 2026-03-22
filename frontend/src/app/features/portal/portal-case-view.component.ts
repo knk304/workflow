@@ -12,6 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
 import { Subject, takeUntil } from 'rxjs';
 import { CaseInstance, StageInstance, StepInstance, User } from '@core/models';
+import { statusLabel } from '@core/utils/status-labels';
 import * as CasesActions from '@state/cases/cases.actions';
 import {
   selectSelectedCaseInstance,
@@ -90,7 +91,7 @@ import { StepCardComponent } from '@features/portal/shared/step-card.component';
             <div>
               <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status</p>
               <span class="text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block"
-                    [ngClass]="statusBadge(c.status)">{{ c.status }}</span>
+                    [ngClass]="statusBadge(c.status)">{{ statusLabel(c.status) }}</span>
             </div>
             <div>
               <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Created</p>
@@ -366,6 +367,7 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   sidebarTab: 'details' | 'history' = 'details';
 
   objectKeys = Object.keys;
+  statusLabel = statusLabel;
 
   private destroy$ = new Subject<void>();
 
@@ -414,8 +416,8 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
 
   currentStepIndex(stage: StageInstance): number {
     const steps = this.stepsForStage(stage);
-    // Prefer in_progress step over pending — handles multi-process stages
-    const ipIdx = steps.findIndex((s) => s.status === 'in_progress');
+    // Prefer in_progress or waiting step over pending — handles multi-process stages
+    const ipIdx = steps.findIndex((s) => s.status === 'in_progress' || s.status === 'waiting');
     if (ipIdx >= 0) return ipIdx;
     const pendIdx = steps.findIndex((s) => s.status === 'pending');
     return pendIdx >= 0 ? pendIdx : steps.length;

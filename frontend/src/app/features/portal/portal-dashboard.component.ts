@@ -8,6 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { CaseInstance, Assignment } from '@core/models';
+import { statusLabel } from '@core/utils/status-labels';
 import * as CasesActions from '@state/cases/cases.actions';
 import * as AssignmentsActions from '@state/assignments/assignments.actions';
 import {
@@ -134,7 +135,7 @@ import {
                     </div>
                     <span class="text-xs px-2 py-0.5 rounded-full"
                           [ngClass]="statusBadge(a.status)">
-                      {{ a.status }}
+                      {{ statusLabel(a.status) }}
                     </span>
                   </div>
                 }
@@ -173,7 +174,7 @@ import {
                     </div>
                     <span class="text-xs px-2 py-0.5 rounded-full"
                           [ngClass]="caseStatusBadge(c.status)">
-                      {{ c.status }}
+                      {{ statusLabel(c.status) }}
                     </span>
                   </div>
                 }
@@ -186,6 +187,7 @@ import {
   `,
 })
 export class PortalDashboardComponent implements OnInit {
+  statusLabel = statusLabel;
   allCases$: Observable<CaseInstance[]> = this.store.select(selectCaseInstances);
   activeCases$: Observable<CaseInstance[]> = this.store.select(selectActiveCaseInstances);
   criticalCases$: Observable<CaseInstance[]> = this.store.select(selectCriticalCaseInstances);

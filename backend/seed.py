@@ -60,7 +60,7 @@ def _rt_step(def_id, name, stype, order, status="pending",
             "started_at": started_at, "completed_at": completed_at,
             "assigned_to": assigned_to, "form_submission_id": None,
             "approval_chain_id": kw.get("approval_chain_id"),
-            "child_case_id": None, "decision_branch_taken": None,
+            "child_case_id": kw.get("child_case_id"), "decision_branch_taken": None,
             "skipped_reason": None, "notes": kw.get("notes"),
             "sla_target": None}
 
@@ -387,8 +387,8 @@ async def _insert_all(db):
     # COUNTERS (for case ID sequencing)
     # ═══════════════════════════════════════════════════════════
     counters = [
-        {"_id": "case_LOAN", "seq": 3},   # 3 loan cases seeded
-        {"_id": "case_KYC", "seq": 3},    # 3 KYC cases
+        {"_id": "case_LOAN", "seq": 4},   # 4 loan cases seeded
+        {"_id": "case_KYC", "seq": 4},    # 4 KYC cases (includes 1 subprocess child)
         {"_id": "case_CLM", "seq": 3},    # 3 claims cases
     ]
     await db.counters.insert_many(counters)
@@ -580,6 +580,84 @@ async def _insert_all(db):
             "sla_target_date": sla_30, "sla_days_remaining": 5, "escalation_level": 1,
         },
 
+        # ── Loan case 4: in Compliance Review — subprocess waiting for child KYC ──
+        {
+            "_id": "LOAN-004", "case_type_id": "ct-loan", "case_type_name": "Loan Origination",
+            "title": "Auto Loan - Sarah Kim", "status": "in_progress", "priority": "medium",
+            "owner_id": "user-2", "team_id": "team-1",
+            "custom_fields": {"loanAmount": 35000, "loanType": "Auto", "applicantName": "Sarah Kim",
+                              "applicantIncome": 72000, "creditChecked": True, "creditScore": 710,
+                              "approvalTier": "standard"},
+            "current_stage_id": "stage-compliance", "current_process_id": "proc-compliance",
+            "current_step_id": "step-compliance-check",
+            "stages": [
+                _rt_stage("stage-intake", "Intake Review", 1, [
+                    _rt_proc("proc-intake", "Application Intake", 1, [
+                        _rt_step("step-fill-app", "Fill Application", "assignment", 1,
+                                 status="completed", started_at="2026-03-01T09:00:00Z",
+                                 completed_at="2026-03-01T11:00:00Z", assigned_to="user-2"),
+                    ], status="completed", started_at="2026-03-01T09:00:00Z",
+                       completed_at="2026-03-01T11:00:00Z"),
+                ], status="completed", entered_at="2026-03-01T09:00:00Z",
+                   completed_at="2026-03-01T11:00:00Z", completed_by="user-2"),
+                _rt_stage("stage-docs", "Document Collection", 2, [
+                    _rt_proc("proc-docs", "Collect Documents", 1, [
+                        _rt_step("step-upload-docs", "Upload Documents", "attachment", 1,
+                                 status="completed", started_at="2026-03-01T11:00:00Z",
+                                 completed_at="2026-03-02T10:00:00Z"),
+                        _rt_step("step-verify-docs", "Verify Documents", "assignment", 2,
+                                 status="completed", started_at="2026-03-02T10:00:00Z",
+                                 completed_at="2026-03-02T16:00:00Z", assigned_to="user-1"),
+                    ], status="completed", started_at="2026-03-01T11:00:00Z",
+                       completed_at="2026-03-02T16:00:00Z"),
+                ], status="completed", entered_at="2026-03-01T11:00:00Z",
+                   completed_at="2026-03-02T16:00:00Z", completed_by="user-1"),
+                _rt_stage("stage-underwriting", "Underwriting", 3, [
+                    _rt_proc("proc-risk", "Risk Assessment", 1, [
+                        _rt_step("step-auto-credit", "Auto Credit Check (Webhook)", "automation", 1,
+                                 status="completed", started_at="2026-03-02T16:00:00Z",
+                                 completed_at="2026-03-02T16:00:00Z"),
+                        _rt_step("step-risk-review", "Risk Review", "assignment", 2,
+                                 status="completed", started_at="2026-03-02T16:00:00Z",
+                                 completed_at="2026-03-03T10:00:00Z", assigned_to="user-1"),
+                    ], status="completed", started_at="2026-03-02T16:00:00Z",
+                       completed_at="2026-03-03T10:00:00Z"),
+                    _rt_proc("proc-decision", "Approval Decision", 2, [
+                        _rt_step("step-routing-decision", "Loan Routing (Decision Table)", "decision", 1,
+                                 status="completed", started_at="2026-03-03T10:00:00Z",
+                                 completed_at="2026-03-03T10:00:00Z"),
+                        _rt_step("step-amount-check", "Amount Decision", "decision", 2,
+                                 status="completed", started_at="2026-03-03T10:00:00Z",
+                                 completed_at="2026-03-03T10:00:00Z"),
+                        _rt_step("step-mgr-approval", "Manager Approval", "approval", 3,
+                                 status="completed", started_at="2026-03-03T10:00:00Z",
+                                 completed_at="2026-03-04T09:00:00Z", assigned_to="user-admin"),
+                        _rt_step("step-vp-approval", "VP Approval", "approval", 4,
+                                 status="skipped"),
+                    ], status="completed", started_at="2026-03-03T10:00:00Z",
+                       completed_at="2026-03-04T09:00:00Z"),
+                ], status="completed", entered_at="2026-03-02T16:00:00Z",
+                   completed_at="2026-03-04T09:00:00Z", completed_by="user-admin"),
+                _rt_stage("stage-compliance", "Compliance Review", 4, [
+                    _rt_proc("proc-compliance", "Compliance Subprocess", 1, [
+                        _rt_step("step-compliance-check", "AML/KYC Compliance Check", "subprocess", 1,
+                                 status="waiting", started_at="2026-03-04T09:00:00Z",
+                                 child_case_id="KYC-004"),
+                        _rt_step("step-compliance-review", "Compliance Sign-off", "assignment", 2),
+                    ], status="in_progress", started_at="2026-03-04T09:00:00Z"),
+                ], status="in_progress", entered_at="2026-03-04T09:00:00Z"),
+                _rt_stage("stage-disburse", "Disbursement", 5, [
+                    _rt_proc("proc-disburse", "Disbursement Process", 1, [
+                        _rt_step("step-send-funds", "Process Disbursement", "assignment", 1),
+                        _rt_step("step-confirm-notify", "Confirmation Notification", "automation", 2),
+                    ]),
+                ], on_complete="resolve_case", resolution_status="resolved_completed"),
+            ],
+            "created_by": "user-2", "created_at": "2026-03-01T09:00:00Z", "updated_at": now,
+            "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
+            "sla_target_date": sla_30, "sla_days_remaining": 20, "escalation_level": 0,
+        },
+
         # ── KYC case 1: in Identity Verification ──
         {
             "_id": "KYC-001", "case_type_id": "ct-kyc", "case_type_name": "Customer Onboarding",
@@ -740,6 +818,55 @@ async def _insert_all(db):
             "created_by": "user-3", "created_at": "2026-02-10T09:00:00Z", "updated_at": now,
             "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
             "sla_target_date": sla_20, "sla_days_remaining": 12, "escalation_level": 0,
+        },
+
+        # ── KYC case 4: child of LOAN-004 subprocess — in Identity Verification ──
+        {
+            "_id": "KYC-004", "case_type_id": "ct-kyc", "case_type_name": "Customer Onboarding",
+            "title": "Subprocess: AML/KYC Compliance Check (from LOAN-004)", "status": "in_progress",
+            "priority": "medium", "owner_id": "user-2", "team_id": "team-1",
+            "custom_fields": {"customerName": "Sarah Kim", "accountType": "Auto"},
+            "current_stage_id": "stage-id-verify", "current_process_id": "proc-id-verify",
+            "current_step_id": "step-upload-id",
+            "stages": [
+                _rt_stage("stage-app-review", "Application Review", 1, [
+                    _rt_proc("proc-app-review", "Review Application", 1, [
+                        _rt_step("step-kyc-form", "KYC Application Form", "assignment", 1,
+                                 status="completed", started_at="2026-03-04T09:00:00Z",
+                                 completed_at="2026-03-04T10:00:00Z", assigned_to="user-2"),
+                    ], status="completed", started_at="2026-03-04T09:00:00Z",
+                       completed_at="2026-03-04T10:00:00Z"),
+                ], status="completed", entered_at="2026-03-04T09:00:00Z",
+                   completed_at="2026-03-04T10:00:00Z", completed_by="user-2"),
+                _rt_stage("stage-id-verify", "Identity Verification", 2, [
+                    _rt_proc("proc-id-verify", "Verify Identity", 1, [
+                        _rt_step("step-upload-id", "Upload ID Documents", "attachment", 1,
+                                 status="in_progress", started_at="2026-03-04T10:00:00Z"),
+                        _rt_step("step-verify-id", "Verify Identity", "assignment", 2),
+                    ], status="in_progress", started_at="2026-03-04T10:00:00Z"),
+                ], status="in_progress", entered_at="2026-03-04T10:00:00Z"),
+                _rt_stage("stage-risk", "Risk Assessment", 3, [
+                    _rt_proc("proc-risk-assess", "Assess Risk", 1, [
+                        _rt_step("step-risk-decision", "Risk Level Decision", "decision", 1),
+                        _rt_step("step-auto-clear", "Auto Clear", "automation", 2),
+                        _rt_step("step-edd", "Enhanced Due Diligence", "assignment", 3),
+                    ]),
+                ]),
+                _rt_stage("stage-acct-setup", "Account Setup", 4, [
+                    _rt_proc("proc-acct-setup", "Setup Account", 1, [
+                        _rt_step("step-create-acct", "Create Account", "assignment", 1),
+                    ]),
+                ]),
+                _rt_stage("stage-welcome", "Welcome", 5, [
+                    _rt_proc("proc-welcome", "Welcome Process", 1, [
+                        _rt_step("step-welcome-notify", "Send Welcome Pack", "automation", 1),
+                    ]),
+                ], on_complete="resolve_case", resolution_status="resolved_completed"),
+            ],
+            "created_by": "user-2", "created_at": "2026-03-04T09:00:00Z", "updated_at": now,
+            "resolved_at": None, "resolution_status": None,
+            "parent_case_id": "LOAN-004", "parent_step_id": "step-compliance-check",
+            "sla_target_date": sla_20, "sla_days_remaining": 15, "escalation_level": 0,
         },
 
         # ── Claims case 1: in Investigation ──

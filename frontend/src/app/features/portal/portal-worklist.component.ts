@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { Assignment } from '@core/models';
+import { statusLabel } from '@core/utils/status-labels';
 import * as AssignmentsActions from '@state/assignments/assignments.actions';
 import {
   selectMyAssignments,
@@ -161,7 +162,7 @@ import {
                 </a>
                 <span class="text-xs px-2 py-0.5 rounded-full font-medium"
                       [ngClass]="statusBadge(a.status)">
-                  {{ a.status }}
+                  {{ statusLabel(a.status) }}
                 </span>
               </div>
               <p class="text-xs text-slate-500 truncate">
@@ -201,6 +202,7 @@ import {
   `,
 })
 export class PortalWorklistComponent implements OnInit {
+  statusLabel = statusLabel;
   myAssignments$: Observable<Assignment[]> = this.store.select(selectMyAssignments);
   allAssignments$: Observable<Assignment[]> = this.store.select(selectAllAssignments);
   isLoading$: Observable<boolean> = this.store.select(selectAssignmentsLoading);

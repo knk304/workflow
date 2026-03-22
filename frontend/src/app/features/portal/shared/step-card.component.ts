@@ -9,6 +9,7 @@ import { RouterLink } from '@angular/router';
 import { signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { StepInstance, ApprovalChain, User } from '@core/models';
+import { statusLabel } from '@core/utils/status-labels';
 import { DataService } from '@core/services/data.service';
 import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
 
@@ -38,6 +39,9 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
             }
             @case ('in_progress') {
               <mat-icon class="!text-base">play_arrow</mat-icon>
+            }
+            @case ('waiting') {
+              <mat-icon class="!text-base">hourglass_top</mat-icon>
             }
             @case ('skipped') {
               <mat-icon class="!text-base">skip_next</mat-icon>
@@ -74,7 +78,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
           }
 
           <!-- Step type-specific content for current step -->
-          @if (isCurrent && (step.status === 'in_progress' || step.status === 'pending')) {
+          @if (isCurrent && (step.status === 'in_progress' || step.status === 'pending' || step.status === 'waiting')) {
             @switch (step.type) {
               @case ('assignment') {
                 <!-- Dynamic form for assignment steps -->
@@ -100,7 +104,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                   @if (approvalChain) {
                     <div class="text-xs text-amber-600 mb-2">
                       Mode: <span class="font-semibold">{{ approvalChain.mode }}</span>
-                      &bull; Status: <span class="font-semibold">{{ approvalChain.status }}</span>
+                      &bull; Status: <span class="font-semibold">{{ statusLabel(approvalChain.status) }}</span>
                     </div>
                     <div class="space-y-1.5">
                       @for (approver of approvalChain.approvers; track approver.userId) {
@@ -123,7 +127,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                           </div>
                           <span class="text-[10px] px-1.5 py-0.5 rounded-full uppercase font-semibold"
                                 [ngClass]="approverBadgeClass(approver.status)">
-                            {{ approver.status }}
+                            {{ statusLabel(approver.status) }}
                           </span>
                           @if (approver.decidedAt) {
                             <span class="text-[10px] text-slate-400 shrink-0">{{ approver.decidedAt | date:'short' }}</span>
@@ -286,7 +290,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
 
           <!-- Action button for current step -->
           @if (step.status === 'in_progress' || step.status === 'pending') {
-            @if (isCurrent && step.type !== 'decision' && step.type !== 'automation') {
+            @if (isCurrent && step.type !== 'decision' && step.type !== 'automation' && step.type !== 'subprocess') {
               @if (canActOnStep()) {
                 <button mat-flat-button color="primary" class="!mt-3 !text-xs !h-8"
                         [disabled]="(step.type === 'assignment' && hasFormFields && !isFormValid) ||
@@ -331,6 +335,7 @@ export class StepCardComponent implements OnChanges {
   cachedFormFields: DynamicField[] = [];
   approvalChain: ApprovalChain | null = null;
   objectKeys = Object.keys;
+  statusLabel = statusLabel;
   private lastFormFieldsJson = '';
 
   constructor(private dataService: DataService) {}
@@ -474,6 +479,7 @@ export class StepCardComponent implements OnChanges {
 
   cardClass(): string {
     if (this.step.status === 'completed') return 'border-emerald-200 bg-emerald-50/50';
+    if (this.step.status === 'waiting') return 'border-amber-300 bg-amber-50/50 shadow-sm';
     if (this.isCurrent) return 'border-primary-300 bg-primary-50/50 shadow-sm';
     if (this.step.status === 'skipped') return 'border-slate-200 bg-slate-50 opacity-60';
     return 'border-slate-200 bg-white';
@@ -481,6 +487,7 @@ export class StepCardComponent implements OnChanges {
 
   iconClass(): string {
     if (this.step.status === 'completed') return 'bg-emerald-500 text-white';
+    if (this.step.status === 'waiting') return 'bg-amber-500 text-white';
     if (this.isCurrent) return 'bg-primary-500 text-white';
     if (this.step.status === 'skipped') return 'bg-slate-300 text-white';
     return 'bg-slate-200 text-slate-400';
@@ -488,6 +495,7 @@ export class StepCardComponent implements OnChanges {
 
   titleClass(): string {
     if (this.step.status === 'completed') return 'text-emerald-700';
+    if (this.step.status === 'waiting') return 'text-amber-700';
     if (this.isCurrent) return 'text-primary-700';
     return 'text-slate-600';
   }
