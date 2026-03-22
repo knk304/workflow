@@ -153,6 +153,60 @@ import { DataService } from '../../core/services/data.service';
                                           hover:file:bg-[#d0e8f7]">
                           </div>
                         }
+                        @case ('grid') {
+                          @if (field.gridConfig) {
+                            <div class="mb-2">
+                              <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">{{ field.label }}</label>
+                              <div class="grid gap-3" [style.grid-template-columns]="'repeat(' + field.gridConfig.columns + ', 1fr)'">
+                                @for (cell of field.gridConfig.cells; track $index) {
+                                  <div>
+                                    @if (cell) {
+                                      @switch (cell.type) {
+                                        @case ('textarea') {
+                                          <mat-form-field class="w-full">
+                                            <mat-label>{{ cell.label }}</mat-label>
+                                            <textarea matInput [formControlName]="cell.id" [placeholder]="cell.placeholder || ''" rows="2"></textarea>
+                                          </mat-form-field>
+                                        }
+                                        @case ('number') {
+                                          <mat-form-field class="w-full">
+                                            <mat-label>{{ cell.label }}</mat-label>
+                                            <input matInput type="number" [formControlName]="cell.id" [placeholder]="cell.placeholder || ''">
+                                          </mat-form-field>
+                                        }
+                                        @case ('date') {
+                                          <mat-form-field class="w-full">
+                                            <mat-label>{{ cell.label }}</mat-label>
+                                            <input matInput type="date" [formControlName]="cell.id">
+                                          </mat-form-field>
+                                        }
+                                        @case ('select') {
+                                          <mat-form-field class="w-full">
+                                            <mat-label>{{ cell.label }}</mat-label>
+                                            <mat-select [formControlName]="cell.id">
+                                              @for (opt of cell.validation.options || []; track opt) {
+                                                <mat-option [value]="opt">{{ opt }}</mat-option>
+                                              }
+                                            </mat-select>
+                                          </mat-form-field>
+                                        }
+                                        @case ('checkbox') {
+                                          <mat-checkbox [formControlName]="cell.id">{{ cell.label }}</mat-checkbox>
+                                        }
+                                        @default {
+                                          <mat-form-field class="w-full">
+                                            <mat-label>{{ cell.label }}</mat-label>
+                                            <input matInput [formControlName]="cell.id" [placeholder]="cell.placeholder || ''">
+                                          </mat-form-field>
+                                        }
+                                      }
+                                    }
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          }
+                        }
                       }
                     </div>
                   }
@@ -228,6 +282,54 @@ import { DataService } from '../../core/services/data.service';
                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-[#EAF4FB] file:text-[#003B70]">
                       </div>
                     }
+                    @case ('grid') {
+                      @if (field.gridConfig) {
+                        <div class="mb-2">
+                          <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">{{ field.label }}</label>
+                          <div class="grid gap-3" [style.grid-template-columns]="'repeat(' + field.gridConfig.columns + ', 1fr)'">
+                            @for (cell of field.gridConfig.cells; track $index) {
+                              <div>
+                                @if (cell) {
+                                  @switch (cell.type) {
+                                    @case ('textarea') {
+                                      <mat-form-field class="w-full">
+                                        <mat-label>{{ cell.label }}</mat-label>
+                                        <textarea matInput [formControlName]="cell.id" [placeholder]="cell.placeholder || ''" rows="2"></textarea>
+                                      </mat-form-field>
+                                    }
+                                    @case ('number') {
+                                      <mat-form-field class="w-full">
+                                        <mat-label>{{ cell.label }}</mat-label>
+                                        <input matInput type="number" [formControlName]="cell.id" [placeholder]="cell.placeholder || ''">
+                                      </mat-form-field>
+                                    }
+                                    @case ('select') {
+                                      <mat-form-field class="w-full">
+                                        <mat-label>{{ cell.label }}</mat-label>
+                                        <mat-select [formControlName]="cell.id">
+                                          @for (opt of cell.validation.options || []; track opt) {
+                                            <mat-option [value]="opt">{{ opt }}</mat-option>
+                                          }
+                                        </mat-select>
+                                      </mat-form-field>
+                                    }
+                                    @case ('checkbox') {
+                                      <mat-checkbox [formControlName]="cell.id">{{ cell.label }}</mat-checkbox>
+                                    }
+                                    @default {
+                                      <mat-form-field class="w-full">
+                                        <mat-label>{{ cell.label }}</mat-label>
+                                        <input matInput [formControlName]="cell.id" [placeholder]="cell.placeholder || ''">
+                                      </mat-form-field>
+                                    }
+                                  }
+                                }
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
                   }
                 </div>
               }
@@ -290,6 +392,25 @@ export class FormRendererComponent implements OnInit, OnChanges {
     const sortedFields = [...this.formDefinition.fields].sort((a, b) => a.order - b.order);
 
     for (const field of sortedFields) {
+      if (field.type === 'grid' && field.gridConfig) {
+        // Register form controls for each grid cell
+        for (const cell of field.gridConfig.cells) {
+          if (cell) {
+            const cellValidators: ValidatorFn[] = [];
+            const cv = cell.validation;
+            if (cv?.required) cellValidators.push(Validators.required);
+            if (cv?.minLength) cellValidators.push(Validators.minLength(cv.minLength));
+            if (cv?.maxLength) cellValidators.push(Validators.maxLength(cv.maxLength));
+            if (cv?.pattern) cellValidators.push(Validators.pattern(cv.pattern));
+            if (cv?.minValue != null) cellValidators.push(Validators.min(cv.minValue));
+            if (cv?.maxValue != null) cellValidators.push(Validators.max(cv.maxValue));
+            const cellDefault = this.initialData[cell.id] ?? cell.defaultValue ?? (cell.type === 'checkbox' ? false : '');
+            group[cell.id] = [cellDefault, cellValidators];
+          }
+        }
+        continue; // grid parent doesn't need its own control
+      }
+
       const validators: ValidatorFn[] = [];
       const v = field.validation;
 

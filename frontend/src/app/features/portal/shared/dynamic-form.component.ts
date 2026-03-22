@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 export interface DynamicField {
   id: string;
-  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file';
+  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file' | 'grid';
   label: string;
   placeholder?: string;
   defaultValue?: string;
@@ -25,6 +25,11 @@ export interface DynamicField {
     minValue?: number;
     maxValue?: number;
     options?: string[];
+  };
+  gridConfig?: {
+    columns: number;
+    rows: number;
+    cells: (DynamicField | null)[];
   };
   order: number;
   section?: string;
@@ -132,6 +137,63 @@ export interface DynamicField {
               </mat-radio-group>
             </div>
           }
+
+          @case ('grid') {
+            @if (field.gridConfig) {
+              <div class="py-1">
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">{{ field.label }}</label>
+                <div class="grid gap-3" [style.grid-template-columns]="'repeat(' + field.gridConfig.columns + ', 1fr)'">
+                  @for (cell of field.gridConfig.cells; track $index) {
+                    <div>
+                      @if (cell) {
+                        @switch (cell.type) {
+                          @case ('textarea') {
+                            <mat-form-field class="w-full">
+                              <mat-label>{{ cell.label }}</mat-label>
+                              <textarea matInput [formControlName]="cell.id" [placeholder]="cell.placeholder || ''" rows="2"></textarea>
+                            </mat-form-field>
+                          }
+                          @case ('number') {
+                            <mat-form-field class="w-full">
+                              <mat-label>{{ cell.label }}</mat-label>
+                              <input matInput type="number" [formControlName]="cell.id" [placeholder]="cell.placeholder || ''">
+                            </mat-form-field>
+                          }
+                          @case ('date') {
+                            <mat-form-field class="w-full">
+                              <mat-label>{{ cell.label }}</mat-label>
+                              <input matInput [matDatepicker]="cellPicker" [formControlName]="cell.id">
+                              <mat-datepicker-toggle matIconSuffix [for]="cellPicker"></mat-datepicker-toggle>
+                              <mat-datepicker #cellPicker></mat-datepicker>
+                            </mat-form-field>
+                          }
+                          @case ('select') {
+                            <mat-form-field class="w-full">
+                              <mat-label>{{ cell.label }}</mat-label>
+                              <mat-select [formControlName]="cell.id">
+                                @for (opt of cell.validation?.options || []; track opt) {
+                                  <mat-option [value]="opt">{{ opt }}</mat-option>
+                                }
+                              </mat-select>
+                            </mat-form-field>
+                          }
+                          @case ('checkbox') {
+                            <mat-checkbox [formControlName]="cell.id">{{ cell.label }}</mat-checkbox>
+                          }
+                          @default {
+                            <mat-form-field class="w-full">
+                              <mat-label>{{ cell.label }}</mat-label>
+                              <input matInput [formControlName]="cell.id" [placeholder]="cell.placeholder || ''">
+                            </mat-form-field>
+                          }
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
         }
       }
 
@@ -178,6 +240,24 @@ export class DynamicFormComponent implements OnInit, OnChanges {
 
     const controls: Record<string, any> = {};
     for (const field of this.sortedFields) {
+      if (field.type === 'grid' && field.gridConfig) {
+        for (const cell of field.gridConfig.cells) {
+          if (cell) {
+            const cellValidators: ValidatorFn[] = [];
+            const cv = cell.validation;
+            if (cv?.required) cellValidators.push(Validators.required);
+            if (cv?.minLength) cellValidators.push(Validators.minLength(cv.minLength));
+            if (cv?.maxLength) cellValidators.push(Validators.maxLength(cv.maxLength));
+            if (cv?.pattern) cellValidators.push(Validators.pattern(cv.pattern));
+            if (cv?.minValue != null) cellValidators.push(Validators.min(cv.minValue));
+            if (cv?.maxValue != null) cellValidators.push(Validators.max(cv.maxValue));
+            const cellDefault = this.initialData[cell.id] ?? cell.defaultValue ?? (cell.type === 'checkbox' ? false : '');
+            controls[cell.id] = [cellDefault, cellValidators];
+          }
+        }
+        continue;
+      }
+
       const validators: ValidatorFn[] = [];
       const v = field.validation;
       if (v?.required) validators.push(Validators.required);

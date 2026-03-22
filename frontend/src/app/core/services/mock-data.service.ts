@@ -460,6 +460,17 @@ export class MockDataService extends DataService {
       fields: [
         { id: 'f1', type: 'text', label: 'Full Name', placeholder: 'Enter full name', order: 0, section: 'sec-1', validation: { required: true, minLength: 2 } },
         { id: 'f2', type: 'text', label: 'Email', placeholder: 'email@example.com', order: 1, section: 'sec-1', validation: { required: true, pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$' } },
+        { id: 'f-contact-grid', type: 'grid', label: 'Contact Details', order: 2, section: 'sec-1', validation: {},
+          gridConfig: {
+            columns: 2, rows: 2,
+            cells: [
+              { id: 'f-phone-home', type: 'text', label: 'Home Phone', placeholder: '(555) 000-0000', order: 0, section: 'grid', validation: {} },
+              { id: 'f-phone-work', type: 'text', label: 'Work Phone', placeholder: '(555) 000-0000', order: 1, section: 'grid', validation: {} },
+              { id: 'f-addr-type', type: 'select', label: 'Address Type', order: 2, section: 'grid', validation: { required: true, options: ['Home', 'Business', 'Mailing'] } },
+              { id: 'f-years-addr', type: 'number', label: 'Years at Address', placeholder: 'e.g. 5', order: 3, section: 'grid', validation: { minValue: 0 } },
+            ],
+          },
+        },
         { id: 'f3', type: 'number', label: 'Loan Amount', placeholder: '50000', order: 0, section: 'sec-2', validation: { required: true, minValue: 1000, maxValue: 1000000 } },
         { id: 'f4', type: 'select', label: 'Loan Type', order: 1, section: 'sec-2', validation: { required: true, options: ['personal', 'business', 'mortgage', 'auto'] } },
         { id: 'f5', type: 'date', label: 'Application Date', order: 2, section: 'sec-2', validation: { required: true } },

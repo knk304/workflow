@@ -1,5 +1,7 @@
 """Form builder — dynamic case form definitions and submissions."""
 
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
 from datetime import datetime, timezone
@@ -25,17 +27,29 @@ class FieldValidation(BaseModel):
     options: list[str] | None = None
 
 
+class GridConfig(BaseModel):
+    columns: int = 2
+    rows: int = 2
+    cells: list[FormField | None] = []
+
+
 class FormField(BaseModel):
     model_config = {"populate_by_name": True}
     id: str
-    type: str  # text, textarea, number, date, select, checkbox, radio, file
+    type: str  # text, textarea, number, date, select, checkbox, radio, file, grid
     label: str
     placeholder: str = ""
     default_value: str | None = Field(default=None, alias="defaultValue")
     validation: FieldValidation = FieldValidation()
     order: int = 0
     section: str = "default"
+    grid_config: GridConfig | None = Field(default=None, alias="gridConfig")
     visible_when: dict | None = Field(default=None, alias="visibleWhen")  # conditional visibility
+
+
+# Rebuild models to resolve forward references (GridConfig references FormField)
+GridConfig.model_rebuild()
+FormField.model_rebuild()
 
 
 class FormSection(BaseModel):

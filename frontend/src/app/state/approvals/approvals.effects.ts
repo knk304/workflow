@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { map, catchError, switchMap, mergeMap } from 'rxjs/operators';
 import { DataService } from '../../core/services/data.service';
 import * as ApprovalsActions from './approvals.actions';
+import * as CasesActions from '../cases/cases.actions';
 
 @Injectable()
 export class ApprovalsEffects {
@@ -36,7 +37,13 @@ export class ApprovalsEffects {
       ofType(ApprovalsActions.approveChain),
       mergeMap(({ id, decision }) =>
         this.dataService.approveChain(id, decision).pipe(
-          map(approval => ApprovalsActions.approveChainSuccess({ approval })),
+          mergeMap(approval => {
+            const actions: any[] = [ApprovalsActions.approveChainSuccess({ approval })];
+            if (approval.status === 'approved' || approval.status === 'rejected') {
+              actions.push(CasesActions.loadCaseInstance({ id: approval.caseId }));
+            }
+            return actions;
+          }),
           catchError(error => of(ApprovalsActions.approveChainFailure({ error: error.message })))
         )
       )
@@ -48,7 +55,11 @@ export class ApprovalsEffects {
       ofType(ApprovalsActions.rejectChain),
       mergeMap(({ id, decision }) =>
         this.dataService.rejectChain(id, decision).pipe(
-          map(approval => ApprovalsActions.rejectChainSuccess({ approval })),
+          mergeMap(approval => {
+            const actions: any[] = [ApprovalsActions.rejectChainSuccess({ approval })];
+            actions.push(CasesActions.loadCaseInstance({ id: approval.caseId }));
+            return actions;
+          }),
           catchError(error => of(ApprovalsActions.rejectChainFailure({ error: error.message })))
         )
       )

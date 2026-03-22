@@ -1482,6 +1482,16 @@ async def _insert_all(db):
                 {"id": "f-name", "type": "text", "label": "Applicant Name", "placeholder": "Full legal name", "order": 0, "section": "sec-applicant", "validation": {"required": True, "minLength": 2, "maxLength": 100}},
                 {"id": "f-email", "type": "text", "label": "Email Address", "placeholder": "applicant@example.com", "order": 1, "section": "sec-applicant", "validation": {"required": True, "pattern": "^[\\w.-]+@[\\w.-]+\\.\\w+$"}},
                 {"id": "f-income", "type": "number", "label": "Annual Income", "placeholder": "e.g. 85000", "order": 2, "section": "sec-applicant", "validation": {"required": True, "minValue": 0}},
+                {"id": "f-contact-grid", "type": "grid", "label": "Contact Details", "order": 3, "section": "sec-applicant", "validation": {},
+                 "gridConfig": {
+                     "columns": 2, "rows": 2,
+                     "cells": [
+                         {"id": "f-phone-home", "type": "text", "label": "Home Phone", "placeholder": "(555) 000-0000", "order": 0, "section": "grid", "validation": {"required": False}},
+                         {"id": "f-phone-work", "type": "text", "label": "Work Phone", "placeholder": "(555) 000-0000", "order": 1, "section": "grid", "validation": {"required": False}},
+                         {"id": "f-address-type", "type": "select", "label": "Address Type", "order": 2, "section": "grid", "validation": {"required": True, "options": ["Home", "Business", "Mailing"]}},
+                         {"id": "f-years-at-addr", "type": "number", "label": "Years at Address", "placeholder": "e.g. 5", "order": 3, "section": "grid", "validation": {"required": False, "minValue": 0}},
+                     ]
+                 }},
                 {"id": "f-loan-type", "type": "select", "label": "Loan Type", "order": 0, "section": "sec-loan", "validation": {"required": True, "options": ["Mortgage", "Personal", "Commercial", "Auto"]}},
                 {"id": "f-amount", "type": "number", "label": "Loan Amount", "placeholder": "Requested amount", "order": 1, "section": "sec-loan", "validation": {"required": True, "minValue": 1000, "maxValue": 10000000}},
                 {"id": "f-purpose", "type": "textarea", "label": "Loan Purpose", "placeholder": "Describe the purpose of the loan", "order": 2, "section": "sec-loan", "validation": {"required": False}},
@@ -1532,8 +1542,20 @@ async def _insert_all(db):
                 {"id": "f-incident-date", "type": "date", "label": "Date of Incident", "order": 0, "section": "sec-incident", "validation": {"required": True}},
                 {"id": "f-incident-location", "type": "text", "label": "Location of Incident", "placeholder": "Address or description", "order": 1, "section": "sec-incident", "validation": {"required": True}},
                 {"id": "f-incident-desc", "type": "textarea", "label": "Description of Incident", "placeholder": "Provide a detailed description of what happened", "order": 2, "section": "sec-incident", "validation": {"required": True, "minLength": 20}},
-                {"id": "f-police-report", "type": "checkbox", "label": "Police report filed", "order": 3, "section": "sec-incident", "validation": {"required": False}},
-                {"id": "f-claim-consent", "type": "checkbox", "label": "I certify the information provided is accurate and complete", "order": 4, "section": "sec-incident", "validation": {"required": True}},
+                {"id": "f-damage-grid", "type": "grid", "label": "Damage Assessment", "order": 3, "section": "sec-incident", "validation": {},
+                 "gridConfig": {
+                     "columns": 3, "rows": 2,
+                     "cells": [
+                         {"id": "f-damage-area", "type": "text", "label": "Damaged Area", "placeholder": "e.g. Front bumper", "order": 0, "section": "grid", "validation": {"required": True}},
+                         {"id": "f-damage-severity", "type": "select", "label": "Severity", "order": 1, "section": "grid", "validation": {"required": True, "options": ["Minor", "Moderate", "Severe", "Total Loss"]}},
+                         {"id": "f-damage-cost", "type": "number", "label": "Est. Repair Cost", "placeholder": "USD", "order": 2, "section": "grid", "validation": {"required": False, "minValue": 0}},
+                         {"id": "f-damage-area2", "type": "text", "label": "Damaged Area 2", "placeholder": "e.g. Windshield", "order": 3, "section": "grid", "validation": {"required": False}},
+                         {"id": "f-damage-severity2", "type": "select", "label": "Severity", "order": 4, "section": "grid", "validation": {"required": False, "options": ["Minor", "Moderate", "Severe", "Total Loss"]}},
+                         {"id": "f-damage-cost2", "type": "number", "label": "Est. Repair Cost", "placeholder": "USD", "order": 5, "section": "grid", "validation": {"required": False, "minValue": 0}},
+                     ]
+                 }},
+                {"id": "f-police-report", "type": "checkbox", "label": "Police report filed", "order": 4, "section": "sec-incident", "validation": {"required": False}},
+                {"id": "f-claim-consent", "type": "checkbox", "label": "I certify the information provided is accurate and complete", "order": 5, "section": "sec-incident", "validation": {"required": True}},
             ],
             "version": 1, "is_active": True, "created_at": "2025-01-15T00:00:00.000Z",
         },

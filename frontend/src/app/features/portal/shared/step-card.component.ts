@@ -39,12 +39,13 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
   ],
   styles: [`
     :host ::ng-deep .dense-field .mat-mdc-form-field-infix {
-      min-height: 32px !important;
-      padding-top: 4px !important;
+      min-height: 36px !important;
+      padding-top: 20px !important;
       padding-bottom: 4px !important;
     }
     :host ::ng-deep .dense-field .mat-mdc-text-field-wrapper {
-      height: 36px;
+      height: auto;
+      min-height: 40px;
     }
     :host ::ng-deep .dense-field .mat-mdc-form-field-subscript-wrapper {
       display: none;
@@ -187,7 +188,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                           </mat-form-field>
                           <div class="flex gap-2">
                             <button mat-flat-button [color]="approvalAction() === 'approve' ? 'primary' : 'warn'"
-                                    class="!text-xs !h-7 flex-1" (click)="confirmApprovalAction()">
+                                    class="!text-xs !h-7" (click)="confirmApprovalAction()">
                               Confirm {{ approvalAction() }}
                             </button>
                             <button mat-stroked-button class="!text-xs !h-7"
@@ -522,6 +523,7 @@ export class StepCardComponent implements OnChanges, OnDestroy {
         validation: f.validation || (f.required ? { required: true } : {}),
         order: f.order ?? i,
         section: f.section,
+        ...(f.gridConfig ? { gridConfig: f.gridConfig } : {}),
       }));
     }
   }

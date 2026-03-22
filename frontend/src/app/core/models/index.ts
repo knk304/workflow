@@ -257,15 +257,22 @@ export interface FormFieldValidation {
   options?: string[];
 }
 
+export interface GridConfig {
+  columns: number;
+  rows: number;
+  cells: (FormField | null)[];
+}
+
 export interface FormField {
   id: string;
-  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file';
+  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file' | 'grid';
   label: string;
   placeholder?: string;
   defaultValue?: string;
   validation: FormFieldValidation;
   order: number;
   section: string;
+  gridConfig?: GridConfig;
   visibleWhen?: Record<string, any>;
   editableRoles?: string[];
 }
