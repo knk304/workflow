@@ -26,7 +26,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap, takeUntil } from
            [class.bg-white]="focused()"
            [class.shadow-lg]="focused()"
            [class.ring-2]="focused()"
-           [class.ring-indigo-300]="focused()">
+           [class.ring-primary-300]="focused()">
         <mat-icon class="ml-3 text-base"
                   [ngClass]="focused() ? 'text-slate-400' : 'text-white/60'">search</mat-icon>
         <input type="text"
@@ -69,7 +69,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap, takeUntil } from
                     <p class="text-xs text-slate-400 truncate mt-0.5">{{ result.snippet }}</p>
                   </div>
                   <span class="text-[10px] uppercase tracking-wider text-slate-400 font-medium shrink-0 mt-1">
-                    {{ result.entity_type }}
+                    {{ result.entity_type === 'tasks' ? 'assignment' : result.entity_type }}
                   </span>
                 </button>
               }
@@ -168,24 +168,27 @@ export class SemanticSearchComponent implements OnDestroy {
 
   navigateToResult(result: SearchResult): void {
     this.showResults.set(false);
+    // Pega-lite routes: cases → portal, tasks → worklist (assignments)
     const routes: Record<string, string> = {
-      cases: `/cases/${result.entity_id}`,
-      tasks: `/tasks`,
+      cases: `/portal/cases/${result.entity_id}`,
+      tasks: `/portal/worklist`,
+      assignments: `/portal/worklist`,
       documents: `/documents`,
     };
-    const route = routes[result.entity_type] || '/';
+    const route = routes[result.entity_type] || '/portal';
     this.router.navigateByUrl(route);
   }
 
   entityIcon(entityType: string): string {
-    return { cases: 'folder_open', tasks: 'task_alt', documents: 'description' }[entityType] || 'search';
+    return { cases: 'folder_open', tasks: 'assignment_ind', assignments: 'assignment_ind', documents: 'description' }[entityType] || 'search';
   }
 
   entityIconClass(entityType: string): string {
     return {
-      cases: 'text-indigo-500',
+      cases: 'text-primary-500',
       tasks: 'text-amber-500',
-      documents: 'text-cyan-500',
+      assignments: 'text-amber-500',
+      documents: 'text-primary-400',
     }[entityType] || 'text-slate-400';
   }
 

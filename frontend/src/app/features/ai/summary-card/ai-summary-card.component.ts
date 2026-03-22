@@ -19,114 +19,129 @@ import { AiService, CaseSummary } from '../../../core/services/ai.service';
     MatTooltipModule,
   ],
   template: `
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div>
       <!-- Header -->
-      <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-3 border-b border-slate-200">
-        <div class="flex items-center justify-between">
-          <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <mat-icon class="text-base text-indigo-500">auto_awesome</mat-icon>
-            AI Summary
-          </h4>
-          <div class="flex items-center gap-1">
-            @if (summary()) {
-              <span class="text-[10px] text-slate-400 font-medium">
-                via {{ summary()!.generated_by }}
-              </span>
-            }
-            <button mat-icon-button
-                    class="w-7 h-7"
-                    [matTooltip]="summary() ? 'Refresh summary' : 'Generate summary'"
-                    (click)="generateSummary()"
-                    [disabled]="loading()">
-              <mat-icon class="text-base text-indigo-500"
-                        [class.animate-spin]="loading()">
-                {{ loading() ? 'sync' : 'refresh' }}
-              </mat-icon>
-            </button>
-          </div>
-        </div>
+      <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-sky-500 flex items-center justify-center shadow-sm shadow-primary-500/20">
+                <mat-icon class="!text-sm text-white">auto_awesome</mat-icon>
+              </div>
+              <div>
+                <h4 class="text-[13px] font-semibold text-slate-800 leading-tight">Case Summary</h4>
+                @if (summary()) {
+                  <span class="text-[10px] text-slate-400 leading-tight">via {{ summary()!.generated_by }}</span>
+                }
+              </div>
+            </div>
+          <button mat-icon-button
+                  class="!w-7 !h-7"
+                  [matTooltip]="summary() ? 'Refresh summary' : 'Generate summary'"
+                  (click)="generateSummary()"
+                  [disabled]="loading()">
+            <mat-icon class="!text-[18px] text-slate-400 hover:text-primary-500 transition-colors"
+                      [class.animate-spin]="loading()">
+              {{ loading() ? 'sync' : 'refresh' }}
+            </mat-icon>
+          </button>
       </div>
 
       <!-- Content -->
-      <div class="p-5">
-        @if (loading()) {
-          <div class="flex items-center justify-center py-8">
-            <mat-spinner diameter="28"></mat-spinner>
-            <span class="text-sm text-slate-500 ml-3">Generating summary...</span>
-          </div>
-        } @else if (error()) {
-          <div class="text-center py-6">
-            <mat-icon class="text-3xl text-amber-400 mb-2">warning</mat-icon>
-            <p class="text-sm text-slate-500">{{ error() }}</p>
-            <button mat-stroked-button class="mt-3 text-xs" (click)="generateSummary()">
-              <mat-icon class="text-sm">refresh</mat-icon>
-              Retry
-            </button>
-          </div>
-        } @else if (summary()) {
-          <!-- Summary Text -->
-          <p class="text-sm text-slate-700 leading-relaxed mb-4">{{ summary()!.summary }}</p>
-
-          <!-- Key Decisions -->
-          @if (summary()!.key_decisions.length > 0) {
-            <div class="mb-3">
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
-                Key Decisions
-              </p>
-              @for (decision of summary()!.key_decisions; track decision) {
-                <div class="flex items-start gap-2 mb-1">
-                  <mat-icon class="text-sm text-emerald-500 mt-0.5 shrink-0">check_circle</mat-icon>
-                  <span class="text-xs text-slate-600">{{ decision }}</span>
+      <div>
+          @if (loading()) {
+            <div class="flex flex-col items-center justify-center py-8 gap-3">
+              <div class="relative">
+                <div class="w-10 h-10 rounded-full border-2 border-primary-100 border-t-primary-500 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <mat-icon class="!text-sm text-primary-400">auto_awesome</mat-icon>
                 </div>
-              }
+              </div>
+              <div class="text-center">
+                <p class="text-xs font-medium text-slate-500">Analyzing case data...</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Reviewing stages, steps & history</p>
+              </div>
+            </div>
+          } @else if (error()) {
+            <div class="text-center py-5">
+              <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-2.5">
+                <mat-icon class="!text-xl text-amber-400">warning_amber</mat-icon>
+              </div>
+              <p class="text-xs text-slate-500 mb-3 max-w-[200px] mx-auto leading-relaxed">{{ error() }}</p>
+              <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors border border-primary-100"
+                      (click)="generateSummary()">
+                <mat-icon class="!text-sm">refresh</mat-icon>
+                Try Again
+              </button>
+            </div>
+          } @else if (summary()) {
+            <!-- Summary Text -->
+            <p class="text-[13px] text-slate-600 leading-relaxed mb-4">{{ summary()!.summary }}</p>
+
+            <!-- Key Decisions -->
+            @if (summary()!.key_decisions.length > 0) {
+              <div class="mb-3">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <div class="w-1 h-3.5 rounded-full bg-emerald-400"></div>
+                  <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Key Decisions</p>
+                </div>
+                <div class="space-y-1.5 pl-3">
+                  @for (decision of summary()!.key_decisions; track decision) {
+                    <div class="flex items-start gap-2 py-1 px-2 rounded-md hover:bg-emerald-50/50 transition-colors">
+                      <mat-icon class="!text-sm text-emerald-500 mt-0.5 shrink-0">check_circle</mat-icon>
+                      <span class="text-xs text-slate-600 leading-relaxed">{{ decision }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Pending Actions -->
+            @if (summary()!.pending_actions.length > 0) {
+              <div class="mb-3">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <div class="w-1 h-3.5 rounded-full bg-amber-400"></div>
+                  <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Pending Actions</p>
+                </div>
+                <div class="space-y-1.5 pl-3">
+                  @for (action of summary()!.pending_actions; track action) {
+                    <div class="flex items-start gap-2 py-1 px-2 rounded-md hover:bg-amber-50/50 transition-colors">
+                      <mat-icon class="!text-sm text-amber-500 mt-0.5 shrink-0">schedule</mat-icon>
+                      <span class="text-xs text-slate-600 leading-relaxed">{{ action }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Risk Flags -->
+            @if (summary()!.risk_flags.length > 0) {
+              <div>
+                <div class="flex items-center gap-1.5 mb-2">
+                  <div class="w-1 h-3.5 rounded-full bg-red-400"></div>
+                  <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Risk Flags</p>
+                </div>
+                <div class="space-y-1.5 pl-3">
+                  @for (flag of summary()!.risk_flags; track flag) {
+                    <div class="flex items-start gap-2 py-1 px-2 rounded-md hover:bg-red-50/50 transition-colors">
+                      <mat-icon class="!text-sm text-red-500 mt-0.5 shrink-0">flag</mat-icon>
+                      <span class="text-xs text-slate-600 leading-relaxed">{{ flag }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          } @else {
+            <!-- Empty State -->
+            <div class="text-center py-4">
+              <mat-icon class="!text-2xl text-primary-300">psychology</mat-icon>
+              <p class="text-xs font-medium text-slate-500 mt-1">No summary yet</p>
+              <p class="text-[10px] text-slate-400 mt-0.5 mb-3">AI will analyze stages, steps & case history</p>
+              <button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-primary-500 to-sky-500 hover:from-primary-600 hover:to-sky-600 transition-all active:scale-[0.98]"
+                      (click)="generateSummary()">
+                <mat-icon class="!text-sm">auto_awesome</mat-icon>
+                Generate Summary
+              </button>
             </div>
           }
-
-          <!-- Pending Actions -->
-          @if (summary()!.pending_actions.length > 0) {
-            <div class="mb-3">
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
-                Pending Actions
-              </p>
-              @for (action of summary()!.pending_actions; track action) {
-                <div class="flex items-start gap-2 mb-1">
-                  <mat-icon class="text-sm text-amber-500 mt-0.5 shrink-0">pending</mat-icon>
-                  <span class="text-xs text-slate-600">{{ action }}</span>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Risk Flags -->
-          @if (summary()!.risk_flags.length > 0) {
-            <div>
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
-                Risk Flags
-              </p>
-              @for (flag of summary()!.risk_flags; track flag) {
-                <div class="flex items-start gap-2 mb-1">
-                  <mat-icon class="text-sm text-red-500 mt-0.5 shrink-0">flag</mat-icon>
-                  <span class="text-xs text-slate-600">{{ flag }}</span>
-                </div>
-              }
-            </div>
-          }
-        } @else {
-          <!-- Empty State -->
-          <div class="text-center py-6">
-            <div class="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3">
-              <mat-icon class="text-2xl text-indigo-400">psychology</mat-icon>
-            </div>
-            <p class="text-sm text-slate-500 mb-1">No summary yet</p>
-            <p class="text-xs text-slate-400 mb-3">Click generate to create an AI-powered case summary</p>
-            <button mat-raised-button
-                    class="bg-indigo-500 text-white hover:bg-indigo-600 text-xs"
-                    (click)="generateSummary()">
-              <mat-icon class="text-sm">auto_awesome</mat-icon>
-              Generate Summary
-            </button>
-          </div>
-        }
       </div>
     </div>
   `,

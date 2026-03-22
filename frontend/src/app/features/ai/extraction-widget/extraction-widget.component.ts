@@ -23,10 +23,10 @@ import { AiService, ExtractionField, ExtractionResponse } from '../../../core/se
   template: `
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <!-- Header -->
-      <div class="bg-gradient-to-r from-cyan-50 to-blue-50 px-5 py-3 border-b border-slate-200">
+      <div class="bg-gradient-to-r from-primary-50 to-sky-50 px-5 py-3 border-b border-slate-200">
         <div class="flex items-center justify-between">
           <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <mat-icon class="text-base text-cyan-500">document_scanner</mat-icon>
+            <mat-icon class="text-base text-primary-400">document_scanner</mat-icon>
             Extracted Fields
           </h4>
           <div class="flex items-center gap-1">
@@ -40,7 +40,7 @@ import { AiService, ExtractionField, ExtractionResponse } from '../../../core/se
                     [matTooltip]="extraction() ? 'Re-extract' : 'Extract fields'"
                     (click)="extract()"
                     [disabled]="loading()">
-              <mat-icon class="text-base text-cyan-500"
+              <mat-icon class="text-base text-primary-400"
                         [class.animate-spin]="loading()">
                 {{ loading() ? 'sync' : 'refresh' }}
               </mat-icon>
@@ -113,13 +113,13 @@ import { AiService, ExtractionField, ExtractionResponse } from '../../../core/se
         } @else {
           <!-- Empty state -->
           <div class="text-center py-6">
-            <div class="w-12 h-12 rounded-full bg-cyan-50 flex items-center justify-center mx-auto mb-3">
-              <mat-icon class="text-2xl text-cyan-400">document_scanner</mat-icon>
+            <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-3">
+              <mat-icon class="text-2xl text-primary-400">document_scanner</mat-icon>
             </div>
             <p class="text-sm text-slate-500 mb-1">No extraction yet</p>
             <p class="text-xs text-slate-400 mb-3">AI will extract structured fields from this document</p>
             <button mat-raised-button
-                    class="bg-cyan-500 text-white hover:bg-cyan-600 text-xs"
+                    class="bg-primary-500 text-white hover:bg-primary-600 text-xs"
                     (click)="extract()">
               <mat-icon class="text-sm">auto_awesome</mat-icon>
               Extract Fields

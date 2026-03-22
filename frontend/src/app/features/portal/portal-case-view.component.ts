@@ -14,6 +14,7 @@ import { Subject, takeUntil, map, Observable } from 'rxjs';
 import { CaseInstance, StageInstance, StepInstance, User } from '@core/models';
 import { statusLabel } from '@core/utils/status-labels';
 import * as CasesActions from '@state/cases/cases.actions';
+import * as AssignmentsActions from '@state/assignments/assignments.actions';
 import {
   selectSelectedCaseInstance,
   selectCasesLoading,
@@ -22,6 +23,10 @@ import { selectUser } from '@state/auth/auth.selectors';
 import { selectCommentsByCase } from '@state/comments/comments.selectors';
 import { StepCardComponent } from '@features/portal/shared/step-card.component';
 import { CommentsComponent } from '@features/comments/comments.component';
+import { AiSummaryCardComponent } from '@features/ai/summary-card/ai-summary-card.component';
+import { RecommendationSidebarComponent } from '@features/ai/recommendation-sidebar/recommendation-sidebar.component';
+import { RiskSidebarComponent } from '@features/ai/risk-sidebar/risk-sidebar.component';
+import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-sidebar.component';
 
 @Component({
   selector: 'app-portal-case-view',
@@ -39,6 +44,10 @@ import { CommentsComponent } from '@features/comments/comments.component';
     MatTooltipModule,
     StepCardComponent,
     CommentsComponent,
+    AiSummaryCardComponent,
+    RecommendationSidebarComponent,
+    RiskSidebarComponent,
+    RoutingSidebarComponent,
   ],
   template: `
     @if (isLoading) {
@@ -270,7 +279,8 @@ import { CommentsComponent } from '@features/comments/comments.component';
           <!-- Stage Chevron Bar -->
           @if (c.stages && c.stages.length > 0) {
             <div class="bg-white border-b border-slate-200 px-6 py-3">
-              <div class="flex items-center gap-0 overflow-x-auto">
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-0 overflow-x-auto flex-1 min-w-0">
                 @for (stage of c.stages; track stage.stageDefinitionId; let si = $index) {
                   <div class="stage-chevron px-5 py-2.5 min-w-[130px] text-center text-xs font-semibold"
                        [class.stage-chevron-completed]="stage.status === 'completed'"
@@ -282,6 +292,19 @@ import { CommentsComponent } from '@features/comments/comments.component';
                     <mat-icon class="text-slate-300 !text-lg flex-shrink-0 -mx-1">chevron_right</mat-icon>
                   }
                 }
+                </div>
+                <!-- AI Insights Toggle -->
+                <div class="flex-shrink-0">
+                  <button class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
+                          [ngClass]="aiPanelOpen()
+                            ? 'bg-gradient-to-r from-primary-500 to-sky-500 text-white shadow-md shadow-primary-500/25'
+                            : 'bg-white/80 text-primary-600 hover:bg-primary-50 border border-primary-200/60 shadow-sm hover:shadow-md hover:border-primary-300'"
+                          (click)="toggleAiPanel()">
+                    <mat-icon class="!text-sm !w-4 !h-4">auto_awesome</mat-icon>
+                    AI Insights
+                    <mat-icon class="!text-sm !w-4 !h-4">{{ aiPanelOpen() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+                  </button>
+                </div>
               </div>
             </div>
           }
@@ -384,6 +407,69 @@ import { CommentsComponent } from '@features/comments/comments.component';
             }
           </div>
         </div>
+
+        <!-- ========== AI INSIGHTS RIGHT PANEL ========== -->
+        @if (aiPanelOpen()) {
+          <div class="w-80 flex-shrink-0 border-l border-slate-200/80 bg-white overflow-y-auto ai-panel-slide">
+            <!-- Panel Header -->
+            <div class="sticky top-0 z-10">
+              <div class="relative px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-100">
+                <div class="absolute inset-0 bg-gradient-to-r from-primary-500/[0.05] via-sky-500/[0.03] to-transparent"></div>
+                <div class="relative flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 via-sky-500 to-violet-500 flex items-center justify-center shadow-md shadow-primary-500/25">
+                      <mat-icon class="!text-base text-white">auto_awesome</mat-icon>
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-bold text-slate-800">AI Insights</h3>
+                      <p class="text-[10px] text-slate-400 font-medium">Powered by AI analysis</p>
+                    </div>
+                  </div>
+                  <button class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                          (click)="toggleAiPanel()">
+                    <mat-icon class="!text-lg">close</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Components Stack -->
+            <div class="px-4 py-3 divide-y divide-slate-100">
+              <!-- Case Summary -->
+              <div class="pb-4">
+                <app-ai-summary-card [caseId]="c.id"></app-ai-summary-card>
+              </div>
+
+              <!-- Recommendations -->
+              <div class="py-4">
+                <app-recommendation-sidebar [caseId]="c.id"></app-recommendation-sidebar>
+              </div>
+
+              <!-- Risk Assessment -->
+              <div class="py-4">
+                <app-risk-sidebar [caseId]="c.id"></app-risk-sidebar>
+              </div>
+
+              <!-- Smart Routing -->
+              <div class="pt-4">
+                <app-routing-sidebar
+                  [caseId]="c.id"
+                  [stepName]="currentStepName()"
+                  [assignmentId]="currentAssignmentId()"
+                  (assignUser)="onAssignUser($event)">
+                </app-routing-sidebar>
+              </div>
+            </div>
+
+            <!-- Bottom branding -->
+            <div class="text-center py-3 border-t border-slate-100">
+              <p class="text-[10px] text-slate-300 flex items-center justify-center gap-1">
+                <mat-icon class="!text-xs">auto_awesome</mat-icon>
+                AI-powered insights
+              </p>
+            </div>
+          </div>
+        }
       </div>
     } @else {
       <div class="text-center py-16 text-slate-400">
@@ -449,6 +535,13 @@ import { CommentsComponent } from '@features/comments/comments.component';
       background-color: #e2e8f0;
       color: #64748b;
     }
+    .ai-panel-slide {
+      animation: slideInRight 200ms ease-out;
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   `],
 })
 export class PortalCaseViewComponent implements OnInit, OnDestroy {
@@ -458,6 +551,7 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   sidebarTab: 'details' | 'history' | 'audit' | 'comments' = 'details';
   commentCount$: Observable<number> | null = null;
   sidebarWidth = signal(288); // default ~w-72
+  aiPanelOpen = signal(false);
   private isResizing = false;
   private resizeStartX = 0;
   private resizeStartWidth = 288;
@@ -556,6 +650,21 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     return steps[idx] || null;
   }
 
+  /** Get the current active step's name for AI routing context */
+  currentStepName(): string | null {
+    const stage = this.currentStage();
+    if (!stage) return null;
+    const step = this.currentStepObj(stage);
+    return step?.name || null;
+  }
+
+  /** Get the current active assignment ID (if any) for step-level reassignment */
+  currentAssignmentId(): string | null {
+    if (!this.c) return null;
+    // The current step's definition ID maps to the assignment's step_id
+    return this.c.currentStepId || null;
+  }
+
   onCompleteStep(event: { step: StepInstance; formData: Record<string, any> }): void {
     if (!this.c) return;
     // Serialize Date objects to ISO strings for NgRx strict serialization
@@ -589,6 +698,24 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     if (!this.c) return;
     this.store.dispatch(CasesActions.withdrawCaseInstance({ caseId: this.c.id }));
     this.snackBar.open('Case withdrawn', 'OK', { duration: 3000 });
+  }
+
+  toggleAiPanel(): void {
+    this.aiPanelOpen.update(v => !v);
+  }
+
+  onAssignUser(event: { userId: string; assignmentId: string | null }): void {
+    if (!this.c) return;
+    if (event.assignmentId) {
+      // Step-level reassignment via assignments store
+      this.store.dispatch(AssignmentsActions.reassignAssignment({
+        id: event.assignmentId,
+        request: { assignedTo: event.userId, reason: 'AI-suggested routing' },
+      }));
+      this.snackBar.open(`Reassigned step to user`, 'OK', { duration: 3000 });
+    } else {
+      this.snackBar.open(`Suggested assignee: ${event.userId} (no active assignment to reassign)`, 'OK', { duration: 3000 });
+    }
   }
 
   slaClass(c: CaseInstance): string {

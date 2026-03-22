@@ -12,58 +12,83 @@ import { Recommendation } from '../../../core/models/ai.models';
   standalone: true,
   imports: [CommonModule, PercentPipe, MatIconModule, MatButtonModule, MatTooltipModule, MatProgressBarModule],
   template: `
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
-        <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-          <mat-icon class="text-base text-amber-500">lightbulb</mat-icon>
-          AI Recommendations
-        </h4>
-        <button mat-icon-button class="w-7 h-7" matTooltip="Refresh" (click)="load()" [disabled]="loading">
-          <mat-icon class="text-base text-slate-400">refresh</mat-icon>
-        </button>
+    <div>
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm shadow-amber-500/20">
+                <mat-icon class="!text-sm text-white">lightbulb</mat-icon>
+              </div>
+              <h4 class="text-[13px] font-semibold text-slate-800">Recommendations</h4>
+            </div>
+          <button mat-icon-button class="!w-7 !h-7" matTooltip="Refresh" (click)="load()" [disabled]="loading">
+            <mat-icon class="!text-[18px] text-slate-400 hover:text-amber-500 transition-colors">refresh</mat-icon>
+          </button>
       </div>
-      <div class="p-4">
-        @if (loading) {
-          <div class="flex items-center gap-2 text-slate-400 text-sm py-3 justify-center">
-            <mat-icon class="animate-spin text-base">autorenew</mat-icon>
-            Analyzing case...
-          </div>
-        } @else if (error) {
-          <div class="flex items-center gap-2 text-red-500 text-xs py-2">
-            <mat-icon class="text-base">error_outline</mat-icon>
-            {{ error }}
-          </div>
-        } @else if (recommendations.length === 0) {
-          <div class="text-center py-4">
-            <mat-icon class="text-3xl text-slate-200">check_circle</mat-icon>
-            <p class="text-xs text-slate-400 mt-1">No recommendations at this time.</p>
-          </div>
-        } @else {
-          <div class="space-y-3">
-            @for (rec of recommendations; track rec.action) {
-              <div class="p-3 rounded-lg border border-slate-100 hover:border-amber-200 hover:bg-amber-50/30 transition-all">
-                <div class="flex items-start gap-2">
-                  <mat-icon class="text-amber-500 text-base mt-0.5 flex-shrink-0">{{ actionIcon(rec.action) }}</mat-icon>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-slate-800">{{ rec.label }}</p>
-                    <p class="text-xs text-slate-500 mt-0.5">{{ rec.description }}</p>
-                    @if (rec.reason) {
-                      <p class="text-xs text-blue-600 mt-1 italic">{{ rec.reason }}</p>
-                    }
-                    <div class="flex items-center gap-2 mt-2">
-                      <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full transition-all"
-                             [class]="confidenceBarClass(rec.confidence)"
-                             [style.width.%]="rec.confidence * 100"></div>
+
+      <!-- Content -->
+      <div>
+          @if (loading) {
+            <div class="flex flex-col items-center justify-center py-6 gap-3">
+              <div class="relative">
+                <div class="w-10 h-10 rounded-full border-2 border-amber-100 border-t-amber-500 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <mat-icon class="!text-sm text-amber-400">lightbulb</mat-icon>
+                </div>
+              </div>
+              <p class="text-xs font-medium text-slate-500">Analyzing case...</p>
+            </div>
+          } @else if (error) {
+            <div class="flex items-center gap-2.5 p-3 rounded-xl bg-red-50/50 border border-red-100">
+              <mat-icon class="!text-lg text-red-400">error_outline</mat-icon>
+              <p class="text-xs text-red-600 leading-relaxed">{{ error }}</p>
+            </div>
+          } @else if (recommendations.length === 0) {
+            <div class="text-center py-4">
+              <mat-icon class="!text-2xl text-amber-300">thumb_up</mat-icon>
+              <p class="text-xs font-medium text-slate-500 mt-1">All good for now</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">No actions recommended at this stage</p>
+            </div>
+          } @else {
+            <div class="space-y-2.5">
+              @for (rec of recommendations; track rec.action) {
+                <div class="relative pl-3">
+                  <!-- Left accent stripe -->
+                  <div class="absolute left-0 top-1 bottom-1 w-[3px] rounded-full"
+                       [class]="recAccentClass(rec.confidence)"></div>
+
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+                         [class]="recIconBg(rec.confidence)">
+                      <mat-icon class="!text-xs text-white">{{ actionIcon(rec.action) }}</mat-icon>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-[13px] font-semibold text-slate-800 leading-tight">{{ rec.label }}</p>
+                      <p class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{{ rec.description }}</p>
+                      @if (rec.reason) {
+                        <p class="text-[11px] text-primary-600/80 mt-1.5 italic flex items-start gap-1">
+                          <mat-icon class="!text-xs !w-3 !h-3 mt-0.5 shrink-0">tips_and_updates</mat-icon>
+                          {{ rec.reason }}
+                        </p>
+                      }
+                      <!-- Confidence meter -->
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                          <div class="h-full rounded-full transition-all duration-700"
+                               [class]="confidenceBarClass(rec.confidence)"
+                               [style.width.%]="rec.confidence * 100"></div>
+                        </div>
+                        <span class="text-[10px] font-bold tabular-nums"
+                              [class]="confidenceTextClass(rec.confidence)">
+                          {{ rec.confidence | percent:'1.0-0' }}
+                        </span>
                       </div>
-                      <span class="text-[10px] font-semibold text-slate-500">{{ rec.confidence | percent:'1.0-0' }}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            }
-          </div>
-        }
+              }
+            </div>
+          }
       </div>
     </div>
   `,
@@ -110,5 +135,29 @@ export class RecommendationSidebarComponent implements OnInit {
     if (confidence >= 0.8) return 'bg-emerald-500';
     if (confidence >= 0.5) return 'bg-amber-400';
     return 'bg-slate-300';
+  }
+
+  confidenceTextClass(confidence: number): string {
+    if (confidence >= 0.8) return 'text-emerald-600';
+    if (confidence >= 0.5) return 'text-amber-600';
+    return 'text-slate-400';
+  }
+
+  recBorderClass(confidence: number): string {
+    if (confidence >= 0.8) return 'border-emerald-100 hover:border-emerald-200 bg-emerald-50/20';
+    if (confidence >= 0.5) return 'border-amber-100 hover:border-amber-200 bg-amber-50/20';
+    return 'border-slate-100 hover:border-slate-200 bg-slate-50/20';
+  }
+
+  recAccentClass(confidence: number): string {
+    if (confidence >= 0.8) return 'bg-emerald-400';
+    if (confidence >= 0.5) return 'bg-amber-400';
+    return 'bg-slate-300';
+  }
+
+  recIconBg(confidence: number): string {
+    if (confidence >= 0.8) return 'bg-emerald-500';
+    if (confidence >= 0.5) return 'bg-amber-500';
+    return 'bg-slate-400';
   }
 }

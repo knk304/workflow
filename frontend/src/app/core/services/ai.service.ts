@@ -133,11 +133,12 @@ export class AiService {
     include_audit?: boolean;
     include_comments?: boolean;
     include_tasks?: boolean;
+    include_steps?: boolean;
     max_length?: number;
   }): Observable<CaseSummary> {
     return this.http.post<CaseSummary>(
       `${this.apiUrl}/ai/summarize/${caseId}`,
-      options || {},
+      { include_steps: true, ...options },
     );
   }
 
@@ -269,10 +270,12 @@ export class AiService {
   }
 
   // ── Smart Routing (P3-S3) ────────────────────────────
-  suggestRouting(caseId: string): Observable<RoutingResponse> {
+  suggestRouting(caseId: string, stepId?: string): Observable<RoutingResponse> {
+    const body: Record<string, string> = {};
+    if (stepId) body['step_id'] = stepId;
     return this.http.post<RoutingResponse>(
       `${this.apiUrl}/ai/route/${caseId}`,
-      {},
+      body,
     );
   }
 
