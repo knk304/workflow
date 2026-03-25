@@ -280,6 +280,7 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
           @if (c.stages && c.stages.length > 0) {
             <div class="bg-white border-b border-slate-200 px-6 py-3">
               <div class="flex items-center gap-2">
+                <!-- Old chevron stage style (commented out)
                 <div class="flex items-center gap-0 overflow-x-auto flex-1 min-w-0">
                 @for (stage of c.stages; track stage.stageDefinitionId; let si = $index) {
                   <div class="stage-chevron px-5 py-2.5 min-w-[130px] text-center text-xs font-semibold"
@@ -292,6 +293,25 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
                     <mat-icon class="text-slate-300 !text-lg flex-shrink-0 -mx-1">chevron_right</mat-icon>
                   }
                 }
+                </div>
+                -->
+                <!-- New: Numbered circle stage indicator -->
+                <div class="flex items-start overflow-x-auto flex-1 min-w-0">
+                  @for (stage of c.stages; track stage.stageDefinitionId; let si = $index) {
+                    <div class="stage-node"
+                         [class.stage-node-completed]="stage.status === 'completed'"
+                         [class.stage-node-active]="stage.stageDefinitionId === c.currentStageId && stage.status !== 'completed'"
+                         [class.stage-node-pending]="stage.status === 'pending'">
+                      <div class="stage-circle">
+                        @if (stage.status === 'completed') {
+                          <mat-icon class="!text-base">check</mat-icon>
+                        } @else {
+                          {{ si + 1 }}
+                        }
+                      </div>
+                      <span class="stage-label">{{ stage.name }}</span>
+                    </div>
+                  }
                 </div>
                 <!-- AI Insights Toggle -->
                 <div class="flex-shrink-0">
@@ -517,6 +537,7 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
     .comments-sidebar-wrapper :deep(h3) {
       color: #1e293b !important;
     }
+    /* Old chevron stage styles (commented out)
     .stage-chevron {
       clip-path: polygon(0% 0%, 88% 0%, 100% 50%, 88% 100%, 0% 100%, 12% 50%);
     }
@@ -534,6 +555,83 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
     .stage-chevron-pending {
       background-color: #e2e8f0;
       color: #64748b;
+    }
+    */
+    /* New: Numbered circle stage indicator styles */
+    .stage-node {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      min-width: 90px;
+      padding: 0 4px;
+    }
+    /* Connector lines between circles */
+    .stage-node:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 50%;
+      height: 2px;
+      background-color: #cbd5e1;
+    }
+    .stage-node:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      right: 0;
+      height: 2px;
+      background-color: #cbd5e1;
+    }
+    .stage-node-completed:not(:first-child)::before,
+    .stage-node-completed:not(:last-child)::after {
+      background-color: #4b9e4b;
+    }
+    .stage-node-active:not(:first-child)::before {
+      background-color: #4b9e4b;
+    }
+    .stage-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 1;
+      position: relative;
+      background-color: #e2e8f0;
+      color: #64748b;
+      transition: all 0.2s ease;
+    }
+    .stage-node-completed .stage-circle {
+      background-color: #4b9e4b;
+      color: white;
+    }
+    .stage-node-active .stage-circle {
+      background-color: #056DAE;
+      color: white;
+      box-shadow: 0 0 0 3px rgba(5, 109, 174, 0.25);
+    }
+    .stage-label {
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.3;
+      max-width: 100px;
+      color: #64748b;
+    }
+    .stage-node-completed .stage-label {
+      color: #4b9e4b;
+    }
+    .stage-node-active .stage-label {
+      color: #056DAE;
+      font-weight: 700;
     }
     .ai-panel-slide {
       animation: slideInRight 200ms ease-out;
