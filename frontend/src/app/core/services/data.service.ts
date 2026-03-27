@@ -1,3 +1,4 @@
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   User, Team,
@@ -14,8 +15,10 @@ import {
   DecisionTable, DecisionTableCreateRequest, DecisionTableUpdateRequest,
   DecisionTableEvaluateRequest, DecisionTableEvaluateResponse,
   RuleEvaluateRequest, RuleEvaluateResponse,
+  FlowDefinition, FlowExecution, FlowAnswer,
 } from '../models';
 
+@Injectable()
 export abstract class DataService {
   // Users
   abstract getUsers(): Observable<User[]>;
@@ -127,4 +130,18 @@ export abstract class DataService {
 
   // ===== Admin — Rules =====
   abstract evaluateRule(req: RuleEvaluateRequest): Observable<RuleEvaluateResponse>;
+
+  // ===== Flow Definitions (Flows) =====
+  abstract getFlowDefinitions(category?: string): Observable<FlowDefinition[]>;
+  abstract getFlowDefinitionById(id: string): Observable<FlowDefinition>;
+  abstract createFlowDefinition(flow: Partial<FlowDefinition>): Observable<FlowDefinition>;
+  abstract updateFlowDefinition(id: string, updates: Partial<FlowDefinition>): Observable<FlowDefinition>;
+  abstract deleteFlowDefinition(id: string): Observable<void>;
+
+  // ===== Flow Executions =====
+  abstract getFlowExecutions(flowDefinitionId?: string): Observable<FlowExecution[]>;
+  abstract getFlowExecutionById(id: string): Observable<FlowExecution>;
+  abstract startFlowExecution(flowDefinitionId: string): Observable<FlowExecution>;
+  abstract submitFlowAnswer(execId: string, answers: FlowAnswer[], currentNodeId?: string): Observable<FlowExecution>;
+  abstract goBackFlowExecution(execId: string): Observable<FlowExecution>;
 }

@@ -180,6 +180,11 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
             <mat-icon>add_circle_outline</mat-icon>
             <span>New Case</span>
           </a>
+          <mat-divider></mat-divider>
+          <a mat-menu-item routerLink="/portal/flows" routerLinkActive="menu-active">
+            <mat-icon>quiz</mat-icon>
+            <span>Run Flows</span>
+          </a>
         </mat-menu>
 
         <!-- Approvals -->

@@ -701,3 +701,108 @@ export interface CaseTypeUpdateRequest {
   attachmentCategories?: AttachmentCategory[];
   isActive?: boolean;
 }
+
+// ===== Flow Definitions (Unified Process & Flows) =====
+
+export type FlowNodeType = 'start' | 'end' | 'question' | 'decision' | 'display' | 'subprocess' | 'task' | 'parallel' | 'approval' | 'notification' | 'timer' | 'api_call';
+export type FlowFieldType = 'text' | 'textarea' | 'number' | 'date' | 'select' | 'radio' | 'checkbox' | 'multi_select' | 'file' | 'alert';
+
+export interface FlowFieldValidation {
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  minValue?: number;
+  maxValue?: number;
+  pattern?: string;
+}
+
+export interface FlowFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface FlowField {
+  id: string;
+  type: FlowFieldType;
+  label: string;
+  placeholder?: string;
+  helpText?: string;
+  defaultValue?: string;
+  options: FlowFieldOption[];
+  validation: FlowFieldValidation;
+  order: number;
+}
+
+export interface DecisionCondition {
+  id: string;
+  label: string;
+  fieldId: string;
+  operator: string;
+  value: any;
+  targetNodeId: string;
+}
+
+export interface FlowNodePosition {
+  x: number;
+  y: number;
+}
+
+export interface FlowNode {
+  id: string;
+  type: FlowNodeType;
+  label: string;
+  position: FlowNodePosition;
+  fields: FlowField[];
+  conditions: DecisionCondition[];
+  defaultTarget?: string;
+  content?: string;
+  linkedFlowId?: string;
+  config?: Record<string, any>;
+}
+
+export interface FlowEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  conditionId?: string;
+}
+
+export interface FlowDefinitionBody {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+}
+
+export interface FlowDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  definition: FlowDefinitionBody;
+  version: number;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type FlowExecutionStatus = 'in_progress' | 'completed' | 'abandoned';
+
+export interface FlowAnswer {
+  nodeId: string;
+  fieldId: string;
+  value: any;
+}
+
+export interface FlowExecution {
+  id: string;
+  flowDefinitionId: string;
+  flowName: string;
+  currentNodeId: string;
+  visitedNodes: string[];
+  answers: FlowAnswer[];
+  status: FlowExecutionStatus;
+  startedBy: string;
+  startedAt: string;
+  completedAt?: string;
+}

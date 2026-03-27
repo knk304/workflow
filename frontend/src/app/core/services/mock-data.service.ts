@@ -24,6 +24,7 @@ import {
   DecisionTable, DecisionTableCreateRequest, DecisionTableUpdateRequest,
   DecisionTableEvaluateRequest, DecisionTableEvaluateResponse,
   RuleEvaluateRequest, RuleEvaluateResponse,
+  FlowDefinition, FlowExecution, FlowAnswer,
 } from '../models';
 import { DataService } from './data.service';
 
@@ -758,4 +759,18 @@ export class MockDataService extends DataService {
 
   // Admin — Rules
   evaluateRule(req: RuleEvaluateRequest): Observable<RuleEvaluateResponse> { return of({ result: false, matchedConditions: [], evaluationPath: [] }).pipe(delay(200)); }
+
+  // Flow Definitions
+  getFlowDefinitions(_category?: string): Observable<FlowDefinition[]> { return of([]); }
+  getFlowDefinitionById(_id: string): Observable<FlowDefinition> { return of({} as FlowDefinition); }
+  createFlowDefinition(_flow: Partial<FlowDefinition>): Observable<FlowDefinition> { return of({} as FlowDefinition).pipe(delay(300)); }
+  updateFlowDefinition(_id: string, _updates: Partial<FlowDefinition>): Observable<FlowDefinition> { return of({} as FlowDefinition).pipe(delay(300)); }
+  deleteFlowDefinition(_id: string): Observable<void> { return of(void 0).pipe(delay(200)); }
+
+  // Flow Executions
+  getFlowExecutions(_flowDefinitionId?: string): Observable<FlowExecution[]> { return of([]); }
+  getFlowExecutionById(_id: string): Observable<FlowExecution> { return of({} as FlowExecution); }
+  startFlowExecution(_flowDefinitionId: string): Observable<FlowExecution> { return of({} as FlowExecution).pipe(delay(300)); }
+  submitFlowAnswer(_execId: string, _answers: FlowAnswer[], _currentNodeId?: string): Observable<FlowExecution> { return of({} as FlowExecution).pipe(delay(300)); }
+  goBackFlowExecution(_execId: string): Observable<FlowExecution> { return of({} as FlowExecution).pipe(delay(300)); }
 }

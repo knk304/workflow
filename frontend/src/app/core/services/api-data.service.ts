@@ -19,6 +19,7 @@ import {
   DecisionTable, DecisionTableCreateRequest, DecisionTableUpdateRequest,
   DecisionTableEvaluateRequest, DecisionTableEvaluateResponse,
   RuleEvaluateRequest, RuleEvaluateResponse,
+  FlowDefinition, FlowExecution, FlowAnswer,
 } from '../models';
 import { DataService } from './data.service';
 import { environment } from '../../../environments/environment';
@@ -877,5 +878,58 @@ export class ApiDataService extends DataService {
         evaluationPath: d.evaluation_path || [],
       }))
     );
+  }
+
+  // ─── Flow Definitions (Flows) ────────
+
+  getFlowDefinitions(category?: string): Observable<FlowDefinition[]> {
+    let params = new HttpParams();
+    if (category) { params = params.set('category', category); }
+    return this.http.get<FlowDefinition[]>(`${this.caseUrl}/flow-definitions`, { params });
+  }
+
+  getFlowDefinitionById(id: string): Observable<FlowDefinition> {
+    return this.http.get<FlowDefinition>(`${this.caseUrl}/flow-definitions/${id}`);
+  }
+
+  createFlowDefinition(flow: Partial<FlowDefinition>): Observable<FlowDefinition> {
+    return this.http.post<FlowDefinition>(`${this.caseUrl}/flow-definitions`, flow);
+  }
+
+  updateFlowDefinition(id: string, updates: Partial<FlowDefinition>): Observable<FlowDefinition> {
+    return this.http.patch<FlowDefinition>(`${this.caseUrl}/flow-definitions/${id}`, updates);
+  }
+
+  deleteFlowDefinition(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.caseUrl}/flow-definitions/${id}`);
+  }
+
+  // ─── Flow Executions ────────────────────────────
+
+  getFlowExecutions(flowDefinitionId?: string): Observable<FlowExecution[]> {
+    let params = new HttpParams();
+    if (flowDefinitionId) { params = params.set('flow_definition_id', flowDefinitionId); }
+    return this.http.get<FlowExecution[]>(`${this.caseUrl}/flow-executions`, { params });
+  }
+
+  getFlowExecutionById(id: string): Observable<FlowExecution> {
+    return this.http.get<FlowExecution>(`${this.caseUrl}/flow-executions/${id}`);
+  }
+
+  startFlowExecution(flowDefinitionId: string): Observable<FlowExecution> {
+    return this.http.post<FlowExecution>(`${this.caseUrl}/flow-executions`, {
+      flowDefinitionId,
+    });
+  }
+
+  submitFlowAnswer(execId: string, answers: FlowAnswer[], currentNodeId?: string): Observable<FlowExecution> {
+    return this.http.post<FlowExecution>(`${this.caseUrl}/flow-executions/${execId}/answer`, {
+      answers,
+      currentNodeId,
+    });
+  }
+
+  goBackFlowExecution(execId: string): Observable<FlowExecution> {
+    return this.http.post<FlowExecution>(`${this.caseUrl}/flow-executions/${execId}/back`, {});
   }
 }

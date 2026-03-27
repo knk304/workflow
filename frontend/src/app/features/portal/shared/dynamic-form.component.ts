@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 export interface DynamicField {
   id: string;
-  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file' | 'grid';
+  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'radio' | 'file' | 'grid' | 'alert';
   label: string;
   placeholder?: string;
   defaultValue?: string;
@@ -153,6 +153,17 @@ export interface DynamicField {
             </div>
           }
 
+          @case ('alert') {
+            <div class="flex items-start gap-3 px-4 py-3 rounded border mb-1"
+                 [ngClass]="alertBoxClass(field.placeholder || 'info')">
+              <mat-icon class="!text-[20px] mt-0.5" [ngClass]="alertIconClass(field.placeholder || 'info')">{{ alertIcon(field.placeholder || 'info') }}</mat-icon>
+              <div>
+                @if (field.label) { <div class="font-semibold text-sm mb-0.5">{{ field.label }}</div> }
+                <div class="text-sm">{{ field.defaultValue || 'Alert message' }}</div>
+              </div>
+            </div>
+          }
+
           @case ('grid') {
             @if (field.gridConfig) {
               <div class="py-1">
@@ -255,6 +266,7 @@ export class DynamicFormComponent implements OnInit, OnChanges {
 
     const controls: Record<string, any> = {};
     for (const field of this.sortedFields) {
+      if (field.type === 'alert') continue; // display-only, no form control
       if (field.type === 'grid' && field.gridConfig) {
         for (const cell of field.gridConfig.cells) {
           if (cell) {
@@ -305,5 +317,17 @@ export class DynamicFormComponent implements OnInit, OnChanges {
 
   isValid(): boolean {
     return this.form.valid;
+  }
+
+  alertIcon(style: string): string {
+    return ({ info: 'info', success: 'check_circle', warning: 'warning', error: 'error' } as Record<string, string>)[style] || 'info';
+  }
+
+  alertBoxClass(style: string): string {
+    return ({ info: 'bg-blue-50 border-blue-300 text-blue-900', success: 'bg-green-50 border-green-300 text-green-900', warning: 'bg-amber-50 border-amber-300 text-amber-900', error: 'bg-red-50 border-red-300 text-red-900' } as Record<string, string>)[style] || 'bg-blue-50 border-blue-300 text-blue-900';
+  }
+
+  alertIconClass(style: string): string {
+    return ({ info: 'text-blue-600', success: 'text-green-600', warning: 'text-amber-600', error: 'text-red-600' } as Record<string, string>)[style] || 'text-blue-600';
   }
 }

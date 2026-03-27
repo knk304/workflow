@@ -356,6 +356,7 @@ button {
 
 .mat-icon {
     height: auto !important;
-    width: auto !important;
-    overflow: revert !important;
+    width: auto !important; 
 }
+
+.mdc-icon-button.no-padding { padding: 0 !important; }

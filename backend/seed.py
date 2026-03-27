@@ -24,9 +24,12 @@ async def seed_all():
     """Seed all collections if the database is empty."""
     db = get_db()
     count = await db.users.count_documents({})
-    if count > 0:
-        return
-    await _insert_all(db)
+    if count == 0:
+        await _insert_all(db)
+    else:
+        # Users exist — still seed flow definitions if missing
+        if await db.flow_definitions.count_documents({}) == 0:
+            await _seed_flow_definitions(db)
 
 
 # ─── Blueprint helpers ─────────────────────────────
@@ -80,6 +83,708 @@ def _rt_stage(def_id, name, order, processes, status="pending",
             "entered_at": entered_at, "completed_at": completed_at,
             "completed_by": completed_by, "processes": processes}
 
+
+
+async def _seed_flow_definitions(db):
+    """Seed flow definitions if collection is empty."""
+    if await db.flow_definitions.count_documents({}) > 0:
+        return
+    flow_definitions = [
+        {
+            "_id": "flow-health-assessment",
+            "name": "Health Risk Assessment Questionnaire",
+            "description": "Comprehensive health risk evaluation with dynamic branching based on responses. Covers general health, lifestyle, family history, and mental wellness.",
+            "category": "health",
+            "definition": {
+                "nodes": [
+                    {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 250}},
+
+                    # Q1: General Info
+                    {"id": "n-q1", "type": "question", "label": "Personal Information",
+                     "position": {"x": 250, "y": 250},
+                     "fields": [
+                         {"id": "f-name", "type": "text", "label": "Full Name", "placeholder": "Enter your full name",
+                          "options": [], "validation": {"required": True, "minLength": 2}, "order": 0},
+                         {"id": "f-age", "type": "number", "label": "Age", "placeholder": "Your age",
+                          "options": [], "validation": {"required": True, "minValue": 1, "maxValue": 120}, "order": 1},
+                         {"id": "f-gender", "type": "select", "label": "Gender",
+                          "options": [{"label": "Male", "value": "male"}, {"label": "Female", "value": "female"}, {"label": "Other", "value": "other"}],
+                          "validation": {"required": True}, "order": 2},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q2: Smoking status
+                    {"id": "n-q2", "type": "question", "label": "Smoking Status",
+                     "position": {"x": 500, "y": 250},
+                     "fields": [
+                         {"id": "f-smoker", "type": "radio", "label": "Do you currently smoke?",
+                          "helpText": "This includes cigarettes, cigars, pipes, and e-cigarettes",
+                          "options": [{"label": "Yes, daily", "value": "daily"}, {"label": "Yes, occasionally", "value": "occasional"}, {"label": "No, I quit", "value": "quit"}, {"label": "Never smoked", "value": "never"}],
+                          "validation": {"required": True}, "order": 0},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Decision: smoking branch
+                    {"id": "n-d1", "type": "decision", "label": "Smoker?",
+                     "position": {"x": 750, "y": 250},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-smoker-yes", "label": "Is smoker", "fieldId": "f-smoker", "operator": "in", "value": ["daily", "occasional"], "targetNodeId": "n-q3a"},
+                         {"id": "c-smoker-quit", "label": "Quit smoking", "fieldId": "f-smoker", "operator": "equals", "value": "quit", "targetNodeId": "n-q3b"},
+                     ],
+                     "defaultTarget": "n-q4",
+                     "content": None, "config": {}},
+
+                    # Q3a: Smoking details (for current smokers)
+                    {"id": "n-q3a", "type": "question", "label": "Smoking Details",
+                     "position": {"x": 1000, "y": 100},
+                     "fields": [
+                         {"id": "f-cigs-per-day", "type": "number", "label": "How many cigarettes per day?",
+                          "options": [], "validation": {"required": True, "minValue": 0}, "order": 0},
+                         {"id": "f-years-smoking", "type": "number", "label": "How many years have you been smoking?",
+                          "options": [], "validation": {"required": True, "minValue": 0}, "order": 1},
+                         {"id": "f-quit-interest", "type": "radio", "label": "Are you interested in quitting?",
+                          "options": [{"label": "Yes, very interested", "value": "yes"}, {"label": "Maybe someday", "value": "maybe"}, {"label": "No", "value": "no"}],
+                          "validation": {"required": True}, "order": 2},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q3b: Quit smoking details
+                    {"id": "n-q3b", "type": "question", "label": "Quit Smoking Details",
+                     "position": {"x": 1000, "y": 400},
+                     "fields": [
+                         {"id": "f-quit-duration", "type": "select", "label": "How long ago did you quit?",
+                          "options": [{"label": "Less than 6 months", "value": "lt6m"}, {"label": "6-12 months", "value": "6to12m"}, {"label": "1-5 years", "value": "1to5y"}, {"label": "More than 5 years", "value": "gt5y"}],
+                          "validation": {"required": True}, "order": 0},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q4: Exercise habits
+                    {"id": "n-q4", "type": "question", "label": "Exercise & Activity",
+                     "position": {"x": 1250, "y": 250},
+                     "fields": [
+                         {"id": "f-exercise-freq", "type": "radio", "label": "How often do you exercise?",
+                          "options": [{"label": "Daily", "value": "daily"}, {"label": "3-5 times/week", "value": "3to5"}, {"label": "1-2 times/week", "value": "1to2"}, {"label": "Rarely/Never", "value": "rarely"}],
+                          "validation": {"required": True}, "order": 0},
+                         {"id": "f-exercise-type", "type": "multi_select", "label": "What types of exercise do you do?",
+                          "helpText": "Select all that apply",
+                          "options": [{"label": "Walking", "value": "walking"}, {"label": "Running", "value": "running"}, {"label": "Swimming", "value": "swimming"}, {"label": "Cycling", "value": "cycling"}, {"label": "Weight Training", "value": "weights"}, {"label": "Yoga/Pilates", "value": "yoga"}, {"label": "Team Sports", "value": "sports"}],
+                          "validation": {}, "order": 1},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Decision: exercise level
+                    {"id": "n-d2", "type": "decision", "label": "Activity Level?",
+                     "position": {"x": 1500, "y": 250},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-sedentary", "label": "Sedentary", "fieldId": "f-exercise-freq", "operator": "equals", "value": "rarely", "targetNodeId": "n-q5a"},
+                     ],
+                     "defaultTarget": "n-q5",
+                     "content": None, "config": {}},
+
+                    # Q5a: Sedentary lifestyle follow-up
+                    {"id": "n-q5a", "type": "question", "label": "Sedentary Lifestyle",
+                     "position": {"x": 1750, "y": 100},
+                     "fields": [
+                         {"id": "f-sitting-hours", "type": "number", "label": "Average hours sitting per day?",
+                          "options": [], "validation": {"required": True, "minValue": 0, "maxValue": 24}, "order": 0},
+                         {"id": "f-sedentary-reason", "type": "select", "label": "Main reason for low activity?",
+                          "options": [{"label": "Physical limitations", "value": "physical"}, {"label": "Lack of time", "value": "time"}, {"label": "Lack of motivation", "value": "motivation"}, {"label": "Medical condition", "value": "medical"}, {"label": "Other", "value": "other"}],
+                          "validation": {"required": True}, "order": 1},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q5: Family history
+                    {"id": "n-q5", "type": "question", "label": "Family Medical History",
+                     "position": {"x": 1750, "y": 400},
+                     "fields": [
+                         {"id": "f-family-conditions", "type": "multi_select", "label": "Any family history of the following?",
+                          "helpText": "Select all that apply (parents, siblings, grandparents)",
+                          "options": [{"label": "Heart Disease", "value": "heart"}, {"label": "Diabetes", "value": "diabetes"}, {"label": "Cancer", "value": "cancer"}, {"label": "Stroke", "value": "stroke"}, {"label": "High Blood Pressure", "value": "bp"}, {"label": "Mental Health Conditions", "value": "mental"}, {"label": "None of the above", "value": "none"}],
+                          "validation": {"required": True}, "order": 0},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q6: Mental health
+                    {"id": "n-q6", "type": "question", "label": "Mental Wellness",
+                     "position": {"x": 2000, "y": 250},
+                     "fields": [
+                         {"id": "f-stress-level", "type": "radio", "label": "How would you rate your stress level?",
+                          "options": [{"label": "Very Low", "value": "very_low"}, {"label": "Low", "value": "low"}, {"label": "Moderate", "value": "moderate"}, {"label": "High", "value": "high"}, {"label": "Very High", "value": "very_high"}],
+                          "validation": {"required": True}, "order": 0},
+                         {"id": "f-sleep-hours", "type": "number", "label": "Average hours of sleep per night?",
+                          "options": [], "validation": {"required": True, "minValue": 0, "maxValue": 24}, "order": 1},
+                         {"id": "f-mental-support", "type": "radio", "label": "Do you have access to mental health support?",
+                          "options": [{"label": "Yes", "value": "yes"}, {"label": "No", "value": "no"}, {"label": "Not sure", "value": "unsure"}],
+                          "validation": {"required": True}, "order": 2},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q7: Diet
+                    {"id": "n-q7", "type": "question", "label": "Diet & Nutrition",
+                     "position": {"x": 2250, "y": 250},
+                     "fields": [
+                         {"id": "f-diet-type", "type": "select", "label": "How would you describe your diet?",
+                          "options": [{"label": "Balanced/Healthy", "value": "balanced"}, {"label": "Mostly healthy", "value": "mostly_healthy"}, {"label": "Average", "value": "average"}, {"label": "Mostly unhealthy", "value": "mostly_unhealthy"}, {"label": "Poor", "value": "poor"}],
+                          "validation": {"required": True}, "order": 0},
+                         {"id": "f-water-intake", "type": "radio", "label": "Daily water intake?",
+                          "options": [{"label": "Less than 4 glasses", "value": "lt4"}, {"label": "4-6 glasses", "value": "4to6"}, {"label": "7-8 glasses", "value": "7to8"}, {"label": "More than 8 glasses", "value": "gt8"}],
+                          "validation": {"required": True}, "order": 1},
+                         {"id": "f-alcohol", "type": "radio", "label": "Alcohol consumption?",
+                          "options": [{"label": "Never", "value": "never"}, {"label": "Occasionally (1-2/month)", "value": "occasional"}, {"label": "Moderate (1-2/week)", "value": "moderate"}, {"label": "Frequent (3+/week)", "value": "frequent"}, {"label": "Daily", "value": "daily"}],
+                          "validation": {"required": True}, "order": 2},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Decision: alcohol check
+                    {"id": "n-d3", "type": "decision", "label": "Alcohol Level?",
+                     "position": {"x": 2500, "y": 250},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-heavy-drinker", "label": "Heavy drinker", "fieldId": "f-alcohol", "operator": "in", "value": ["frequent", "daily"], "targetNodeId": "n-q7a"},
+                     ],
+                     "defaultTarget": "n-q8",
+                     "content": None, "config": {}},
+
+                    # Q7a: Heavy drinking follow-up
+                    {"id": "n-q7a", "type": "question", "label": "Alcohol Consumption Details",
+                     "position": {"x": 2750, "y": 100},
+                     "fields": [
+                         {"id": "f-drinks-per-week", "type": "number", "label": "Average drinks per week?",
+                          "options": [], "validation": {"required": True, "minValue": 0}, "order": 0},
+                         {"id": "f-alcohol-concern", "type": "radio", "label": "Are you concerned about your alcohol intake?",
+                          "options": [{"label": "Yes", "value": "yes"}, {"label": "No", "value": "no"}, {"label": "Sometimes", "value": "sometimes"}],
+                          "validation": {"required": True}, "order": 1},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q8: Current medical conditions
+                    {"id": "n-q8", "type": "question", "label": "Current Health Status",
+                     "position": {"x": 2750, "y": 400},
+                     "fields": [
+                         {"id": "f-conditions", "type": "multi_select", "label": "Do you currently have any of these conditions?",
+                          "helpText": "Select all that apply",
+                          "options": [{"label": "Diabetes", "value": "diabetes"}, {"label": "High Blood Pressure", "value": "bp"}, {"label": "Heart Condition", "value": "heart"}, {"label": "Asthma/COPD", "value": "respiratory"}, {"label": "Arthritis", "value": "arthritis"}, {"label": "Depression/Anxiety", "value": "mental"}, {"label": "None", "value": "none"}],
+                          "validation": {"required": True}, "order": 0},
+                         {"id": "f-medications", "type": "radio", "label": "Are you currently taking any medications?",
+                          "options": [{"label": "Yes", "value": "yes"}, {"label": "No", "value": "no"}],
+                          "validation": {"required": True}, "order": 1},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    # Q9: Final review consent
+                    {"id": "n-q9", "type": "question", "label": "Review & Consent",
+                     "position": {"x": 3000, "y": 250},
+                     "fields": [
+                         {"id": "f-consent", "type": "checkbox", "label": "I confirm all information provided is accurate to the best of my knowledge.",
+                          "options": [], "validation": {"required": True}, "order": 0},
+                         {"id": "f-contact-pref", "type": "radio", "label": "Preferred contact method for results?",
+                          "options": [{"label": "Email", "value": "email"}, {"label": "Phone", "value": "phone"}, {"label": "In-person appointment", "value": "in_person"}],
+                          "validation": {"required": True}, "order": 1},
+                         {"id": "f-notes", "type": "textarea", "label": "Additional notes or concerns",
+                          "placeholder": "Anything else you'd like us to know?",
+                          "options": [], "validation": {}, "order": 2},
+                     ],
+                     "conditions": [], "content": None, "config": {}},
+
+                    {"id": "n-end", "type": "end", "label": "End", "position": {"x": 3250, "y": 250}},
+                ],
+                "edges": [
+                    {"id": "e-0", "source": "n-start", "target": "n-q1"},
+                    {"id": "e-1", "source": "n-q1", "target": "n-q2"},
+                    {"id": "e-2", "source": "n-q2", "target": "n-d1"},
+                    {"id": "e-3", "source": "n-d1", "target": "n-q3a", "label": "Smoker"},
+                    {"id": "e-4", "source": "n-d1", "target": "n-q3b", "label": "Quit"},
+                    {"id": "e-5", "source": "n-d1", "target": "n-q4", "label": "Never smoked"},
+                    {"id": "e-6", "source": "n-q3a", "target": "n-q4"},
+                    {"id": "e-7", "source": "n-q3b", "target": "n-q4"},
+                    {"id": "e-8", "source": "n-q4", "target": "n-d2"},
+                    {"id": "e-9", "source": "n-d2", "target": "n-q5a", "label": "Sedentary"},
+                    {"id": "e-10", "source": "n-d2", "target": "n-q5", "label": "Active"},
+                    {"id": "e-11", "source": "n-q5a", "target": "n-q5"},
+                    {"id": "e-12", "source": "n-q5", "target": "n-q6"},
+                    {"id": "e-13", "source": "n-q6", "target": "n-q7"},
+                    {"id": "e-14", "source": "n-q7", "target": "n-d3"},
+                    {"id": "e-15", "source": "n-d3", "target": "n-q7a", "label": "Heavy drinker"},
+                    {"id": "e-16", "source": "n-d3", "target": "n-q8", "label": "Moderate/None"},
+                    {"id": "e-17", "source": "n-q7a", "target": "n-q8"},
+                    {"id": "e-18", "source": "n-q8", "target": "n-q9"},
+                    {"id": "e-19", "source": "n-q9", "target": "n-end"},
+                ],
+            },
+            "version": 1,
+            "is_active": True,
+            "created_by": "user-admin",
+            "created_at": "2025-06-01T00:00:00.000Z",
+            "updated_at": "2025-06-01T00:00:00.000Z",
+        },
+
+        # ── Loan Origination Flow ──
+        {
+            "_id": "flow-loan-origination",
+            "name": "Loan Origination",
+            "description": "End-to-end loan application flow covering applicant details, income verification, credit check, and final approval.",
+            "category": "finance",
+            "definition": {
+                "nodes": [
+                    {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}, "fields": [], "conditions": []},
+                    {"id": "n-q1", "type": "question", "label": "Applicant Details",
+                     "position": {"x": 250, "y": 200},
+                     "fields": [
+                         {"id": "f-fullname", "type": "text", "label": "Full Legal Name", "options": [], "validation": {"required": True, "minLength": 2}, "order": 0},
+                         {"id": "f-ssn", "type": "text", "label": "SSN / Tax ID", "placeholder": "XXX-XX-XXXX", "options": [], "validation": {"required": True}, "order": 1},
+                         {"id": "f-dob", "type": "date", "label": "Date of Birth", "options": [], "validation": {"required": True}, "order": 2},
+                         {"id": "f-loan-amount", "type": "number", "label": "Requested Loan Amount ($)", "options": [], "validation": {"required": True, "minValue": 1000}, "order": 3},
+                         {"id": "f-loan-purpose", "type": "select", "label": "Loan Purpose",
+                          "options": [{"label": "Home Purchase", "value": "home"}, {"label": "Auto", "value": "auto"}, {"label": "Education", "value": "education"}, {"label": "Personal", "value": "personal"}, {"label": "Business", "value": "business"}],
+                          "validation": {"required": True}, "order": 4},
+                     ], "conditions": [], "config": {"alertMessage": "All information must match government-issued ID exactly.", "alertType": "warning"}},
+                    {"id": "n-q2", "type": "question", "label": "Income & Employment",
+                     "position": {"x": 500, "y": 200},
+                     "fields": [
+                         {"id": "f-employer", "type": "text", "label": "Current Employer", "options": [], "validation": {"required": True}, "order": 0},
+                         {"id": "f-annual-income", "type": "number", "label": "Annual Income ($)", "options": [], "validation": {"required": True, "minValue": 0}, "order": 1},
+                         {"id": "f-employment-years", "type": "number", "label": "Years at Current Employer", "options": [], "validation": {"required": True, "minValue": 0}, "order": 2},
+                         {"id": "f-income-docs", "type": "file", "label": "Upload Pay Stubs / W-2", "options": [], "validation": {"required": True}, "order": 3},
+                     ], "conditions": [], "config": {}},
+                    {"id": "n-task-credit", "type": "task", "label": "Credit Check",
+                     "position": {"x": 750, "y": 200},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "WORKER"},
+                     "content": "Run credit check against bureau. Record score and derogatory marks."},
+                    {"id": "n-d1", "type": "decision", "label": "Credit Score?",
+                     "position": {"x": 1000, "y": 200},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-good", "label": "Score >= 700", "fieldId": "credit_score", "operator": "gt", "value": "699", "targetNodeId": "n-approval"},
+                         {"id": "c-fair", "label": "Score 600-699", "fieldId": "credit_score", "operator": "gt", "value": "599", "targetNodeId": "n-q3"},
+                     ],
+                     "defaultTarget": "n-reject", "config": {}},
+                    {"id": "n-q3", "type": "question", "label": "Additional Documentation",
+                     "position": {"x": 1250, "y": 100},
+                     "fields": [
+                         {"id": "f-collateral", "type": "text", "label": "Collateral Description", "options": [], "validation": {"required": True}, "order": 0},
+                         {"id": "f-cosigner", "type": "radio", "label": "Will there be a co-signer?",
+                          "options": [{"label": "Yes", "value": "yes"}, {"label": "No", "value": "no"}],
+                          "validation": {"required": True}, "order": 1},
+                     ], "conditions": [], "config": {}},
+                    {"id": "n-approval", "type": "approval", "label": "Manager Approval",
+                     "position": {"x": 1250, "y": 300},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "MANAGER", "approvalType": "single"}},
+                    {"id": "n-notify", "type": "notification", "label": "Notify Applicant",
+                     "position": {"x": 1500, "y": 200},
+                     "fields": [], "conditions": [], "config": {"channel": "email", "recipientRole": ""},
+                     "content": "Dear applicant, your loan application has been approved. We will contact you with next steps."},
+                    {"id": "n-reject", "type": "notification", "label": "Rejection Notice",
+                     "position": {"x": 1250, "y": 450},
+                     "fields": [], "conditions": [], "config": {"channel": "email", "recipientRole": ""},
+                     "content": "We regret to inform you that your loan application could not be approved at this time."},
+                    {"id": "n-end", "type": "end", "label": "End", "position": {"x": 1750, "y": 200}, "fields": [], "conditions": []},
+                ],
+                "edges": [
+                    {"id": "e-0", "source": "n-start", "target": "n-q1"},
+                    {"id": "e-1", "source": "n-q1", "target": "n-q2"},
+                    {"id": "e-2", "source": "n-q2", "target": "n-task-credit"},
+                    {"id": "e-3", "source": "n-task-credit", "target": "n-d1"},
+                    {"id": "e-4", "source": "n-d1", "target": "n-approval", "label": "Good credit"},
+                    {"id": "e-5", "source": "n-d1", "target": "n-q3", "label": "Fair credit"},
+                    {"id": "e-6", "source": "n-d1", "target": "n-reject", "label": "Poor credit"},
+                    {"id": "e-7", "source": "n-q3", "target": "n-approval"},
+                    {"id": "e-8", "source": "n-approval", "target": "n-notify"},
+                    {"id": "e-9", "source": "n-notify", "target": "n-end"},
+                    {"id": "e-10", "source": "n-reject", "target": "n-end"},
+                ],
+            },
+            "version": 1,
+            "is_active": True,
+            "created_by": "user-admin",
+            "created_at": "2025-06-15T00:00:00.000Z",
+            "updated_at": "2025-06-15T00:00:00.000Z",
+        },
+
+        # ── Claims Insurance Flow ──
+        {
+            "_id": "flow-claims-insurance",
+            "name": "Claims Insurance",
+            "description": "Insurance claim filing and processing flow with damage assessment, document upload, and adjuster review.",
+            "category": "finance",
+            "definition": {
+                "nodes": [
+                    {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}, "fields": [], "conditions": []},
+                    {"id": "n-q1", "type": "question", "label": "Policy & Personal Info",
+                     "position": {"x": 250, "y": 200},
+                     "fields": [
+                         {"id": "f-policy-num", "type": "text", "label": "Policy Number", "options": [], "validation": {"required": True}, "order": 0},
+                         {"id": "f-name", "type": "text", "label": "Policyholder Name", "options": [], "validation": {"required": True}, "order": 1},
+                         {"id": "f-claim-type", "type": "select", "label": "Claim Type",
+                          "options": [{"label": "Auto Accident", "value": "auto"}, {"label": "Property Damage", "value": "property"}, {"label": "Health / Medical", "value": "health"}, {"label": "Liability", "value": "liability"}, {"label": "Natural Disaster", "value": "disaster"}],
+                          "validation": {"required": True}, "order": 2},
+                         {"id": "f-incident-date", "type": "date", "label": "Date of Incident", "options": [], "validation": {"required": True}, "order": 3},
+                     ], "conditions": [], "config": {"alertMessage": "Have your policy number ready before starting this claim.", "alertType": "info"}},
+                    {"id": "n-q2", "type": "question", "label": "Incident Details",
+                     "position": {"x": 500, "y": 200},
+                     "fields": [
+                         {"id": "f-description", "type": "textarea", "label": "Describe what happened", "placeholder": "Provide a detailed account of the incident...", "options": [], "validation": {"required": True, "minLength": 20}, "order": 0},
+                         {"id": "f-location", "type": "text", "label": "Location of Incident", "options": [], "validation": {"required": True}, "order": 1},
+                         {"id": "f-police-report", "type": "radio", "label": "Was a police report filed?",
+                          "options": [{"label": "Yes", "value": "yes"}, {"label": "No", "value": "no"}],
+                          "validation": {"required": True}, "order": 2},
+                         {"id": "f-estimated-damage", "type": "number", "label": "Estimated Damage ($)", "options": [], "validation": {"required": True, "minValue": 0}, "order": 3},
+                     ], "conditions": [], "config": {}},
+                    {"id": "n-q3", "type": "question", "label": "Upload Evidence",
+                     "position": {"x": 750, "y": 200},
+                     "fields": [
+                         {"id": "f-photos", "type": "file", "label": "Photos of Damage", "options": [], "validation": {"required": True}, "order": 0},
+                         {"id": "f-docs", "type": "file", "label": "Supporting Documents (receipts, reports)", "options": [], "validation": {}, "order": 1},
+                     ], "conditions": [], "config": {}},
+                    {"id": "n-d1", "type": "decision", "label": "Damage Amount?",
+                     "position": {"x": 1000, "y": 200},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-high", "label": "High value claim", "fieldId": "f-estimated-damage", "operator": "gt", "value": "10000", "targetNodeId": "n-task-inspect"},
+                     ],
+                     "defaultTarget": "n-task-review", "config": {}},
+                    {"id": "n-task-inspect", "type": "task", "label": "On-site Inspection",
+                     "position": {"x": 1250, "y": 100},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "WORKER"},
+                     "content": "Schedule and complete an on-site inspection for high-value claim."},
+                    {"id": "n-task-review", "type": "task", "label": "Adjuster Review",
+                     "position": {"x": 1250, "y": 300},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "WORKER"},
+                     "content": "Review claim documentation and evidence. Determine payout amount."},
+                    {"id": "n-approval", "type": "approval", "label": "Manager Approval",
+                     "position": {"x": 1500, "y": 200},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "MANAGER", "approvalType": "single"}},
+                    {"id": "n-notify", "type": "notification", "label": "Notify Claimant",
+                     "position": {"x": 1750, "y": 200},
+                     "fields": [], "conditions": [], "config": {"channel": "email"},
+                     "content": "Your insurance claim has been reviewed and a determination has been made. Please check your account for details."},
+                    {"id": "n-end", "type": "end", "label": "End", "position": {"x": 2000, "y": 200}, "fields": [], "conditions": []},
+                ],
+                "edges": [
+                    {"id": "e-0", "source": "n-start", "target": "n-q1"},
+                    {"id": "e-1", "source": "n-q1", "target": "n-q2"},
+                    {"id": "e-2", "source": "n-q2", "target": "n-q3"},
+                    {"id": "e-3", "source": "n-q3", "target": "n-d1"},
+                    {"id": "e-4", "source": "n-d1", "target": "n-task-inspect", "label": "> $10k"},
+                    {"id": "e-5", "source": "n-d1", "target": "n-task-review", "label": "<= $10k"},
+                    {"id": "e-6", "source": "n-task-inspect", "target": "n-approval"},
+                    {"id": "e-7", "source": "n-task-review", "target": "n-approval"},
+                    {"id": "e-8", "source": "n-approval", "target": "n-notify"},
+                    {"id": "e-9", "source": "n-notify", "target": "n-end"},
+                ],
+            },
+            "version": 1,
+            "is_active": True,
+            "created_by": "user-admin",
+            "created_at": "2025-06-20T00:00:00.000Z",
+            "updated_at": "2025-06-20T00:00:00.000Z",
+        },
+
+        # ── Customer Onboarding Flow ──
+        {
+            "_id": "flow-customer-onboarding",
+            "name": "Customer Onboarding",
+            "description": "New customer onboarding with KYC verification, account setup, and welcome communications.",
+            "category": "process",
+            "definition": {
+                "nodes": [
+                    {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}, "fields": [], "conditions": []},
+                    {"id": "n-q1", "type": "question", "label": "Customer Information",
+                     "position": {"x": 250, "y": 200},
+                     "fields": [
+                         {"id": "f-first", "type": "text", "label": "First Name", "options": [], "validation": {"required": True}, "order": 0},
+                         {"id": "f-last", "type": "text", "label": "Last Name", "options": [], "validation": {"required": True}, "order": 1},
+                         {"id": "f-email", "type": "text", "label": "Email Address", "placeholder": "name@company.com", "options": [], "validation": {"required": True}, "order": 2},
+                         {"id": "f-phone", "type": "text", "label": "Phone Number", "options": [], "validation": {"required": True}, "order": 3},
+                         {"id": "f-account-type", "type": "select", "label": "Account Type",
+                          "options": [{"label": "Individual", "value": "individual"}, {"label": "Business", "value": "business"}, {"label": "Joint", "value": "joint"}],
+                          "validation": {"required": True}, "order": 4},
+                     ], "conditions": [], "config": {"alertMessage": "Ensure customer consents to data collection before proceeding.", "alertType": "info"}},
+                    {"id": "n-q2", "type": "question", "label": "Identity Verification (KYC)",
+                     "position": {"x": 500, "y": 200},
+                     "fields": [
+                         {"id": "f-id-type", "type": "select", "label": "ID Type",
+                          "options": [{"label": "Passport", "value": "passport"}, {"label": "Driver's License", "value": "drivers_license"}, {"label": "National ID", "value": "national_id"}],
+                          "validation": {"required": True}, "order": 0},
+                         {"id": "f-id-number", "type": "text", "label": "ID Number", "options": [], "validation": {"required": True}, "order": 1},
+                         {"id": "f-id-photo", "type": "file", "label": "Upload ID Photo", "options": [], "validation": {"required": True}, "order": 2},
+                         {"id": "f-address", "type": "textarea", "label": "Residential Address", "options": [], "validation": {"required": True}, "order": 3},
+                         {"id": "f-proof-address", "type": "file", "label": "Proof of Address", "options": [], "validation": {"required": True}, "order": 4},
+                     ], "conditions": [], "config": {}},
+                    {"id": "n-task-kyc", "type": "task", "label": "KYC Verification",
+                     "position": {"x": 750, "y": 200},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "WORKER"},
+                     "content": "Verify customer identity documents against KYC/AML databases. Flag any discrepancies."},
+                    {"id": "n-d1", "type": "decision", "label": "KYC Passed?",
+                     "position": {"x": 1000, "y": 200},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-pass", "label": "KYC Passed", "fieldId": "kyc_status", "operator": "equals", "value": "passed", "targetNodeId": "n-task-setup"},
+                         {"id": "c-review", "label": "Needs Review", "fieldId": "kyc_status", "operator": "equals", "value": "review", "targetNodeId": "n-approval"},
+                     ],
+                     "defaultTarget": "n-reject", "config": {}},
+                    {"id": "n-approval", "type": "approval", "label": "Compliance Review",
+                     "position": {"x": 1250, "y": 100},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "MANAGER", "approvalType": "single"}},
+                    {"id": "n-task-setup", "type": "task", "label": "Create Account",
+                     "position": {"x": 1250, "y": 300},
+                     "fields": [], "conditions": [], "config": {"assigneeRole": "WORKER"},
+                     "content": "Provision new customer account in core banking system. Assign account number."},
+                    {"id": "n-notify-welcome", "type": "notification", "label": "Welcome Email",
+                     "position": {"x": 1500, "y": 200},
+                     "fields": [], "conditions": [], "config": {"channel": "email"},
+                     "content": "Welcome to our platform! Your account has been created. Login credentials have been sent to your registered email."},
+                    {"id": "n-reject", "type": "notification", "label": "KYC Rejection",
+                     "position": {"x": 1250, "y": 450},
+                     "fields": [], "conditions": [], "config": {"channel": "email"},
+                     "content": "We were unable to verify your identity. Please visit a branch with original documents."},
+                    {"id": "n-end", "type": "end", "label": "End", "position": {"x": 1750, "y": 200}, "fields": [], "conditions": []},
+                ],
+                "edges": [
+                    {"id": "e-0", "source": "n-start", "target": "n-q1"},
+                    {"id": "e-1", "source": "n-q1", "target": "n-q2"},
+                    {"id": "e-2", "source": "n-q2", "target": "n-task-kyc"},
+                    {"id": "e-3", "source": "n-task-kyc", "target": "n-d1"},
+                    {"id": "e-4", "source": "n-d1", "target": "n-task-setup", "label": "Passed"},
+                    {"id": "e-5", "source": "n-d1", "target": "n-approval", "label": "Needs review"},
+                    {"id": "e-6", "source": "n-d1", "target": "n-reject", "label": "Failed"},
+                    {"id": "e-7", "source": "n-approval", "target": "n-task-setup"},
+                    {"id": "e-8", "source": "n-task-setup", "target": "n-notify-welcome"},
+                    {"id": "e-9", "source": "n-notify-welcome", "target": "n-end"},
+                    {"id": "e-10", "source": "n-reject", "target": "n-end"},
+                ],
+            },
+            "version": 1,
+            "is_active": True,
+            "created_by": "user-admin",
+            "created_at": "2025-07-01T00:00:00.000Z",
+            "updated_at": "2025-07-01T00:00:00.000Z",
+        },
+
+        # ── Complete Showcase Flow (All Node Types) ──
+        {
+            "_id": "flow-employee-onboarding-showcase",
+            "name": "Employee Onboarding (All Node Types)",
+            "description": "Complete employee onboarding flow showcasing every available node type: Custom Form, Decision, Display, Task, Approval, Notification, Timer, Parallel, Subprocess, and External API Call.",
+            "category": "process",
+            "definition": {
+                "nodes": [
+                    # START
+                    {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 300}, "fields": [], "conditions": []},
+
+                    # DISPLAY — Welcome info
+                    {"id": "n-welcome", "type": "display", "label": "Welcome",
+                     "position": {"x": 250, "y": 300},
+                     "fields": [], "conditions": [],
+                     "content": "Welcome to the Employee Onboarding Portal!\n\nThis guided flow will walk you through:\n• Personal details & ID verification\n• Background check (external API)\n• Equipment & access provisioning\n• Manager approval\n• Welcome notification\n\nPlease have your government ID and emergency contact information ready."},
+
+                    # CUSTOM FORM (question) — Employee details with all field types
+                    {"id": "n-q1", "type": "question", "label": "Personal Information",
+                     "position": {"x": 500, "y": 300},
+                     "fields": [
+                         {"id": "f-alert-info", "type": "alert", "label": "Important Notice",
+                          "placeholder": "warning", "defaultValue": "All fields marked with * are mandatory. Information provided will be verified against your government ID.",
+                          "options": [], "validation": {}, "order": 0},
+                         {"id": "f-full-name", "type": "text", "label": "Full Legal Name", "placeholder": "As it appears on your ID",
+                          "options": [], "validation": {"required": True, "minLength": 2}, "order": 1},
+                         {"id": "f-email", "type": "text", "label": "Personal Email", "placeholder": "you@example.com",
+                          "options": [], "validation": {"required": True}, "order": 2},
+                         {"id": "f-dob", "type": "date", "label": "Date of Birth",
+                          "options": [], "validation": {"required": True}, "order": 3},
+                         {"id": "f-phone", "type": "text", "label": "Phone Number", "placeholder": "+1 (555) 123-4567",
+                          "options": [], "validation": {"required": True}, "order": 4},
+                         {"id": "f-department", "type": "select", "label": "Department",
+                          "options": [
+                              {"label": "Engineering", "value": "engineering"},
+                              {"label": "Marketing", "value": "marketing"},
+                              {"label": "Sales", "value": "sales"},
+                              {"label": "Human Resources", "value": "hr"},
+                              {"label": "Finance", "value": "finance"},
+                          ], "validation": {"required": True}, "order": 5},
+                         {"id": "f-role-level", "type": "radio", "label": "Role Level",
+                          "options": [
+                              {"label": "Junior (0-2 years)", "value": "junior"},
+                              {"label": "Mid-level (3-5 years)", "value": "mid"},
+                              {"label": "Senior (6-10 years)", "value": "senior"},
+                              {"label": "Lead / Principal (10+ years)", "value": "lead"},
+                          ], "validation": {"required": True}, "order": 6},
+                         {"id": "f-salary-expected", "type": "number", "label": "Expected Annual Salary (USD)",
+                          "placeholder": "e.g. 85000",
+                          "options": [], "validation": {"required": True, "minValue": 30000, "maxValue": 500000}, "order": 7},
+                         {"id": "f-remote", "type": "checkbox", "label": "I will be working remotely",
+                          "options": [], "validation": {}, "order": 8},
+                         {"id": "f-skills", "type": "multi_select", "label": "Key Skills",
+                          "options": [
+                              {"label": "Python", "value": "python"},
+                              {"label": "JavaScript", "value": "javascript"},
+                              {"label": "Java", "value": "java"},
+                              {"label": "DevOps", "value": "devops"},
+                              {"label": "Data Science", "value": "data_science"},
+                              {"label": "Project Management", "value": "pm"},
+                          ], "validation": {}, "order": 9},
+                         {"id": "f-bio", "type": "textarea", "label": "Short Bio",
+                          "placeholder": "Tell us about yourself in a few sentences...",
+                          "helpText": "This will appear on your internal profile page.",
+                          "options": [], "validation": {"maxLength": 500}, "order": 10},
+                         {"id": "f-id-upload", "type": "file", "label": "Upload Government ID",
+                          "options": [], "validation": {"required": True}, "order": 11},
+                     ],
+                     "conditions": [], "config": {
+                         "alertMessage": "Please provide accurate information. It will be cross-checked during background verification.",
+                         "alertType": "info",
+                     }},
+
+                    # DECISION — Route based on role level
+                    {"id": "n-d1", "type": "decision", "label": "Senior Role?",
+                     "position": {"x": 750, "y": 300},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-senior", "label": "Senior/Lead", "fieldId": "f-role-level", "operator": "in", "value": ["senior", "lead"], "targetNodeId": "n-approval-vp"},
+                     ],
+                     "defaultTarget": "n-api-bgcheck", "config": {}},
+
+                    # APPROVAL — VP approval for senior hires
+                    {"id": "n-approval-vp", "type": "approval", "label": "VP Approval Required",
+                     "position": {"x": 1000, "y": 150},
+                     "fields": [], "conditions": [],
+                     "config": {"assigneeRole": "MANAGER", "approvalType": "single"},
+                     "content": "This candidate is applying for a Senior/Lead role. VP approval is required before proceeding with background check."},
+
+                    # EXTERNAL API CALL — Background check
+                    {"id": "n-api-bgcheck", "type": "api_call", "label": "Background Check API",
+                     "position": {"x": 1250, "y": 300},
+                     "fields": [], "conditions": [],
+                     "config": {
+                         "apiMode": "automatic",
+                         "apiMethod": "POST",
+                         "apiUrl": "https://api.bgcheck-provider.com/v2/verify",
+                         "apiHeaders": [
+                             {"key": "Authorization", "value": "Bearer {{API_KEY}}"},
+                             {"key": "Content-Type", "value": "application/json"},
+                             {"key": "X-Request-ID", "value": "{response.executionId}"},
+                         ],
+                         "apiBody": "{\n  \"fullName\": \"{response.f-full-name}\",\n  \"email\": \"{response.f-email}\",\n  \"dateOfBirth\": \"{response.f-dob}\",\n  \"checkType\": \"comprehensive\"\n}",
+                         "apiResponseMappings": [
+                             {"expression": "{response.data.status}", "variableName": "bgcheck_status"},
+                             {"expression": "{response.data.referenceId}", "variableName": "bgcheck_ref"},
+                             {"expression": "{response.data.riskScore}", "variableName": "bgcheck_risk_score"},
+                             {"expression": "{response.data.criminal.clear}", "variableName": "criminal_clear"},
+                             {"expression": "{response.data.education.verified}", "variableName": "edu_verified"},
+                         ],
+                     },
+                     "content": "Runs an automated background verification check against third-party provider. Results are captured and stored for compliance."},
+
+                    # TIMER — Wait for background check results
+                    {"id": "n-timer-wait", "type": "timer", "label": "Wait for Results",
+                     "position": {"x": 1500, "y": 300},
+                     "fields": [], "conditions": [],
+                     "config": {"durationMinutes": 1440, "timerType": "delay"},
+                     "content": None},
+
+                    # DECISION — Check background result
+                    {"id": "n-d2", "type": "decision", "label": "BG Check Passed?",
+                     "position": {"x": 1750, "y": 300},
+                     "fields": [],
+                     "conditions": [
+                         {"id": "c-bg-pass", "label": "Passed", "fieldId": "bgcheck_status", "operator": "equals", "value": "clear", "targetNodeId": "n-parallel"},
+                         {"id": "c-bg-fail", "label": "Failed", "fieldId": "bgcheck_status", "operator": "equals", "value": "flagged", "targetNodeId": "n-notify-reject"},
+                     ],
+                     "defaultTarget": "n-parallel", "config": {}},
+
+                    # NOTIFICATION — Rejection
+                    {"id": "n-notify-reject", "type": "notification", "label": "Rejection Notice",
+                     "position": {"x": 2000, "y": 500},
+                     "fields": [], "conditions": [],
+                     "config": {"channel": "email", "recipientRole": ""},
+                     "content": "Unfortunately, your application did not pass the background verification. Please contact HR for more information. Reference: {response.bgcheck_ref}"},
+
+                    # PARALLEL — Equipment + IT Access provisioning
+                    {"id": "n-parallel", "type": "parallel", "label": "Provision Equipment & Access",
+                     "position": {"x": 2000, "y": 300},
+                     "fields": [], "conditions": [],
+                     "config": {"joinType": "all"}},
+
+                    # TASK — IT access setup (branch 1)
+                    {"id": "n-task-it", "type": "task", "label": "IT Access Setup",
+                     "position": {"x": 2250, "y": 200},
+                     "fields": [], "conditions": [],
+                     "config": {"assigneeRole": "WORKER"},
+                     "content": "Create Active Directory account, provision email, set up VPN access, and assign security groups based on department."},
+
+                    # TASK — Equipment ordering (branch 2)
+                    {"id": "n-task-equip", "type": "task", "label": "Order Equipment",
+                     "position": {"x": 2250, "y": 400},
+                     "fields": [], "conditions": [],
+                     "config": {"assigneeRole": "WORKER"},
+                     "content": "Order laptop, monitors, peripherals, and office supplies. Ship to office or home address if remote."},
+
+                    # EXTERNAL API CALL — Create Slack account (manual trigger)
+                    {"id": "n-api-slack", "type": "api_call", "label": "Create Slack Account",
+                     "position": {"x": 2500, "y": 300},
+                     "fields": [], "conditions": [],
+                     "config": {
+                         "apiMode": "manual",
+                         "apiMethod": "POST",
+                         "apiUrl": "https://slack.com/api/admin.users.invite",
+                         "apiHeaders": [
+                             {"key": "Authorization", "value": "Bearer xoxb-slack-bot-token"},
+                             {"key": "Content-Type", "value": "application/json"},
+                         ],
+                         "apiBody": "{\n  \"email\": \"{response.f-email}\",\n  \"real_name\": \"{response.f-full-name}\",\n  \"channels\": [\"C-general\", \"C-{response.f-department}\"]\n}",
+                         "apiResponseMappings": [
+                             {"expression": "{response.ok}", "variableName": "slack_created"},
+                             {"expression": "{response.user.id}", "variableName": "slack_user_id"},
+                         ],
+                     },
+                     "content": "Invite the new employee to the company Slack workspace and add them to relevant department channels."},
+
+                    # SUBPROCESS — Link to separate compliance training flow
+                    {"id": "n-subprocess", "type": "subprocess", "label": "Compliance Training",
+                     "position": {"x": 2750, "y": 300},
+                     "fields": [], "conditions": [],
+                     "linkedFlowId": "flow-health-assessment",
+                     "config": {}},
+
+                    # NOTIFICATION — Welcome
+                    {"id": "n-notify-welcome", "type": "notification", "label": "Welcome Email",
+                     "position": {"x": 3000, "y": 300},
+                     "fields": [], "conditions": [],
+                     "config": {"channel": "email", "recipientRole": ""},
+                     "content": "Welcome aboard, {response.f-full-name}! 🎉\n\nYour accounts have been provisioned:\n• Email: {response.f-full-name}@company.com\n• Slack ID: {response.slack_user_id}\n• Department: {response.f-department}\n\nYour equipment will arrive within 3-5 business days. Please complete the compliance training linked in your portal."},
+
+                    # END
+                    {"id": "n-end", "type": "end", "label": "Onboarding Complete", "position": {"x": 3250, "y": 300}, "fields": [], "conditions": []},
+                ],
+                "edges": [
+                    {"id": "e-0", "source": "n-start", "target": "n-welcome"},
+                    {"id": "e-1", "source": "n-welcome", "target": "n-q1"},
+                    {"id": "e-2", "source": "n-q1", "target": "n-d1"},
+                    {"id": "e-3", "source": "n-d1", "target": "n-approval-vp", "label": "Senior/Lead"},
+                    {"id": "e-4", "source": "n-d1", "target": "n-api-bgcheck", "label": "default"},
+                    {"id": "e-5", "source": "n-approval-vp", "target": "n-api-bgcheck"},
+                    {"id": "e-6", "source": "n-api-bgcheck", "target": "n-timer-wait"},
+                    {"id": "e-7", "source": "n-timer-wait", "target": "n-d2"},
+                    {"id": "e-8", "source": "n-d2", "target": "n-parallel", "label": "Passed"},
+                    {"id": "e-9", "source": "n-d2", "target": "n-notify-reject", "label": "Failed"},
+                    {"id": "e-10", "source": "n-parallel", "target": "n-task-it"},
+                    {"id": "e-11", "source": "n-parallel", "target": "n-task-equip"},
+                    {"id": "e-12", "source": "n-task-it", "target": "n-api-slack"},
+                    {"id": "e-13", "source": "n-task-equip", "target": "n-api-slack"},
+                    {"id": "e-14", "source": "n-api-slack", "target": "n-subprocess"},
+                    {"id": "e-15", "source": "n-subprocess", "target": "n-notify-welcome"},
+                    {"id": "e-16", "source": "n-notify-welcome", "target": "n-end"},
+                    {"id": "e-17", "source": "n-notify-reject", "target": "n-end"},
+                ],
+            },
+            "version": 1,
+            "is_active": True,
+            "created_by": "user-admin",
+            "created_at": "2025-08-01T00:00:00.000Z",
+            "updated_at": "2025-08-01T00:00:00.000Z",
+        },
+    ]
+    await db.flow_definitions.insert_many(flow_definitions)
 
 async def _insert_all(db):
     now = datetime.now(timezone.utc).isoformat()
@@ -1377,6 +2082,10 @@ async def _insert_all(db):
         },
     ]
     await db.workflows.insert_many(workflows)
+
+    # ─── Flow Definitions (Questionnaire Flows) ─────
+    await _seed_flow_definitions(db)
+
 
     # ─── Approval Chains ────────────────────────
     approval_chains = [
