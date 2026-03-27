@@ -147,15 +147,21 @@ const OPERATORS = [
   `,
   styles: [`
     :host ::ng-deep .dense-field .mat-mdc-form-field-infix {
-      min-height: 36px !important;
-      padding-top: 6px !important;
-      padding-bottom: 6px !important;
+      min-height: 44px !important;
+      padding-top: 18px !important;
+      padding-bottom: 4px !important;
     }
     :host ::ng-deep .dense-field .mat-mdc-text-field-wrapper {
       padding: 0 8px !important;
     }
     :host ::ng-deep .dense-field .mat-mdc-form-field-subscript-wrapper {
       display: none;
+    }
+    :host ::ng-deep .dense-field .mdc-floating-label {
+      top: 22px !important;
+    }
+    :host ::ng-deep .dense-field .mdc-floating-label--float-above {
+      top: 28px !important;
     }
   `],
 })

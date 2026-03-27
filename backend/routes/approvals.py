@@ -131,13 +131,16 @@ async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
 
     user_id = str(user["_id"])
+    user_role = user.get("role", "")
     now = datetime.now(timezone.utc).isoformat()
     approvers = doc.get("approvers", [])
+    is_privileged = user_role in ("ADMIN", "MANAGER")
 
     updated = False
     for a in approvers:
         target_id = a.get("delegated_to") or a["user_id"]
-        if target_id == user_id and a["status"] == "pending":
+        # Allow: exact match OR privileged user acting on any pending slot
+        if (target_id == user_id or is_privileged) and a["status"] == "pending":
             a["status"] = "approved"
             a["decision_at"] = now
             a["decision_notes"] = body.notes
@@ -187,13 +190,15 @@ async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
 
     user_id = str(user["_id"])
+    user_role = user.get("role", "")
     now = datetime.now(timezone.utc).isoformat()
     approvers = doc.get("approvers", [])
+    is_privileged = user_role in ("ADMIN", "MANAGER")
 
     updated = False
     for a in approvers:
         target_id = a.get("delegated_to") or a["user_id"]
-        if target_id == user_id and a["status"] == "pending":
+        if (target_id == user_id or is_privileged) and a["status"] == "pending":
             a["status"] = "rejected"
             a["decision_at"] = now
             a["decision_notes"] = body.notes
@@ -232,12 +237,14 @@ async def delegate(approval_id: str, body: ApprovalDelegation, user: dict = Depe
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
 
     user_id = str(user["_id"])
+    user_role = user.get("role", "")
     now = datetime.now(timezone.utc).isoformat()
     approvers = doc.get("approvers", [])
+    is_privileged = user_role in ("ADMIN", "MANAGER")
 
     updated = False
     for a in approvers:
-        if a["user_id"] == user_id and a["status"] == "pending":
+        if (a["user_id"] == user_id or is_privileged) and a["status"] == "pending":
             a["status"] = "delegated"
             a["delegated_to"] = body.delegate_to
             a["decision_at"] = now

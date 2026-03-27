@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -105,26 +105,31 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
             <!-- Left: Main Content -->
             <div class="flex-1 min-w-0">
               <!-- Primary Stage Chevrons -->
-              <div class="flex items-center gap-0 mb-6 overflow-x-auto pb-2">
+              <div class="flex items-center mb-6 overflow-x-auto pb-2">
                 @for (stage of primaryStages(); track stage.id; let i = $index) {
                   <div
-                    class="stage-chevron cursor-pointer px-4 py-3 min-w-[140px] text-center relative transition-all"
+                    class="stage-chevron cursor-pointer flex-shrink-0 min-w-[155px] relative select-none"
                     [class.stage-chevron-active]="selectedStageId() === stage.id"
                     [class.stage-chevron-inactive]="selectedStageId() !== stage.id"
+                    [style.z-index]="selectedStageId() === stage.id ? 50 : (20 - i)"
+                    [style.margin-left.px]="i > 0 ? -14 : 0"
                     (click)="selectStage(stage)"
                   >
-                    <p class="text-sm font-medium truncate">{{ stage.name }}</p>
-                    <p class="text-xs opacity-70">{{ stage.processes.length }} process{{ stage.processes.length !== 1 ? 'es' : '' }}</p>
-                    @if (i === 0) {
-                      <span class="absolute top-1 left-2 text-xs">&#9733;</span>
-                    }
+                    <div class="flex flex-col items-center justify-center py-3 px-8">
+                      <div class="flex items-center gap-1 w-full justify-center mb-0.5">
+                        @if (i === 0) {
+                          <mat-icon class="flex-shrink-0" style="font-size:11px;width:11px;height:11px;line-height:11px;">star</mat-icon>
+                        } @else {
+                          <span class="text-[10px] font-bold opacity-50 flex-shrink-0">{{ i + 1 }}</span>
+                        }
+                        <span class="text-sm font-semibold truncate max-w-[105px]">{{ stage.name }}</span>
+                      </div>
+                      <span class="text-[10px] opacity-60">{{ stage.processes.length }} process{{ stage.processes.length !== 1 ? 'es' : '' }}</span>
+                    </div>
                   </div>
-                  @if (i < primaryStages().length - 1) {
-                    <mat-icon class="text-gray-300 !text-2xl flex-shrink-0">chevron_right</mat-icon>
-                  }
                 }
-                <button mat-stroked-button class="ml-2 flex-shrink-0" (click)="addStage('primary')">
-                  <mat-icon>add</mat-icon> Stage
+                <button mat-stroked-button class="ml-5 flex-shrink-0 whitespace-nowrap" style="height:56px;border-style:dashed;" (click)="addStage('primary')">
+                  <mat-icon class="!text-sm mr-1">add</mat-icon> Stage
                 </button>
               </div>
 
@@ -132,79 +137,103 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
               @if (selectedStage()) {
                 <div class="space-y-4">
                   @for (process of selectedStage()!.processes; track process.id; let pi = $index) {
-                    <mat-card class="!shadow-sm border"
-                      [class.border-primary-300]="selectedProcessId() === process.id && configPanelMode() === 'process'"
+                    <div class="rounded-xl border-2 overflow-hidden transition-all hover:shadow-md cursor-pointer"
+                      [class.border-primary-400]="selectedProcessId() === process.id && configPanelMode() === 'process'"
+                      [class.border-slate-200]="!(selectedProcessId() === process.id && configPanelMode() === 'process')"
                       (click)="selectProcess(process, $event)">
-                      <mat-card-header class="!px-4 !py-3 border-b border-gray-100 cursor-pointer">
-                        <mat-card-title class="!text-sm !font-semibold flex items-center gap-2">
-                          <mat-icon class="!text-lg text-gray-500">{{ process.isParallel ? 'call_split' : 'format_list_numbered' }}</mat-icon>
-                          {{ process.name }}
-                          <span class="text-xs font-normal text-gray-400">({{ process.type }})</span>
-                        </mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content class="!p-4">
-                        <div class="space-y-2">
-                          @for (step of process.steps; track step.id; let si = $index) {
-                            <div
-                              class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:bg-gray-50"
-                              [class.border-primary-400]="selectedStepId() === step.id"
-                              [class.bg-primary-50]="selectedStepId() === step.id"
-                              [class.border-gray-200]="selectedStepId() !== step.id"
-                              (click)="selectStep(step, process, $event)"
-                            >
-                              <span class="text-xs text-gray-400 w-5">{{ si + 1 }}</span>
-                              <span class="text-base">{{ stepIcon(step.type) }}</span>
-                              <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-800 truncate">{{ step.name }}</p>
-                                <p class="text-xs text-gray-400">{{ step.type }}</p>
-                              </div>
-                              @if (step.required) {
-                                <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">Required</span>
-                              }
-                              <button mat-icon-button class="!w-7 !h-7 !p-0 !leading-none shrink-0 flex items-center justify-center" (click)="removeStep(process, si); $event.stopPropagation()">
-                                <mat-icon class="!text-base text-gray-400 hover:text-red-500">close</mat-icon>
-                              </button>
-                            </div>
-                          }
+                      <!-- Process Header -->
+                      <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-100"
+                           [class.bg-primary-50]="selectedProcessId() === process.id && configPanelMode() === 'process'"
+                           [class.bg-slate-50]="!(selectedProcessId() === process.id && configPanelMode() === 'process')">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                             [class.bg-sky-100]="!process.isParallel"
+                             [class.bg-violet-100]="process.isParallel">
+                          <mat-icon class="!text-lg"
+                                    [class.text-sky-600]="!process.isParallel"
+                                    [class.text-violet-600]="process.isParallel">
+                            {{ process.isParallel ? 'call_split' : 'format_list_numbered' }}
+                          </mat-icon>
                         </div>
-
-                        <!-- Add Step Menu -->
-                        <div class="mt-3">
-                          <button mat-stroked-button class="!text-xs" [matMenuTriggerFor]="addStepMenu" (click)="$event.stopPropagation()">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold text-slate-800 truncate">{{ process.name }}</p>
+                          <p class="text-[11px] text-slate-500">{{ process.isParallel ? 'Parallel execution' : 'Sequential execution' }}</p>
+                        </div>
+                        <span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                          {{ process.steps.length }} step{{ process.steps.length !== 1 ? 's' : '' }}
+                        </span>
+                      </div>
+                      <!-- Steps -->
+                      <div class="p-3 space-y-1.5 bg-white">
+                        @for (step of process.steps; track step.id; let si = $index) {
+                          <div
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:bg-slate-50 group"
+                            [class.border-primary-300]="selectedStepId() === step.id"
+                            [class.bg-primary-50]="selectedStepId() === step.id"
+                            [class.border-slate-100]="selectedStepId() !== step.id"
+                            (click)="selectStep(step, process, $event)"
+                          >
+                            <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] flex items-center justify-center flex-shrink-0 font-bold">{{ si + 1 }}</span>
+                            <span class="text-base leading-none flex-shrink-0">{{ stepIcon(step.type) }}</span>
+                            <div class="flex-1 min-w-0">
+                              <p class="text-sm font-medium text-slate-800 truncate">{{ step.name }}</p>
+                              <p class="text-[10px] text-slate-400 capitalize">{{ step.type }}</p>
+                            </div>
+                            @if (step.required) {
+                              <span class="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0 font-medium">Required</span>
+                            }
+                            <button mat-icon-button class="!w-6 !h-6 !p-0 !leading-none shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" (click)="removeStep(process, si); $event.stopPropagation()">
+                              <mat-icon class="!text-sm text-slate-300 hover:text-red-400">close</mat-icon>
+                            </button>
+                          </div>
+                        }
+                        @if (process.steps.length === 0) {
+                          <div class="py-4 text-center border border-dashed border-slate-200 rounded-lg">
+                            <p class="text-xs text-slate-400">No steps yet — add one below</p>
+                          </div>
+                        }
+                        <!-- Add Step -->
+                        <div class="pt-2 mt-1 border-t border-slate-100">
+                          <button mat-stroked-button class="!text-xs w-full" [matMenuTriggerFor]="addStepMenu" (click)="$event.stopPropagation()">
                             <mat-icon class="!text-sm mr-1">add</mat-icon> Add Step
                           </button>
                           <mat-menu #addStepMenu="matMenu">
                             <button mat-menu-item (click)="addStep(process, 'assignment')">
-                              <span>&#128221; Collect Information</span>
+                              <mat-icon class="text-indigo-500">assignment</mat-icon>
+                              <span>Collect Information</span>
                             </button>
                             <button mat-menu-item (click)="addStep(process, 'approval')">
-                              <span>&#9989; Approve / Reject</span>
+                              <mat-icon class="text-emerald-500">check_circle</mat-icon>
+                              <span>Approve / Reject</span>
                             </button>
                             <button mat-menu-item (click)="addStep(process, 'attachment')">
-                              <span>&#128206; Upload Documents</span>
+                              <mat-icon class="text-purple-500">attach_file</mat-icon>
+                              <span>Upload Documents</span>
                             </button>
                             <button mat-menu-item (click)="addStep(process, 'decision')">
-                              <span>&#128256; Decision</span>
+                              <mat-icon class="text-amber-500">call_split</mat-icon>
+                              <span>Decision</span>
                             </button>
                             <button mat-menu-item (click)="addStep(process, 'automation')">
-                              <span>&#9889; Automation</span>
+                              <mat-icon class="text-orange-500">bolt</mat-icon>
+                              <span>Automation</span>
                             </button>
                             <button mat-menu-item (click)="addStep(process, 'subprocess')">
-                              <span>&#128230; Subprocess</span>
+                              <mat-icon class="text-slate-500">account_tree</mat-icon>
+                              <span>Subprocess</span>
                             </button>
                           </mat-menu>
                         </div>
-                      </mat-card-content>
-                    </mat-card>
+                      </div>
+                    </div>
                   }
 
                   <!-- Add Process Buttons -->
-                  <div class="flex gap-2 mt-2">
-                    <button mat-stroked-button (click)="addProcess(false)">
-                      <mat-icon>add</mat-icon> Add Process
+                  <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                    <button mat-stroked-button class="flex-1" (click)="addProcess(false)">
+                      <mat-icon class="!text-sm text-sky-500 mr-1">format_list_numbered</mat-icon> Add Process
                     </button>
-                    <button mat-stroked-button (click)="addProcess(true)">
-                      <mat-icon>call_split</mat-icon> Add Parallel Process
+                    <button mat-stroked-button class="flex-1" (click)="addProcess(true)">
+                      <mat-icon class="!text-sm text-violet-500 mr-1">call_split</mat-icon> Add Parallel
                     </button>
                   </div>
                 </div>
@@ -214,29 +243,58 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
 
               <!-- Alternate Stages -->
               <div>
-                <h3 class="text-sm font-semibold text-gray-700 mb-3">ALTERNATE STAGES</h3>
-                <div class="flex flex-wrap gap-3">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-6 h-6 rounded bg-orange-100 flex items-center justify-center flex-shrink-0">
+                    <mat-icon class="!text-sm text-orange-500" style="font-size:14px;width:14px;height:14px;">alt_route</mat-icon>
+                  </div>
+                  <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Alternate Stages</h3>
+                  <span class="text-xs text-slate-400">— exception paths &amp; resolution branches</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
                   @for (stage of alternateStages(); track stage.id) {
                     <div
-                      class="px-4 py-2 rounded-lg border cursor-pointer transition-all"
-                      [class.border-red-400]="selectedStageId() === stage.id"
-                      [class.bg-red-50]="selectedStageId() === stage.id"
-                      [class.border-gray-200]="selectedStageId() !== stage.id"
-                      [class.bg-gray-50]="selectedStageId() !== stage.id"
+                      class="flex items-center gap-1.5 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:shadow-sm"
+                      [class.border-orange-400]="selectedStageId() === stage.id"
+                      [class.bg-orange-50]="selectedStageId() === stage.id"
+                      [class.text-orange-700]="selectedStageId() === stage.id"
+                      [class.border-slate-200]="selectedStageId() !== stage.id"
+                      [class.bg-white]="selectedStageId() !== stage.id"
                       (click)="selectStage(stage)"
                     >
+                      <mat-icon class="!text-sm flex-shrink-0"
+                                [class.text-orange-500]="selectedStageId() === stage.id"
+                                [class.text-slate-400]="selectedStageId() !== stage.id">alt_route</mat-icon>
                       <p class="text-sm font-medium">{{ stage.name }}</p>
                     </div>
                   }
-                  <button mat-stroked-button (click)="addStage('alternate')">
-                    <mat-icon>add</mat-icon> Alternate Stage
+                  @if (alternateStages().length === 0) {
+                    <p class="text-xs text-slate-400 italic self-center py-1">No alternate stages defined</p>
+                  }
+                  <button mat-stroked-button class="h-9" (click)="addStage('alternate')">
+                    <mat-icon class="!text-sm mr-1">add</mat-icon> Alternate Stage
                   </button>
                 </div>
               </div>
             </div>
 
+            <!-- Resize divider -->
+            @if (configPanelMode() !== 'none') {
+              <div
+                class="w-1.5 flex-shrink-0 cursor-col-resize group relative select-none"
+                (mousedown)="startPanelResize($event)"
+                style="min-height: 100px;"
+              >
+                <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-slate-200 group-hover:bg-primary-400 transition-colors rounded"></div>
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-8 bg-white border border-slate-200 group-hover:border-primary-400 rounded-full flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm pointer-events-none">
+                  <div class="w-0.5 h-0.5 bg-slate-400 rounded-full"></div>
+                  <div class="w-0.5 h-0.5 bg-slate-400 rounded-full"></div>
+                  <div class="w-0.5 h-0.5 bg-slate-400 rounded-full"></div>
+                </div>
+              </div>
+            }
+
             <!-- Right: Config Panel -->
-            <div class="w-100 flex-shrink-0">
+            <div class="flex-shrink-0" [style.width.px]="rightPanelWidth">
               @switch (configPanelMode()) {
                 @case ('stage') {
                   <app-stage-config-panel
@@ -261,9 +319,12 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                   ></app-step-config-panel>
                 }
                 @default {
-                  <div class="text-center text-gray-400 mt-12">
-                    <mat-icon class="!text-4xl !w-10 !h-10 mb-2 text-gray-300">touch_app</mat-icon>
-                    <p class="text-sm">Select a stage, process, or step to configure</p>
+                  <div class="flex flex-col items-center justify-center text-center py-16 px-6 rounded-xl border-2 border-dashed border-slate-200">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                      <mat-icon class="!text-3xl text-slate-300">touch_app</mat-icon>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-500">Nothing selected</p>
+                    <p class="text-xs text-slate-400 mt-1 max-w-[180px] leading-relaxed">Click a stage, process, or step on the left to configure it here</p>
                   </div>
                 }
               }
@@ -439,70 +500,99 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
 
         <mat-tab label="Settings">
           <div class="mt-4 space-y-6" style="min-height: 500px;">
-            <h2 class="text-lg font-semibold text-gray-800">Case Type Settings</h2>
 
-            <!-- General -->
-            <mat-card class="!shadow-sm border border-gray-100 !rounded-xl">
-              <mat-card-header class="!px-4 !py-3 border-b border-gray-100">
-                <mat-card-title class="!text-sm !font-semibold">General</mat-card-title>
-              </mat-card-header>
-              <mat-card-content class="!p-4 space-y-4">
-                <mat-form-field class="w-full"  >
+            <!-- Settings page header -->
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
+                <mat-icon class="!text-xl text-white">settings</mat-icon>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-slate-800">Case Type Settings</h2>
+                <p class="text-xs text-slate-400">Configure global identity, document categories, and available actions</p>
+              </div>
+            </div>
+
+            <!-- ══ Identity & Metadata ══ -->
+            <div>
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-primary-500">badge</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Identity &amp; Metadata</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3 pl-6">Core identifiers and display settings for this case type</p>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                <mat-form-field class="w-full">
                   <mat-label>Description</mat-label>
-                  <textarea matInput [(ngModel)]="caseType.description" (blur)="markDirty()" rows="3" placeholder="Brief description of this case type"></textarea>
+                  <mat-icon matPrefix class="!text-base mr-1 text-slate-400">notes</mat-icon>
+                  <textarea matInput [(ngModel)]="caseType.description" (blur)="markDirty()" rows="3" placeholder="Brief description of this case type's purpose and scope"></textarea>
+                  <mat-hint>Shown to administrators in the case type catalogue</mat-hint>
                 </mat-form-field>
                 <div class="grid grid-cols-2 gap-4">
-                  <mat-form-field  >
+                  <mat-form-field subscriptSizing="dynamic">
                     <mat-label>Icon</mat-label>
+                    <mat-icon matPrefix class="!text-base mr-1 text-slate-400">interests</mat-icon>
                     <input matInput [(ngModel)]="caseType.icon" (blur)="markDirty()" placeholder="e.g. folder">
-                    <mat-icon matSuffix>{{ caseType.icon || 'folder' }}</mat-icon>
+                    <mat-icon matSuffix class="text-primary-400">{{ caseType.icon || 'folder' }}</mat-icon>
                   </mat-form-field>
-                  <mat-form-field  >
+                  <mat-form-field subscriptSizing="dynamic">
                     <mat-label>ID Prefix</mat-label>
+                    <mat-icon matPrefix class="!text-base mr-1 text-slate-400">tag</mat-icon>
                     <input matInput [(ngModel)]="caseType.prefix" (blur)="markDirty()" placeholder="e.g. CLM">
-                    <mat-hint>{{ caseType.prefix }}-001, {{ caseType.prefix }}-002, ...</mat-hint>
+                    <mat-hint>{{ caseType.prefix || 'PREFIX' }}-001, {{ caseType.prefix || 'PREFIX' }}-002 …</mat-hint>
                   </mat-form-field>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                  <mat-form-field  >
-                    <mat-label>Slug</mat-label>
-                    <input matInput [(ngModel)]="caseType.slug" (blur)="markDirty()">
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>URL Slug</mat-label>
+                    <mat-icon matPrefix class="!text-base mr-1 text-slate-400">link</mat-icon>
+                    <input matInput [(ngModel)]="caseType.slug" (blur)="markDirty()" placeholder="e.g. loan-application">
+                    <mat-hint>Used in API routes and deep links</mat-hint>
                   </mat-form-field>
-                  <div class="flex items-center gap-4 pt-3">
-                    <mat-slide-toggle [(ngModel)]="caseType.isActive" (ngModelChange)="markDirty()">
-                      Active
-                    </mat-slide-toggle>
-                    <span class="text-xs text-gray-500">v{{ caseType.version }}</span>
+                  <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <div>
+                      <p class="text-xs font-semibold text-slate-700">Active</p>
+                      <p class="text-[11px] text-slate-400">Enable for new cases to be created</p>
+                    </div>
+                    <mat-slide-toggle [(ngModel)]="caseType.isActive" (ngModelChange)="markDirty()"></mat-slide-toggle>
                   </div>
                 </div>
-              </mat-card-content>
-            </mat-card>
+                <div class="flex items-center gap-1.5 text-[11px] text-slate-400 pt-1">
+                  <mat-icon class="!text-sm text-slate-300">history</mat-icon>
+                  Version <span class="font-semibold text-slate-600">{{ caseType.version }}</span>
+                </div>
+              </div>
+            </div>
 
-            <!-- Attachment Categories -->
-            <mat-card class="!shadow-sm border border-gray-100 !rounded-xl">
-              <mat-card-header class="!px-4 !py-3 border-b border-gray-100">
-                <mat-card-title class="!text-sm !font-semibold flex items-center gap-2">
-                  <mat-icon class="!text-base">attach_file</mat-icon> Attachment Categories
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content class="!p-4">
+            <!-- ══ Attachment Categories ══ -->
+            <div>
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-purple-500">attach_file</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Attachment Categories</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3 pl-6">Define the types of documents users must submit; mark any that are required to resolve the case</p>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
                 @if (caseType.attachmentCategories.length === 0) {
-                  <p class="text-xs text-gray-400 text-center py-4">No attachment categories defined</p>
+                  <div class="text-center py-6 border-2 border-dashed border-slate-200 rounded-lg">
+                    <mat-icon class="!text-3xl text-slate-300">folder_open</mat-icon>
+                    <p class="text-xs text-slate-400 mt-2">No attachment categories defined</p>
+                    <p class="text-[11px] text-slate-300">Add a category to require specific document types</p>
+                  </div>
                 } @else {
                   <div class="space-y-2 mb-3">
                     @for (cat of caseType.attachmentCategories; track cat.id; let ci = $index) {
-                      <div class="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 bg-white">
+                      <div class="flex items-center gap-3 px-3 py-2 rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <mat-icon class="!text-base text-purple-400 flex-shrink-0">folder</mat-icon>
                         <div class="flex-1 min-w-0">
-                          <input class="text-sm font-medium bg-transparent border-0 w-full focus:outline-none focus:ring-1 focus:ring-primary-400 rounded px-1"
+                          <input class="text-sm font-medium bg-transparent border-0 w-full focus:outline-none focus:ring-1 focus:ring-primary-400 rounded px-1 text-slate-700"
                                  [(ngModel)]="cat.name" (ngModelChange)="markDirty()">
                         </div>
-                        <mat-slide-toggle class="!text-xs" [(ngModel)]="cat.requiredForResolution" (ngModelChange)="markDirty()">
-                          Required
-                        </mat-slide-toggle>
-                        <input class="text-xs border border-gray-200 rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-primary-400"
-                               [value]="(cat.allowedTypes || []).join(', ')" (change)="updateCategoryTypes(ci, $any($event.target).value)" placeholder="pdf, jpg, ...">
-                        <button mat-icon-button class="!w-7 !h-7" (click)="removeAttachmentCategory(ci)">
-                          <mat-icon class="!text-base text-gray-400 hover:text-red-500">close</mat-icon>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                          <span class="text-[10px] text-slate-500">Required</span>
+                          <mat-slide-toggle [(ngModel)]="cat.requiredForResolution" (ngModelChange)="markDirty()"></mat-slide-toggle>
+                        </div>
+                        <input class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 w-36 focus:outline-none focus:ring-1 focus:ring-primary-400 bg-slate-50"
+                               [value]="(cat.allowedTypes || []).join(', ')" (change)="updateCategoryTypes(ci, $any($event.target).value)" placeholder="pdf, jpg, png …">
+                        <button mat-icon-button class="!w-7 !h-7 flex-shrink-0" (click)="removeAttachmentCategory(ci)">
+                          <mat-icon class="!text-base text-slate-400 hover:text-red-500">close</mat-icon>
                         </button>
                       </div>
                     }
@@ -511,35 +601,41 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
                 <button mat-stroked-button class="!text-xs" (click)="addAttachmentCategory()">
                   <mat-icon class="!text-sm mr-1">add</mat-icon> Add Category
                 </button>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </div>
 
-            <!-- Case-Wide Actions -->
-            <mat-card class="!shadow-sm border border-gray-100 !rounded-xl">
-              <mat-card-header class="!px-4 !py-3 border-b border-gray-100">
-                <mat-card-title class="!text-sm !font-semibold flex items-center gap-2">
-                  <mat-icon class="!text-base">bolt</mat-icon> Case-Wide Actions
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content class="!p-4">
-                <div class="flex flex-wrap gap-2 mb-3">
-                  @for (action of caseType.caseWideActions; track action; let ai = $index) {
-                    <span class="text-xs px-2.5 py-1 bg-primary-50 text-primary-700 rounded-full flex items-center gap-1">
-                      {{ action }}
-                      <mat-icon class="!text-xs cursor-pointer hover:text-red-500" (click)="removeCaseAction(ai)">close</mat-icon>
-                    </span>
-                  }
-                  @if (caseType.caseWideActions.length === 0) {
-                    <span class="text-xs text-gray-400">No custom actions defined</span>
-                  }
-                </div>
+            <!-- ══ Case-Wide Actions ══ -->
+            <div>
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-orange-500">bolt</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Case-Wide Actions</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3 pl-6">Custom actions available at any point in the case lifecycle — such as Escalate, Transfer, or Flag for Review</p>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                @if (caseType.caseWideActions.length > 0) {
+                  <div class="flex flex-wrap gap-2">
+                    @for (action of caseType.caseWideActions; track action; let ai = $index) {
+                      <span class="text-xs px-2.5 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-full flex items-center gap-1">
+                        <mat-icon class="!text-xs">bolt</mat-icon>
+                        {{ action }}
+                        <button class="ml-0.5 hover:text-red-500 transition-colors" (click)="removeCaseAction(ai)">
+                          <mat-icon class="!text-xs">close</mat-icon>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-[11px] text-slate-400 italic">No custom actions defined yet</p>
+                }
                 <mat-form-field class="w-full">
                   <mat-label>Add Action</mat-label>
+                  <mat-icon matPrefix class="!text-base mr-1 text-slate-400">add_circle</mat-icon>
                   <input matInput #actionInput placeholder="e.g. Escalate, Transfer, Flag for Review" (keyup.enter)="addCaseAction(actionInput.value); actionInput.value = ''">
                   <mat-hint>Press Enter to add</mat-hint>
                 </mat-form-field>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </div>
+
           </div>
         </mat-tab>
       </mat-tab-group>
@@ -547,21 +643,25 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
   `,
   styles: [`
     .stage-chevron {
-      clip-path: polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%, 10% 50%);
+      clip-path: polygon(0% 0%, 88% 0%, 100% 50%, 88% 100%, 0% 100%, 12% 50%);
+      min-height: 56px;
+      transition: filter 0.15s ease;
     }
     .stage-chevron:first-child {
-      clip-path: polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%);
+      clip-path: polygon(0% 0%, 88% 0%, 100% 50%, 88% 100%, 0% 100%);
     }
     .stage-chevron-active {
       background-color: #056DAE;
       color: white;
+      filter: drop-shadow(0 3px 8px rgba(5, 109, 174, 0.4));
     }
     .stage-chevron-inactive {
       background-color: #e2e8f0;
       color: #334155;
     }
     .stage-chevron-inactive:hover {
-      background-color: #cbd5e1;
+      background-color: #c7d2e0;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
     }
     :host ::ng-deep .designer-tabs .mat-mdc-tab-header {
       border-bottom: 1px solid #e5e7eb;
@@ -571,6 +671,31 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
 export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
   caseType: CaseTypeDefinition | null = null;
   selectedTab = 0;
+
+  // Right panel resize state
+  rightPanelWidth = 400;
+  private panelResizing = false;
+  private panelResizeStartX = 0;
+  private panelResizeStartWidth = 0;
+
+  startPanelResize(e: MouseEvent): void {
+    this.panelResizing = true;
+    this.panelResizeStartX = e.clientX;
+    this.panelResizeStartWidth = this.rightPanelWidth;
+    e.preventDefault();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onPanelMouseMove(e: MouseEvent): void {
+    if (!this.panelResizing) return;
+    const delta = this.panelResizeStartX - e.clientX;
+    this.rightPanelWidth = Math.max(300, Math.min(700, this.panelResizeStartWidth + delta));
+  }
+
+  @HostListener('document:mouseup')
+  onPanelMouseUp(): void {
+    this.panelResizing = false;
+  }
 
   isLoading = signal(false);
   isSaving = signal(false);
@@ -590,17 +715,23 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
   private caseTypeId = '';
   private dataService: DataService;
 
-  primaryStages = computed(() =>
-    this.caseType?.stages.filter(s => s.stageType === 'primary').sort((a, b) => a.order - b.order) ?? []
-  );
+  // Incremented on every stages mutation so computed() signals re-evaluate
+  private stagesVersion = signal(0);
 
-  alternateStages = computed(() =>
-    this.caseType?.stages.filter(s => s.stageType === 'alternate').sort((a, b) => a.order - b.order) ?? []
-  );
+  primaryStages = computed(() => {
+    this.stagesVersion();
+    return this.caseType?.stages.filter(s => s.stageType === 'primary').sort((a, b) => a.order - b.order) ?? [];
+  });
 
-  selectedStage = computed(() =>
-    this.caseType?.stages.find(s => s.id === this.selectedStageId()) ?? null
-  );
+  alternateStages = computed(() => {
+    this.stagesVersion();
+    return this.caseType?.stages.filter(s => s.stageType === 'alternate').sort((a, b) => a.order - b.order) ?? [];
+  });
+
+  selectedStage = computed(() => {
+    this.stagesVersion();
+    return this.caseType?.stages.find(s => s.id === this.selectedStageId()) ?? null;
+  });
 
   selectedProcess = computed(() => {
     const stage = this.selectedStage();
@@ -685,6 +816,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
       processes: [],
     };
     this.caseType.stages.push(stage);
+    this.stagesVersion.update(v => v + 1);
     this.selectStage(stage);
     this.markDirty();
   }
@@ -692,6 +824,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
   onDeleteStage(stage: StageDefinition): void {
     if (!this.caseType) return;
     this.caseType.stages = this.caseType.stages.filter(s => s.id !== stage.id);
+    this.stagesVersion.update(v => v + 1);
     if (this.selectedStageId() === stage.id) {
       this.selectedStageId.set(null);
       this.configPanelMode.set('none');
@@ -702,7 +835,10 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
   onStageConfigChange(stage: StageDefinition): void {
     if (!this.caseType) return;
     const idx = this.caseType.stages.findIndex(s => s.id === stage.id);
-    if (idx >= 0) this.caseType.stages[idx] = stage;
+    if (idx >= 0) {
+      this.caseType.stages[idx] = stage;
+      this.stagesVersion.update(v => v + 1);
+    }
     this.markDirty();
   }
 

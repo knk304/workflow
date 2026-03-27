@@ -42,60 +42,137 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
     MatMenuModule,
     RuleBuilderComponent,
   ],
+  styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .panel-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
+    .panel-scroll::-webkit-scrollbar { width: 4px; }
+    .panel-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .section-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+    }
+  `],
   template: `
-    <mat-card class="!shadow-sm">
-      <mat-card-header class="!px-3 !py-2 border-b border-gray-100">
-        <mat-card-title class="!text-xs !font-semibold !flex items-center gap-1.5 !m-0">
-          <span class="text-sm leading-none">{{ stepIcon(step.type) }}</span>
-          Step Configuration
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content class="!p-3">
-        <!-- Common Fields -->
-        <div class="space-y-1.5">
-          <mat-form-field class="w-full" subscriptSizing="dynamic">
-            <mat-label>Step Name</mat-label>
-            <input matInput [(ngModel)]="step.name" (ngModelChange)="emitChange()">
-          </mat-form-field>
+    <!-- Panel body -->
+    <div class="flex flex-col flex-1 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
 
-          <mat-form-field class="w-full" subscriptSizing="dynamic">
-            <mat-label>Step Type</mat-label>
-            <mat-select [(ngModel)]="step.type" (ngModelChange)="onTypeChange()">
-              <mat-option value="assignment">Assignment</mat-option>
-              <mat-option value="approval">Approval</mat-option>
-              <mat-option value="attachment">Attachment</mat-option>
-              <mat-option value="decision">Decision</mat-option>
-              <mat-option value="automation">Automation</mat-option>
-              <mat-option value="subprocess">Subprocess</mat-option>
-            </mat-select>
-          </mat-form-field>
+      <!-- ── Header ── -->
+      <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200"
+           [ngClass]="stepHeaderGradient(step.type)">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+             [ngClass]="stepBgColor(step.type)">
+          <mat-icon class="!text-[18px] text-white">{{ stepMatIcon(step.type) }}</mat-icon>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-sm font-bold text-slate-800 leading-tight truncate">{{ step.name || 'Untitled Step' }}</h2>
+          <p class="text-[11px] text-slate-500 mt-0.5">{{ stepTypeLabel(step.type) }}</p>
+        </div>
+        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0"
+              [ngClass]="stepBadgeClass(step.type)">
+          {{ step.type | uppercase }}
+        </span>
+      </div>
 
-          <div class="flex items-center gap-3">
-            <mat-slide-toggle [(ngModel)]="step.required" (ngModelChange)="emitChange()">Required</mat-slide-toggle>
+      <!-- ── Scrollable content ── -->
+      <div class="flex-1 overflow-y-auto panel-scroll px-4 divide-y divide-slate-100">
+
+        <!-- ══ SECTION: Basic Information ══ -->
+        <div class="py-5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <mat-icon class="!text-[15px] text-primary-500">drive_file_rename_outline</mat-icon>
+            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Basic Information</span>
           </div>
+          <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Name, type, and classification of this step</p>
+          <div class="section-card space-y-3">
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
+              <mat-label>Step Name</mat-label>
+              <input matInput [(ngModel)]="step.name" (ngModelChange)="emitChange()">
+            </mat-form-field>
 
-          <mat-form-field class="w-full" subscriptSizing="dynamic">
-            <mat-label>SLA (hours)</mat-label>
-            <input matInput type="number" [(ngModel)]="step.slaHours" (ngModelChange)="emitChange()" min="0">
-          </mat-form-field>
-
-          <div>
-            <label class="text-xs font-medium text-gray-600 mb-1 block">Skip When</label>
-            <app-rule-builder
-              [condition]="skipWhenCondition"
-              [fields]="fieldNames"
-              (conditionChange)="onSkipWhenChange($event)"
-            ></app-rule-builder>
+            <mat-form-field class="w-full" subscriptSizing="dynamic">
+              <mat-label>Step Type</mat-label>
+              <mat-select [(ngModel)]="step.type" (ngModelChange)="onTypeChange()">
+                <mat-option value="assignment">
+                  <span class="flex items-center gap-2"><mat-icon class="!text-base text-indigo-500">edit_note</mat-icon> Assignment</span>
+                </mat-option>
+                <mat-option value="approval">
+                  <span class="flex items-center gap-2"><mat-icon class="!text-base text-emerald-500">verified</mat-icon> Approval</span>
+                </mat-option>
+                <mat-option value="attachment">
+                  <span class="flex items-center gap-2"><mat-icon class="!text-base text-purple-500">attach_file</mat-icon> Attachment</span>
+                </mat-option>
+                <mat-option value="decision">
+                  <span class="flex items-center gap-2"><mat-icon class="!text-base text-amber-500">alt_route</mat-icon> Decision</span>
+                </mat-option>
+                <mat-option value="automation">
+                  <span class="flex items-center gap-2"><mat-icon class="!text-base text-orange-500">bolt</mat-icon> Automation</span>
+                </mat-option>
+                <mat-option value="subprocess">
+                  <span class="flex items-center gap-2"><mat-icon class="!text-base text-slate-500">account_tree</mat-icon> Subprocess</span>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
         </div>
 
-        <mat-divider class="!my-2"></mat-divider>
+        <!-- ══ SECTION: Execution Control ══ -->
+        <div class="py-5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <mat-icon class="!text-[15px] text-emerald-500">tune</mat-icon>
+            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Execution Control</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Mandate completion and enforce time-based SLAs</p>
+          <div class="section-card space-y-3">
+            <div class="flex items-center justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-xs font-semibold text-slate-700">Required</p>
+                <p class="text-[11px] text-slate-400 leading-snug">Block case progress until this step is complete</p>
+              </div>
+              <mat-slide-toggle [(ngModel)]="step.required" (ngModelChange)="emitChange()" class="flex-shrink-0"></mat-slide-toggle>
+            </div>
+            <mat-divider></mat-divider>
+            <mat-form-field class="w-full">
+              <mat-label>SLA (hours)</mat-label>
+              <mat-icon matPrefix class="!text-base mr-1 text-slate-400">schedule</mat-icon>
+              <input matInput type="number" [(ngModel)]="step.slaHours" (ngModelChange)="emitChange()" min="0" placeholder="e.g. 24">
+              <mat-hint>Leave blank for no time limit</mat-hint>
+            </mat-form-field>
+          </div>
+        </div>
 
-        <!-- Type-Specific Config -->
+        <!-- ══ SECTION: Skip When ══ -->
+        <div class="py-5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <mat-icon class="!text-[15px] text-amber-500">skip_next</mat-icon>
+            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Skip When</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Conditions that cause this step to be automatically bypassed at runtime</p>
+          <app-rule-builder
+            [condition]="skipWhenCondition"
+            [fields]="fieldNames"
+            (conditionChange)="onSkipWhenChange($event)"
+          ></app-rule-builder>
+        </div>
+
+        <!-- ══ SECTION: Type-Specific Settings ══ -->
         @switch (step.type) {
           @case ('assignment') {
-            <div class="space-y-1.5">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase">Assignment Settings</h4>
+            <div class="py-5">
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-indigo-500">edit_note</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Assignment Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Configure task routing, form, and instructions for assignees</p>
+              <div class="section-card space-y-3">
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Route To (Role)</mat-label>
@@ -247,102 +324,130 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
                   <mat-option value="pending">Pending</mat-option>
                 </mat-select>
               </mat-form-field>
+              </div>
             </div>
           }
 
           @case ('approval') {
-            <div class="space-y-1.5">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase">Approval Settings</h4>
+            <div class="py-5">
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-emerald-500">verified</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Approval Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Define approval mode, approver hierarchy, and rejection routing</p>
+              <div class="section-card space-y-3">
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Mode</mat-label>
                 <mat-select [(ngModel)]="step.config.mode" (ngModelChange)="emitChange()">
-                  <mat-option value="sequential">Sequential</mat-option>
-                  <mat-option value="parallel">Parallel</mat-option>
+                  <mat-option value="sequential">Sequential — approvers act one at a time</mat-option>
+                  <mat-option value="parallel">Parallel — all approvers act simultaneously</mat-option>
                 </mat-select>
               </mat-form-field>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Approver Roles (comma-separated)</mat-label>
-                <input matInput [ngModel]="approverRolesStr" (ngModelChange)="onApproverRolesChange($event)" placeholder="manager,director">
+                <input matInput [ngModel]="approverRolesStr" (ngModelChange)="onApproverRolesChange($event)" placeholder="e.g. manager, director">
+                <mat-hint>Roles that can approve this step</mat-hint>
               </mat-form-field>
 
-              <mat-slide-toggle [(ngModel)]="step.config.allowDelegation" (ngModelChange)="emitChange()">
-                Allow Delegation
-              </mat-slide-toggle>
+              <div class="flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-700">Allow Delegation</p>
+                  <p class="text-[11px] text-slate-400">Approvers can delegate to another user</p>
+                </div>
+                <mat-slide-toggle [(ngModel)]="step.config.allowDelegation" (ngModelChange)="emitChange()" class="flex-shrink-0"></mat-slide-toggle>
+              </div>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
-                <mat-label>On Rejection → Stage</mat-label>
+                <mat-label>On Rejection → Alternate Stage</mat-label>
+                <mat-icon matPrefix class="!text-base mr-1 text-slate-400">undo</mat-icon>
                 <mat-select [(ngModel)]="step.config.rejectionStageId" (ngModelChange)="emitChange()">
-                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option [value]="null">— End case or stay in stage —</mat-option>
                   @for (s of alternateStages; track s.id) {
                     <mat-option [value]="s.id">{{ s.name }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
+              </div>
             </div>
           }
 
           @case ('attachment') {
-            <div class="space-y-1.5">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase">Attachment Settings</h4>
+            <div class="py-5">
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-purple-500">attach_file</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Attachment Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Specify required document categories, file types, and size limits</p>
+              <div class="section-card space-y-3">
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Required Categories (comma-separated)</mat-label>
-                <input matInput [ngModel]="categoriesStr" (ngModelChange)="onCategoriesChange($event)" placeholder="id_document,proof_of_income">
+                <mat-icon matPrefix class="!text-base mr-1 text-slate-400">folder</mat-icon>
+                <input matInput [ngModel]="categoriesStr" (ngModelChange)="onCategoriesChange($event)" placeholder="e.g. id_document, proof_of_income">
               </mat-form-field>
 
-              <mat-form-field class="w-full" subscriptSizing="dynamic">
-                <mat-label>Minimum Files</mat-label>
-                <input matInput type="number" [(ngModel)]="step.config.minFiles" (ngModelChange)="emitChange()" min="0">
-              </mat-form-field>
+              <div class="grid grid-cols-2 gap-3">
+                <mat-form-field subscriptSizing="dynamic">
+                  <mat-label>Min Files</mat-label>
+                  <input matInput type="number" [(ngModel)]="step.config.minFiles" (ngModelChange)="emitChange()" min="0">
+                </mat-form-field>
+                <mat-form-field subscriptSizing="dynamic">
+                  <mat-label>Max Size (MB)</mat-label>
+                  <input matInput type="number" [(ngModel)]="step.config.maxFileSizeMb" (ngModelChange)="emitChange()" min="1">
+                </mat-form-field>
+              </div>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Allowed File Types (comma-separated)</mat-label>
-                <input matInput [ngModel]="allowedTypesStr" (ngModelChange)="onAllowedTypesChange($event)" placeholder="pdf,jpg,png">
-              </mat-form-field>
-
-              <mat-form-field class="w-full" subscriptSizing="dynamic">
-                <mat-label>Max File Size (MB)</mat-label>
-                <input matInput type="number" [(ngModel)]="step.config.maxFileSizeMb" (ngModelChange)="emitChange()" min="1">
+                <mat-icon matPrefix class="!text-base mr-1 text-slate-400">description</mat-icon>
+                <input matInput [ngModel]="allowedTypesStr" (ngModelChange)="onAllowedTypesChange($event)" placeholder="e.g. pdf, jpg, png">
               </mat-form-field>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Instructions</mat-label>
                 <textarea matInput [(ngModel)]="step.config.instructions" (ngModelChange)="emitChange()" rows="2"></textarea>
               </mat-form-field>
+              </div>
             </div>
           }
 
           @case ('decision') {
-            <div class="space-y-1.5">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase">Decision Settings</h4>
+            <div class="py-5">
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-amber-500">alt_route</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Decision Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Branch workflow by evaluating conditions or a decision table</p>
+              <div class="section-card space-y-3">
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
-                <mat-label>Mode</mat-label>
+                <mat-label>Evaluation Mode</mat-label>
                 <mat-select [(ngModel)]="step.config.mode" (ngModelChange)="emitChange()">
-                  <mat-option value="first_match">First Match (Branches)</mat-option>
-                  <mat-option value="decision_table">Decision Table</mat-option>
+                  <mat-option value="first_match">First Match — evaluate branches in order</mat-option>
+                  <mat-option value="decision_table">Decision Table — use a pre-built table</mat-option>
                 </mat-select>
               </mat-form-field>
 
               @if (step.config.mode !== 'decision_table') {
-                <!-- Branches -->
                 <div class="space-y-2">
                   @for (branch of step.config.branches || []; track $index; let bi = $index) {
-                    <div class="border border-gray-200 rounded p-2 space-y-1">
+                    <div class="border border-amber-100 bg-amber-50/50 rounded-lg p-3 space-y-2">
                       <div class="flex items-center justify-between">
-                        <span class="text-xs font-medium text-gray-500">Branch {{ bi + 1 }}</span>
-                        <button mat-icon-button class="!w-5 !h-5" (click)="removeBranch(bi)">
-                          <mat-icon class="!text-sm text-gray-400">close</mat-icon>
+                        <span class="text-[11px] font-semibold text-amber-700 flex items-center gap-1.5">
+                          <mat-icon class="!text-sm">call_split</mat-icon>Branch {{ bi + 1 }}
+                        </span>
+                        <button mat-icon-button class="!w-6 !h-6" (click)="removeBranch(bi)">
+                          <mat-icon class="!text-sm text-slate-400 hover:text-red-500">close</mat-icon>
                         </button>
                       </div>
                       <mat-form-field class="w-full" subscriptSizing="dynamic">
-                        <mat-label>Label</mat-label>
+                        <mat-label>Branch Label</mat-label>
                         <input matInput [(ngModel)]="branch.label" (ngModelChange)="emitChange()">
                       </mat-form-field>
                       <div>
-                        <label class="text-xs text-gray-500">Condition</label>
+                        <p class="text-[11px] text-slate-500 font-medium mb-1">Condition</p>
                         <app-rule-builder
                           [condition]="branchConditions[bi] || null"
                           [fields]="fieldNames"
@@ -350,19 +455,22 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
                         ></app-rule-builder>
                       </div>
                       <mat-form-field class="w-full" subscriptSizing="dynamic">
-                        <mat-label>Next Step ID</mat-label>
+                        <mat-label>Route to Step ID</mat-label>
+                        <mat-icon matPrefix class="!text-base mr-1 text-slate-400">arrow_forward</mat-icon>
                         <input matInput [(ngModel)]="branch.nextStepId" (ngModelChange)="emitChange()">
                       </mat-form-field>
                     </div>
                   }
-                  <button mat-stroked-button class="!text-xs !py-0 !min-h-[28px]" (click)="addBranch()">
+                  <button mat-stroked-button class="!text-xs" (click)="addBranch()">
                     <mat-icon class="!text-sm mr-1">add</mat-icon> Add Branch
                   </button>
                 </div>
 
                 <mat-form-field class="w-full" subscriptSizing="dynamic">
-                  <mat-label>Default Step ID</mat-label>
+                  <mat-label>Default (Fallback) Step ID</mat-label>
+                  <mat-icon matPrefix class="!text-base mr-1 text-slate-400">last_page</mat-icon>
                   <input matInput [(ngModel)]="step.config.defaultStepId" (ngModelChange)="emitChange()">
+                  <mat-hint>Used when no branch condition matches</mat-hint>
                 </mat-form-field>
               } @else {
                 <mat-form-field class="w-full" subscriptSizing="dynamic">
@@ -373,25 +481,35 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
                       <mat-option [value]="dt.id">{{ dt.name }}</mat-option>
                     }
                   </mat-select>
-                  <mat-hint>Select a decision table to evaluate</mat-hint>
+                  <mat-hint>The table's output determines the next step</mat-hint>
                 </mat-form-field>
               }
+              </div>
             </div>
           }
 
           @case ('automation') {
-            <div class="space-y-1.5">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase">Automation Settings</h4>
+            <div class="py-5">
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-orange-500">bolt</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Automation Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Configure webhook calls and conditional execution rules</p>
 
-              <!-- Webhook Config -->
-              <div class="border border-gray-200 rounded p-2 space-y-1.5">
-                <h5 class="text-xs font-medium text-gray-600">Webhook</h5>
+              <!-- Webhook subsection -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <mat-icon class="!text-[13px] text-slate-500">webhook</mat-icon>
+                  <span class="text-[11px] font-semibold text-slate-600">Webhook</span>
+                </div>
+                <div class="section-card space-y-3">
                 <mat-form-field class="w-full" subscriptSizing="dynamic">
                   <mat-label>URL</mat-label>
-                  <input matInput [(ngModel)]="webhookUrl" (ngModelChange)="updateWebhook()">
+                  <mat-icon matPrefix class="!text-base mr-1 text-slate-400">link</mat-icon>
+                  <input matInput [(ngModel)]="webhookUrl" (ngModelChange)="updateWebhook()" placeholder="https://api.example.com/endpoint">
                 </mat-form-field>
                 <mat-form-field class="w-full" subscriptSizing="dynamic">
-                  <mat-label>Method</mat-label>
+                  <mat-label>HTTP Method</mat-label>
                   <mat-select [(ngModel)]="webhookMethod" (ngModelChange)="updateWebhook()">
                     <mat-option value="GET">GET</mat-option>
                     <mat-option value="POST">POST</mat-option>
@@ -402,23 +520,30 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
                 </mat-form-field>
                 <mat-form-field class="w-full" subscriptSizing="dynamic">
                   <mat-label>Headers (JSON)</mat-label>
-                  <textarea matInput [(ngModel)]="webhookHeadersStr" (ngModelChange)="updateWebhook()" rows="2" placeholder='{"Authorization":"Bearer ..."}'>
-                  </textarea>
+                  <textarea matInput [(ngModel)]="webhookHeadersStr" (ngModelChange)="updateWebhook()" rows="3" placeholder='{"Authorization":"Bearer ...","Content-Type":"application/json"}'></textarea>
+                  <mat-hint>Valid JSON object of header key-value pairs</mat-hint>
                 </mat-form-field>
+                </div>
               </div>
 
-              <!-- Rules -->
+              <!-- Rules subsection -->
               <div>
-                <h5 class="text-xs font-medium text-gray-600 mb-1">Rules</h5>
+                <div class="flex items-center gap-2 mb-2">
+                  <mat-icon class="!text-[13px] text-slate-500">rule</mat-icon>
+                  <span class="text-[11px] font-semibold text-slate-600">Rules</span>
+                </div>
+                <div class="space-y-2">
                 @for (rule of step.config.rules || []; track $index; let ri = $index) {
-                  <div class="border border-gray-200 rounded p-2 mb-1.5 space-y-1">
+                  <div class="border border-orange-100 bg-orange-50/50 rounded-lg p-3 space-y-2">
                     <div class="flex items-center justify-between">
-                      <span class="text-xs font-medium text-gray-500">Rule {{ ri + 1 }}</span>
-                      <button mat-icon-button class="!w-5 !h-5" (click)="removeRule(ri)">
-                        <mat-icon class="!text-sm text-gray-400">close</mat-icon>
+                      <span class="text-[11px] font-semibold text-orange-700 flex items-center gap-1.5">
+                        <mat-icon class="!text-sm">rule</mat-icon>Rule {{ ri + 1 }}
+                      </span>
+                      <button mat-icon-button class="!w-6 !h-6" (click)="removeRule(ri)">
+                        <mat-icon class="!text-sm text-slate-400 hover:text-red-500">close</mat-icon>
                       </button>
                     </div>
-                    <label class="text-xs text-gray-500">Condition</label>
+                    <p class="text-[11px] text-slate-500 font-medium">Condition</p>
                     <app-rule-builder
                       [condition]="ruleConditions[ri] || null"
                       [fields]="fieldNames"
@@ -426,7 +551,8 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
                     ></app-rule-builder>
                   </div>
                 }
-                <button mat-stroked-button class="!text-xs !py-0 !min-h-[28px]" (click)="addRule()">
+                </div>
+                <button mat-stroked-button class="!text-xs mt-2" (click)="addRule()">
                   <mat-icon class="!text-sm mr-1">add</mat-icon> Add Rule
                 </button>
               </div>
@@ -434,72 +560,159 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
           }
 
           @case ('subprocess') {
-            <div class="space-y-1.5">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase">Subprocess Settings</h4>
+            <div class="py-5">
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-slate-500">account_tree</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Subprocess Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Launch a child case and optionally map fields between parent and child</p>
+              <div class="section-card space-y-3">
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Child Case Type ID</mat-label>
-                <input matInput [(ngModel)]="step.config.childCaseTypeId" (ngModelChange)="emitChange()">
+                <mat-icon matPrefix class="!text-base mr-1 text-slate-400">account_tree</mat-icon>
+                <input matInput [(ngModel)]="step.config.childCaseTypeId" (ngModelChange)="emitChange()" placeholder="e.g. LOAN-APP">
               </mat-form-field>
 
-              <mat-slide-toggle [(ngModel)]="step.config.waitForResolution" (ngModelChange)="emitChange()">
-                Wait for Resolution
-              </mat-slide-toggle>
+              <div class="flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-700">Wait for Resolution</p>
+                  <p class="text-[11px] text-slate-400">Pause parent case until child case is resolved</p>
+                </div>
+                <mat-slide-toggle [(ngModel)]="step.config.waitForResolution" (ngModelChange)="emitChange()" class="flex-shrink-0"></mat-slide-toggle>
+              </div>
+              </div>
 
-              <!-- Field Mapping -->
-              <div>
-                <h5 class="text-xs font-medium text-gray-600 mb-1">Field Mapping (Parent → Child)</h5>
+              <!-- Field Mapping subsection -->
+              <div class="mt-3">
+                <div class="flex items-center gap-2 mb-2">
+                  <mat-icon class="!text-[13px] text-slate-500">swap_horiz</mat-icon>
+                  <span class="text-[11px] font-semibold text-slate-600">Field Mapping (Parent → Child)</span>
+                </div>
+                <div class="space-y-1.5">
                 @for (pair of fieldMappingPairs; track $index; let fi = $index) {
-                  <div class="flex gap-1.5 mb-1.5 items-center">
+                  <div class="flex gap-2 items-center">
                     <mat-form-field class="flex-1" subscriptSizing="dynamic">
+                      <mat-label>Parent field</mat-label>
                       <input matInput [(ngModel)]="pair.key" (ngModelChange)="updateFieldMapping()" placeholder="parent_field">
                     </mat-form-field>
-                    <mat-icon class="text-gray-400 !text-base">arrow_forward</mat-icon>
+                    <mat-icon class="text-slate-400 !text-base flex-shrink-0">arrow_forward</mat-icon>
                     <mat-form-field class="flex-1" subscriptSizing="dynamic">
+                      <mat-label>Child field</mat-label>
                       <input matInput [(ngModel)]="pair.value" (ngModelChange)="updateFieldMapping()" placeholder="child_field">
                     </mat-form-field>
-                    <button mat-icon-button class="!w-5 !h-5" (click)="removeFieldMapping(fi)">
-                      <mat-icon class="!text-sm text-gray-400">close</mat-icon>
+                    <button mat-icon-button class="!w-7 !h-7 flex-shrink-0" (click)="removeFieldMapping(fi)">
+                      <mat-icon class="!text-sm text-slate-400 hover:text-red-500">close</mat-icon>
                     </button>
                   </div>
                 }
-                <button mat-stroked-button class="!text-xs !py-0 !min-h-[28px]" (click)="addFieldMapping()">
+                </div>
+                <button mat-stroked-button class="!text-xs mt-1" (click)="addFieldMapping()">
                   <mat-icon class="!text-sm mr-1">add</mat-icon> Add Mapping
                 </button>
               </div>
 
-              <!-- Propagate Fields -->
-              <div>
-                <h5 class="text-xs font-medium text-gray-600 mb-1">Propagate on Resolve (Child → Parent)</h5>
+              <!-- Propagate Fields subsection -->
+              <div class="mt-3">
+                <div class="flex items-center gap-2 mb-2">
+                  <mat-icon class="!text-[13px] text-slate-500">swap_horiz</mat-icon>
+                  <span class="text-[11px] font-semibold text-slate-600">Propagate on Resolve (Child → Parent)</span>
+                </div>
+                <div class="space-y-1.5">
                 @for (pair of propagatePairs; track $index; let pi = $index) {
-                  <div class="flex gap-1.5 mb-1.5 items-center">
+                  <div class="flex gap-2 items-center">
                     <mat-form-field class="flex-1" subscriptSizing="dynamic">
+                      <mat-label>Child field</mat-label>
                       <input matInput [(ngModel)]="pair.key" (ngModelChange)="updatePropagateFields()" placeholder="child_field">
                     </mat-form-field>
-                    <mat-icon class="text-gray-400 !text-base">arrow_forward</mat-icon>
+                    <mat-icon class="text-slate-400 !text-base flex-shrink-0">arrow_forward</mat-icon>
                     <mat-form-field class="flex-1" subscriptSizing="dynamic">
+                      <mat-label>Parent field</mat-label>
                       <input matInput [(ngModel)]="pair.value" (ngModelChange)="updatePropagateFields()" placeholder="parent_field">
                     </mat-form-field>
-                    <button mat-icon-button class="!w-5 !h-5" (click)="removePropagatePair(pi)">
-                      <mat-icon class="!text-sm text-gray-400">close</mat-icon>
+                    <button mat-icon-button class="!w-7 !h-7 flex-shrink-0" (click)="removePropagatePair(pi)">
+                      <mat-icon class="!text-sm text-slate-400 hover:text-red-500">close</mat-icon>
                     </button>
                   </div>
                 }
-                <button mat-stroked-button class="!text-xs !py-0 !min-h-[28px]" (click)="addPropagatePair()">
+                </div>
+                <button mat-stroked-button class="!text-xs mt-1" (click)="addPropagatePair()">
                   <mat-icon class="!text-sm mr-1">add</mat-icon> Add Mapping
                 </button>
               </div>
             </div>
           }
         }
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </div>
   `,
+
 })
 export class StepConfigPanelComponent implements OnChanges, OnInit {
   @Input() step!: StepDefinition;
   @Input() caseType!: CaseTypeDefinition;
   @Output() stepChange = new EventEmitter<StepDefinition>();
+
+  // ── Step type helpers ─────────────────────────────────────────
+  stepMatIcon(type: StepType): string {
+    const map: Record<StepType, string> = {
+      assignment: 'edit_note',
+      approval: 'verified',
+      attachment: 'attach_file',
+      decision: 'alt_route',
+      automation: 'bolt',
+      subprocess: 'account_tree',
+    };
+    return map[type] || 'radio_button_unchecked';
+  }
+
+  stepBgColor(type: StepType): string {
+    const map: Record<StepType, string> = {
+      assignment: 'bg-indigo-500',
+      approval: 'bg-emerald-500',
+      attachment: 'bg-purple-500',
+      decision: 'bg-amber-500',
+      automation: 'bg-orange-500',
+      subprocess: 'bg-slate-500',
+    };
+    return map[type] || 'bg-primary-500';
+  }
+
+  stepBadgeClass(type: StepType): string {
+    const map: Record<StepType, string> = {
+      assignment: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      approval: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      attachment: 'bg-purple-50 text-purple-700 border-purple-200',
+      decision: 'bg-amber-50 text-amber-700 border-amber-200',
+      automation: 'bg-orange-50 text-orange-700 border-orange-200',
+      subprocess: 'bg-slate-100 text-slate-600 border-slate-300',
+    };
+    return map[type] || 'bg-primary-50 text-primary-700 border-primary-200';
+  }
+
+  stepHeaderGradient(type: StepType): string {
+    const map: Record<StepType, string> = {
+      assignment: 'bg-gradient-to-r from-indigo-50 to-white',
+      approval: 'bg-gradient-to-r from-emerald-50 to-white',
+      attachment: 'bg-gradient-to-r from-purple-50 to-white',
+      decision: 'bg-gradient-to-r from-amber-50 to-white',
+      automation: 'bg-gradient-to-r from-orange-50 to-white',
+      subprocess: 'bg-gradient-to-r from-slate-50 to-white',
+    };
+    return map[type] || 'bg-gradient-to-r from-slate-50 to-white';
+  }
+
+  stepTypeLabel(type: StepType): string {
+    const map: Record<StepType, string> = {
+      assignment: 'Collect information from a user',
+      approval: 'Require sign-off from approvers',
+      attachment: 'Collect required documents',
+      decision: 'Branch workflow by conditions',
+      automation: 'Execute automated webhook actions',
+      subprocess: 'Launch a child case instance',
+    };
+    return map[type] || type;
+  }
 
   private dataService = inject(DataService);
   formDefinitions: FormDefinition[] = [];

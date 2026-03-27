@@ -64,6 +64,16 @@ export class AssignmentsEffects {
     )
   );
 
+  reloadAfterComplete$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AssignmentsActions.completeAssignmentSuccess),
+      mergeMap(() => [
+        AssignmentsActions.loadMyAssignments(),
+        AssignmentsActions.loadAssignments({}),
+      ])
+    )
+  );
+
   reassignAssignment$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AssignmentsActions.reassignAssignment),

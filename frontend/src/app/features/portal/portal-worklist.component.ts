@@ -224,17 +224,12 @@ type StatusFilter = 'all' | 'open' | 'in_progress' | 'on_hold' | 'completed';
 
                   <!-- Quick actions -->
                   <div class="flex items-center gap-1 shrink-0">
-                    @if (a.status === 'open' || a.status === 'in_progress') {
-                      <button mat-icon-button matTooltip="Complete" (click)="onComplete(a)">
-                        <mat-icon class="text-emerald-500">check_circle_outline</mat-icon>
+                    @if (a.assignmentType === 'approval' && (a.status === 'open' || a.status === 'in_progress')) {
+                      <button mat-icon-button matTooltip="Approve" (click)="onApprove(a)">
+                        <mat-icon class="text-emerald-500">check_circle</mat-icon>
                       </button>
-                      <button mat-icon-button matTooltip="Put on hold" (click)="onHold(a)">
-                        <mat-icon class="text-amber-500">pause_circle_outline</mat-icon>
-                      </button>
-                    }
-                    @if (a.status === 'on_hold') {
-                      <button mat-icon-button matTooltip="Resume" (click)="onResume(a)">
-                        <mat-icon class="text-indigo-500">play_circle_outline</mat-icon>
+                      <button mat-icon-button matTooltip="Decline" (click)="onDecline(a)">
+                        <mat-icon class="text-red-500">cancel</mat-icon>
                       </button>
                     }
                     <a mat-icon-button [routerLink]="['/portal/cases', a.caseId]" matTooltip="Open case">
@@ -316,19 +311,14 @@ export class PortalWorklistComponent implements OnInit, OnDestroy {
     this.statusFilter.set(s);
   }
 
-  onComplete(a: Assignment): void {
-    this.store.dispatch(AssignmentsActions.completeAssignment({ id: a.id, request: { formData: {} } }));
-    this.snackBar.open(`"${a.stepName || a.name}" completed`, 'OK', { duration: 3000 });
+  onApprove(a: Assignment): void {
+    this.store.dispatch(AssignmentsActions.completeAssignment({ id: a.id, request: { decision: 'approved' } }));
+    this.snackBar.open(`"${a.stepName || a.name}" approved`, 'OK', { duration: 3000 });
   }
 
-  onHold(a: Assignment): void {
-    this.store.dispatch(AssignmentsActions.holdAssignment({ id: a.id }));
-    this.snackBar.open(`"${a.stepName || a.name}" put on hold`, 'OK', { duration: 2500 });
-  }
-
-  onResume(a: Assignment): void {
-    this.store.dispatch(AssignmentsActions.resumeAssignment({ id: a.id }));
-    this.snackBar.open(`"${a.stepName || a.name}" resumed`, 'OK', { duration: 2500 });
+  onDecline(a: Assignment): void {
+    this.store.dispatch(AssignmentsActions.completeAssignment({ id: a.id, request: { decision: 'rejected' } }));
+    this.snackBar.open(`"${a.stepName || a.name}" declined`, 'OK', { duration: 3000 });
   }
 
   formatDate(iso: string): string {

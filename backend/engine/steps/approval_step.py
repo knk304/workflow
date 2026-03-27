@@ -163,15 +163,40 @@ async def complete(case: dict, stage_id: str, process_id: str,
 
         # Record decision on the approver
         user_id = str(user["_id"])
-        await db.approval_chains.update_one(
-            {"_id": chain["_id"], "approvers.user_id": user_id},
-            {"$set": {
-                "approvers.$.status": decision,
-                "approvers.$.decision_at": now,
-                "approvers.$.decision_notes": notes,
-                "updated_at": now,
-            }}
-        )
+        user_role = user.get("role", "")
+        is_privileged = user_role in ("ADMIN", "MANAGER")
+
+        # Match the approver: exact user_id match OR delegated_to match,
+        # OR a privileged user acting on any pending slot
+        matched_approver = None
+        approvers_list = chain.get("approvers", [])
+        for a in approvers_list:
+            target_id = a.get("delegated_to") or a.get("user_id")
+            if (target_id == user_id or is_privileged) and a.get("status") == "pending":
+                matched_approver = a
+                break
+
+        if matched_approver:
+            await db.approval_chains.update_one(
+                {"_id": chain["_id"], "approvers.user_id": matched_approver["user_id"]},
+                {"$set": {
+                    "approvers.$.status": decision,
+                    "approvers.$.decision_at": now,
+                    "approvers.$.decision_notes": notes,
+                    "updated_at": now,
+                }}
+            )
+        else:
+            # No matching approver slot — privileged override: mark first pending
+            await db.approval_chains.update_one(
+                {"_id": chain["_id"], "approvers.status": "pending"},
+                {"$set": {
+                    "approvers.$.status": decision,
+                    "approvers.$.decision_at": now,
+                    "approvers.$.decision_notes": notes,
+                    "updated_at": now,
+                }}
+            )
 
         if decision == "rejected":
             await db.approval_chains.update_one(

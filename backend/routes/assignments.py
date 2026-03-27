@@ -156,9 +156,13 @@ async def complete_assignment(
 
     # Delegate to the step engine
     data = body.model_dump(exclude_none=True)
+    # Handle both field name variants (seeded data uses step_definition_id)
+    step_id = asgn.get("step_id") or asgn.get("step_definition_id")
+    if not step_id:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Assignment has no linked step")
     try:
         await complete_step(
-            asgn["case_id"], asgn["step_id"], data, user, db,
+            asgn["case_id"], step_id, data, user, db,
         )
     except Exception as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
