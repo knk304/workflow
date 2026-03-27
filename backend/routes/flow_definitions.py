@@ -4,11 +4,20 @@ Independent from /api/workflows — this powers questionnaire flows.
 Collections: flow_definitions, flow_executions
 """
 
+import logging
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
 from datetime import datetime, timezone
 
 from auth_deps import get_current_user
+
+logger = logging.getLogger(__name__)
+
+
+def _indent(text: str, prefix: str) -> str:
+    return "\n".join(prefix + line for line in text.splitlines())
 from database import get_db
 from id_utils import find_by_id, update_by_id, delete_by_id
 from models.flow_definitions import (
@@ -81,6 +90,7 @@ def _evaluate_decision(node: FlowNode, answers: list[dict]) -> str | None:
     for cond in node.conditions:
         field_id = cond.field_id
         # Search across all nodes for the field value
+
         val = None
         for nid_answers in answer_map.values():
             if field_id in nid_answers:
@@ -130,6 +140,119 @@ def _evaluate_decision(node: FlowNode, answers: list[dict]) -> str | None:
             return cond.target_node_id
 
     return node.default_target
+
+
+async def _execute_api_call(node: FlowNode, existing_answers: list[dict]) -> dict:
+    """Execute the HTTP request configured on an api_call node.
+
+    Returns a dict with status_code, body (parsed JSON or text),
+    and any mapped response variables.
+    """
+    cfg = node.config
+    method = (cfg.get("apiMethod") or "GET").upper()
+    url = cfg.get("apiUrl") or ""
+    if not url:
+        return {"error": "No API URL configured", "status_code": 0}
+
+    # Build answer lookup for template substitution
+    answer_map: dict[str, str] = {}
+    for a in existing_answers:
+        nid = a.get("node_id") or a.get("nodeId", "")
+        fid = a.get("field_id") or a.get("fieldId", "")
+        answer_map[f"{nid}::{fid}"] = str(a.get("value", ""))
+        # Also store by field id only for convenience
+        answer_map[fid] = str(a.get("value", ""))
+
+    def _substitute(text: str) -> str:
+        """Replace {{fieldId}} placeholders with answer values."""
+        import re
+        def _replacer(m: re.Match) -> str:
+            key = m.group(1).strip()
+            return answer_map.get(key, m.group(0))
+        return re.sub(r"\{\{(.+?)\}\}", _replacer, text)
+
+    url = _substitute(url)
+
+    # Headers
+    headers: dict[str, str] = {}
+    for h in cfg.get("apiHeaders") or []:
+        key = h.get("key", "")
+        val = _substitute(h.get("value", ""))
+        if key:
+            headers[key] = val
+
+    # Body
+    body_raw = cfg.get("apiBody") or ""
+    body_text = _substitute(body_raw) if body_raw else None
+
+    timeout = float(cfg.get("apiTimeout") or 30)
+
+    result: dict = {"method": method, "url": url}
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.request(
+                method=method,
+                url=url,
+                headers=headers,
+                content=body_text.encode("utf-8") if body_text else None,
+            )
+        result["status_code"] = resp.status_code
+        try:
+            result["body"] = resp.json()
+        except Exception:
+            result["body"] = resp.text[:4000]
+    except httpx.TimeoutException:
+        result["status_code"] = 0
+        result["error"] = "Request timed out"
+    except httpx.RequestError as exc:
+        result["status_code"] = 0
+        result["error"] = str(exc)[:500]
+
+    import json as _json
+    sep = "─" * 60
+    print(f"\n{sep}")
+    print(f"[API CALL] node={node.id}  {method} {url}")
+    print(f"  Status : {result.get('status_code', 'N/A')}")
+    if headers:
+        print("  Headers sent:")
+        for k, v in headers.items():
+            print(f"    {k}: {v}")
+    if body_text:
+        print(f"  Request body:\n    {body_text}")
+    if result.get("error"):
+        print(f"  ERROR: {result['error']}")
+    else:
+        body = result.get("body")
+        body_str = _json.dumps(body, indent=2) if isinstance(body, (dict, list)) else str(body)
+        print(f"  Response body:\n{_indent(body_str, '    ')}")
+    print(sep)
+    logger.info("api_call node=%s method=%s url=%s status=%s",
+                node.id, method, url, result.get("status_code"))
+
+    # Apply response mappings  →  stored as synthetic answers
+    mapped_answers: list[dict] = []
+    for mapping in cfg.get("apiResponseMappings") or []:
+        expr = mapping.get("expression", "")
+        var_name = mapping.get("variableName", "")
+        if not var_name:
+            continue
+        # Simple dot-path extraction from JSON body
+        value = result.get("body")
+        if isinstance(value, dict) and expr:
+            for part in expr.strip().split("."):
+                if isinstance(value, dict):
+                    value = value.get(part)
+                else:
+                    value = None
+                    break
+        mapped_answers.append({
+            "nodeId": node.id,
+            "fieldId": var_name,
+            "value": value,
+        })
+
+    result["mapped_answers"] = mapped_answers
+    return result
 
 
 # ─── Flow Definition CRUD ─────────────────────────
@@ -330,6 +453,23 @@ async def submit_answer_and_advance(
     current_node = node_map.get(current_id)
     next_node_id: str | None = None
 
+    # ── Execute API callout when advancing FROM an api_call node ──
+    if current_node and current_node.type == "api_call":
+        api_result = await _execute_api_call(current_node, existing_answers)
+        # Store the API response as a synthetic answer
+        existing_answers.append({
+            "nodeId": current_node.id,
+            "fieldId": "__api_response__",
+            "value": {
+                "status_code": api_result.get("status_code"),
+                "body": api_result.get("body"),
+                "error": api_result.get("error"),
+            },
+        })
+        # Merge mapped response variables into answers
+        for ma in api_result.get("mapped_answers", []):
+            existing_answers.append(ma)
+
     if current_node and current_node.type == "decision":
         next_node_id = _evaluate_decision(current_node, existing_answers)
     elif current_node and current_node.type == "end":
@@ -361,6 +501,33 @@ async def submit_answer_and_advance(
     visited = exec_doc.get("visited_nodes", [])
     if next_node_id not in visited:
         visited.append(next_node_id)
+
+    # ── Auto-advance through automatic api_call nodes ──
+    target_node = node_map.get(next_node_id)
+    if (target_node and target_node.type == "api_call"
+            and target_node.config.get("apiMode") == "automatic"):
+        # Execute the API call immediately
+        api_result = await _execute_api_call(target_node, existing_answers)
+        existing_answers.append({
+            "nodeId": target_node.id,
+            "fieldId": "__api_response__",
+            "value": {
+                "status_code": api_result.get("status_code"),
+                "body": api_result.get("body"),
+                "error": api_result.get("error"),
+            },
+        })
+        for ma in api_result.get("mapped_answers", []):
+            existing_answers.append(ma)
+        # Advance past this api_call node
+        for edge in definition.edges:
+            if edge.source == next_node_id:
+                if next_node_id not in visited:
+                    visited.append(next_node_id)
+                next_node_id = edge.target
+                if next_node_id not in visited:
+                    visited.append(next_node_id)
+                break
 
     # Check completion
     is_end = False

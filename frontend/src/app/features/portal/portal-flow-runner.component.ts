@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatStepperModule } from '@angular/material/stepper';
 import { DataService } from '@core/services/data.service';
@@ -27,7 +28,7 @@ import {
     MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatRadioModule, MatCheckboxModule, MatProgressBarModule,
-    MatSnackBarModule, MatStepperModule,
+    MatProgressSpinnerModule, MatSnackBarModule, MatStepperModule,
   ],
   template: `
     <div class="max-w-3xl mx-auto py-4">
@@ -357,6 +358,7 @@ import {
                     @if (node.content) {
                       <p class="text-sm text-teal-700 whitespace-pre-wrap mb-3">{{ node.content }}</p>
                     }
+                    <!-- API request info -->
                     <div class="rounded border border-teal-200 bg-white p-3 text-xs space-y-2">
                       @if (node.config?.['apiMethod'] && node.config?.['apiUrl']) {
                         <div class="flex items-center gap-2">
@@ -385,10 +387,22 @@ import {
                         </div>
                       }
                     </div>
-                    @if (node.config?.['apiMode'] === 'manual') {
-                      <p class="text-xs text-teal-500 mt-2">Click Next to execute this API call and proceed.</p>
-                    } @else {
-                      <p class="text-xs text-teal-500 mt-2">This API call will execute automatically. Click Next to continue.</p>
+                    <!-- Loading / result state -->
+                    @if (apiCallLoading()) {
+                      <div class="flex items-center gap-3 mt-3 p-3 rounded bg-teal-100 border border-teal-200">
+                        <mat-spinner diameter="20" color="primary"></mat-spinner>
+                        <span class="text-sm text-teal-800 font-medium">Executing API call…</span>
+                      </div>
+                    } @else if (apiCallError()) {
+                      <div class="flex items-center gap-2 mt-3 p-3 rounded bg-red-50 border border-red-200 text-sm text-red-700">
+                        <mat-icon class="!text-lg text-red-500">error</mat-icon>
+                        <span>{{ apiCallError() }}</span>
+                      </div>
+                    } @else if (apiCallDone()) {
+                      <div class="flex items-center gap-2 mt-3 p-3 rounded bg-green-50 border border-green-200 text-sm text-green-700">
+                        <mat-icon class="!text-lg text-green-500">check_circle</mat-icon>
+                        <span>API call completed successfully</span>
+                      </div>
                     }
                   </div>
                 </div>
@@ -433,6 +447,9 @@ export class PortalFlowRunnerComponent implements OnInit {
   execution = signal<FlowExecution | null>(null);
   flowDef = signal<FlowDefinition | null>(null);
   localAnswers = signal<Map<string, any>>(new Map());
+  apiCallLoading = signal(false);
+  apiCallDone = signal(false);
+  apiCallError = signal<string | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -459,6 +476,7 @@ export class PortalFlowRunnerComponent implements OnInit {
             }
             this.localAnswers.set(map);
             this.loading.set(false);
+            this._autoExecuteIfApiCall();
           },
           error: () => this.loading.set(false),
         });
@@ -591,8 +609,20 @@ export class PortalFlowRunnerComponent implements OnInit {
       }
     }
 
+    // Show loading for api_call nodes
+    const isApiCall = node.type === 'api_call';
+    if (isApiCall) {
+      this.apiCallLoading.set(true);
+      this.apiCallError.set(null);
+      this.apiCallDone.set(false);
+    }
+
     this.dataService.submitFlowAnswer(exec.id, answers, exec.currentNodeId).subscribe({
       next: updated => {
+        if (isApiCall) {
+          this.apiCallLoading.set(false);
+          this.apiCallDone.set(true);
+        }
         this.execution.set(updated);
         // Update local answers
         for (const a of updated.answers) {
@@ -604,12 +634,36 @@ export class PortalFlowRunnerComponent implements OnInit {
         }
         if (updated.status === 'completed') {
           this.snackBar.open('Flow completed successfully!', 'OK', { duration: 3000 });
+        } else {
+          this._autoExecuteIfApiCall();
         }
       },
       error: err => {
+        if (isApiCall) {
+          this.apiCallLoading.set(false);
+          this.apiCallError.set(err.error?.detail || 'API call failed');
+        }
         this.snackBar.open(err.error?.detail || 'Failed to advance', 'OK', { duration: 3000 });
       },
     });
+  }
+
+  /** If the current node is an api_call or decision (shouldn't be shown), auto-trigger advance. */
+  private _autoExecuteIfApiCall(): void {
+    const node = this.currentNode();
+    if (!node) return;
+    // Decision nodes should never be displayed — auto-advance through them
+    if (node.type === 'decision') {
+      setTimeout(() => this.submitAndAdvance(), 100);
+      return;
+    }
+    if (node.type !== 'api_call') return;
+    // Reset state and auto-fire
+    this.apiCallLoading.set(true);
+    this.apiCallDone.set(false);
+    this.apiCallError.set(null);
+    // Small delay so the user sees the loading card render first
+    setTimeout(() => this.submitAndAdvance(), 400);
   }
 
   goBack(): void {
