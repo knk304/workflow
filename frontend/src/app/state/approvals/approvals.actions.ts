@@ -21,4 +21,8 @@ export const delegateApproval = createAction('[Approvals] Delegate', props<{ id:
 export const delegateApprovalSuccess = createAction('[Approvals] Delegate Success', props<{ approval: ApprovalChain }>());
 export const delegateApprovalFailure = createAction('[Approvals] Delegate Failure', props<{ error: string }>());
 
+export const claimApproval = createAction('[Approvals] Claim', props<{ id: string }>());
+export const claimApprovalSuccess = createAction('[Approvals] Claim Success', props<{ approval: ApprovalChain }>());
+export const claimApprovalFailure = createAction('[Approvals] Claim Failure', props<{ error: string }>());
+
 export const clearError = createAction('[Approvals] Clear Error');

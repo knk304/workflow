@@ -761,24 +761,24 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
     if (this.caseTypeId && this.caseTypeId !== 'new') {
       this.isLoading.set(true);
       this.store.dispatch(CaseTypesActions.loadCaseTypeDefinition({ id: this.caseTypeId }));
+
+      this.store.select(selectSelectedCaseTypeDefinition).pipe(takeUntil(this.destroy$)).subscribe(def => {
+        if (def) {
+          // Deep clone to allow local mutations
+          this.caseType = JSON.parse(JSON.stringify(def));
+          this.isLoading.set(false);
+          this.syncSchemaFields();
+          this.loadCaseTypeForms();
+          if (!this.selectedStageId() && this.caseType!.stages.length > 0) {
+            this.selectStage(this.caseType!.stages[0]);
+          }
+        }
+      });
     } else {
       // New case type — scaffold default
       this.caseType = this.scaffoldNewCaseType();
       this.selectStage(this.caseType.stages[0]);
     }
-
-    this.store.select(selectSelectedCaseTypeDefinition).pipe(takeUntil(this.destroy$)).subscribe(def => {
-      if (def) {
-        // Deep clone to allow local mutations
-        this.caseType = JSON.parse(JSON.stringify(def));
-        this.isLoading.set(false);
-        this.syncSchemaFields();
-        this.loadCaseTypeForms();
-        if (!this.selectedStageId() && this.caseType!.stages.length > 0) {
-          this.selectStage(this.caseType!.stages[0]);
-        }
-      }
-    });
 
     this.store.select(selectCaseTypesLoading).pipe(takeUntil(this.destroy$)).subscribe(l => this.isLoading.set(l));
     this.store.select(selectCaseTypesError).pipe(takeUntil(this.destroy$)).subscribe(err => {

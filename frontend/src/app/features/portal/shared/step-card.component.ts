@@ -150,7 +150,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                             }
                           </div>
                           <div class="flex-1 min-w-0">
-                            <span class="font-medium">{{ approver.userName || approver.userId }}</span>
+                            <span class="font-medium">{{ approver.userName || approver.userId || (approver.userRole ? 'Any ' + approver.userRole : 'Unassigned') }}</span>
                             @if (approver.comment) {
                               <span class="text-slate-500 ml-1">&mdash; {{ approver.comment }}</span>
                             }
@@ -165,6 +165,16 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
                         </div>
                       }
                     </div>
+
+                    <!-- Claim button for unassigned role-based slots -->
+                    @if (approvalChain.status === 'pending' && canClaimApproval() && !currentUserPendingApprover()) {
+                      <div class="flex gap-2 mt-3 items-center">
+                        <button mat-stroked-button color="primary" class="!text-xs !h-8 !px-4"
+                                (click)="claimApproval()">
+                          <mat-icon class="!text-sm mr-1">assignment_ind</mat-icon> Claim & Review
+                        </button>
+                      </div>
+                    }
 
                     <!-- Interactive decision area for current pending approver -->
                     @if (approvalChain.status === 'pending' && currentUserPendingApprover()) {
@@ -445,6 +455,7 @@ export class StepCardComponent implements OnChanges, OnDestroy {
   objectKeys = Object.keys;
   statusLabel = statusLabel;
   private lastFormFieldsJson = '';
+  private lastLoadedFormId = '';
   private chainSub?: Subscription;
   private destroy$ = new Subject<void>();
 
@@ -487,8 +498,25 @@ export class StepCardComponent implements OnChanges, OnDestroy {
   currentUserPendingApprover(): boolean {
     if (!this.currentUser || !this.approvalChain) return false;
     return this.approvalChain.approvers.some(
-      a => a.userId === this.currentUser!.id && a.status === 'pending'
+      a => a.status === 'pending' && (
+        a.userId === this.currentUser!.id ||
+        (a.userRole && a.userRole === this.currentUser!.role)
+      )
     );
+  }
+
+  canClaimApproval(): boolean {
+    if (!this.currentUser || !this.approvalChain) return false;
+    return this.approvalChain.approvers.some(
+      a => a.status === 'pending' && !a.userId && (
+        !a.userRole || a.userRole === this.currentUser!.role || this.currentUser!.role === 'ADMIN'
+      )
+    );
+  }
+
+  claimApproval(): void {
+    if (!this.approvalChain) return;
+    this.store.dispatch(ApprovalsActions.claimApproval({ id: this.approvalChain.id }));
   }
 
   confirmApprovalAction(): void {
@@ -519,18 +547,37 @@ export class StepCardComponent implements OnChanges, OnDestroy {
     const json = JSON.stringify(raw);
     if (json !== this.lastFormFieldsJson) {
       this.lastFormFieldsJson = json;
-      this.cachedFormFields = raw.map((f: any, i: number) => ({
-        id: f.id || f.name || `field_${i}`,
-        type: f.type || 'text',
-        label: f.label || f.name || `Field ${i + 1}`,
-        placeholder: f.placeholder || '',
-        defaultValue: f.defaultValue || '',
-        validation: f.validation || (f.required ? { required: true } : {}),
-        order: f.order ?? i,
-        section: f.section,
-        ...(f.gridConfig ? { gridConfig: f.gridConfig } : {}),
-      }));
+      this.cachedFormFields = this.mapToFields(raw);
     }
+
+    // If no inline fields but a formId is referenced, load from the saved form definition
+    if (!raw.length && this.step?.config?.['formId']) {
+      const formId = this.step.config['formId'];
+      if (formId !== this.lastLoadedFormId) {
+        this.lastLoadedFormId = formId;
+        this.dataService.getFormDefinitionById(formId).subscribe({
+          next: def => {
+            this.cachedFormFields = this.mapToFields(def.fields);
+            this.lastFormFieldsJson = JSON.stringify(def.fields);
+          },
+          error: () => { /* form not found — keep empty */ },
+        });
+      }
+    }
+  }
+
+  private mapToFields(raw: any[]): DynamicField[] {
+    return raw.map((f: any, i: number) => ({
+      id: f.id || f.name || `field_${i}`,
+      type: f.type || 'text',
+      label: f.label || f.name || `Field ${i + 1}`,
+      placeholder: f.placeholder || '',
+      defaultValue: f.defaultValue || '',
+      validation: f.validation || (f.required ? { required: true } : {}),
+      order: f.order ?? i,
+      section: f.section,
+      ...(f.gridConfig ? { gridConfig: f.gridConfig } : {}),
+    }));
   }
 
   get hasFormFields(): boolean {

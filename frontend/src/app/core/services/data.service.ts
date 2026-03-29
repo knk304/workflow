@@ -64,6 +64,7 @@ export abstract class DataService {
   abstract approveChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain>;
   abstract rejectChain(id: string, decision: ApprovalDecision): Observable<ApprovalChain>;
   abstract delegateApproval(id: string, delegation: ApprovalDelegation): Observable<ApprovalChain>;
+  abstract claimApproval(id: string): Observable<ApprovalChain>;
 
   // Documents
   abstract getDocuments(caseId?: string): Observable<Document[]>;

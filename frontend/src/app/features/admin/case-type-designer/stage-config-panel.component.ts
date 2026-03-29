@@ -63,6 +63,11 @@ import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-b
       border-color: #c7d2fe;
       background: #f5f7ff;
     }
+    .panel-scroll > div {
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #f1f5f9;
+    }
   `],
   template: `
     @if (stage) {

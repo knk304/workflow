@@ -588,6 +588,18 @@ export class MockDataService extends DataService {
     return of(chain).pipe(delay(500));
   }
 
+  claimApproval(id: string): Observable<ApprovalChain> {
+    const idx = this.mockApprovals.findIndex(a => a.id === id);
+    if (idx < 0) throw new Error('Approval not found');
+    const chain = { ...this.mockApprovals[idx], approvers: [...this.mockApprovals[idx].approvers] };
+    const pending = chain.approvers.findIndex(a => a.status === 'pending' && !a.userId);
+    if (pending >= 0) {
+      chain.approvers[pending] = { ...chain.approvers[pending], userId: 'current-user' };
+    }
+    this.mockApprovals[idx] = chain;
+    return of(chain).pipe(delay(300));
+  }
+
   // Documents
   getDocuments(caseId?: string): Observable<Document[]> {
     let docs = [...this.mockDocuments];

@@ -158,6 +158,7 @@ export type ApprovalMode = 'sequential' | 'parallel';
 export interface Approver {
   userId: string;
   userName?: string;
+  userRole?: string;
   status: ApprovalStatus;
   decidedAt?: string;
   comment?: string;

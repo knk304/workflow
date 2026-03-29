@@ -1086,7 +1086,222 @@ async def _insert_all(db):
         ],
     }
 
-    await db.case_type_definitions.insert_many([ct_loan, ct_kyc, ct_claims])
+    # ──── 4) Credit Card Stolen Transaction ────
+    ct_cc_stolen = {
+        **ct_base,
+        "_id": "ct-cc-stolen", "name": "Credit Card Stolen Transaction", "slug": "cc_stolen_transaction",
+        "description": "Report and investigate unauthorized transactions from a stolen credit card",
+        "prefix": "CCS", "icon": "credit_card_off",
+        "field_schema": {
+            "cardholderName": {"type": "string", "label": "Cardholder Name"},
+            "cardLastFour": {"type": "string", "label": "Card Last 4 Digits"},
+            "cardType": {"type": "string", "label": "Card Type"},
+            "totalDisputedAmount": {"type": "number", "label": "Total Disputed Amount"},
+            "fraudConfirmed": {"type": "boolean", "label": "Fraud Confirmed"},
+            "replacementCardIssued": {"type": "boolean", "label": "Replacement Card Issued"},
+        },
+        "stages": [
+            _stage("stg-report", "Report & Card Block", 1, [
+                _proc("proc-report-incident", "Report Incident", 1, [
+                    _step("stp-incident-details", "Incident Details", "assignment", 1,
+                          config={
+                              "assignee_role": "WORKER",
+                              "instructions": "Collect details about the stolen card incident from the cardholder.",
+                              "form_fields": [
+                                  {"id": "ff-cardholder", "type": "text", "label": "Cardholder Full Name", "placeholder": "As it appears on the card", "default_value": "", "validation": {"required": True, "minLength": 2, "maxLength": 100}, "order": 1, "section": ""},
+                                  {"id": "ff-card-last4", "type": "text", "label": "Card Last 4 Digits", "placeholder": "e.g. 4829", "default_value": "", "validation": {"required": True, "pattern": "^\\d{4}$"}, "order": 2, "section": ""},
+                                  {"id": "ff-card-type", "type": "select", "label": "Card Type", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Visa", "Mastercard", "Amex", "Discover"]}, "order": 3, "section": ""},
+                                  {"id": "ff-stolen-date", "type": "date", "label": "Date Card Was Stolen / Lost", "placeholder": "", "default_value": "", "validation": {"required": True}, "order": 4, "section": ""},
+                                  {"id": "ff-discovery-date", "type": "date", "label": "Date Unauthorized Charge Discovered", "placeholder": "", "default_value": "", "validation": {"required": True}, "order": 5, "section": ""},
+                                  {"id": "ff-incident-desc", "type": "textarea", "label": "Describe How the Card Was Stolen", "placeholder": "Wallet theft, mail theft, skimming, etc.", "default_value": "", "validation": {"required": True, "minLength": 20}, "order": 6, "section": ""},
+                                  {"id": "ff-police-filed", "type": "radio", "label": "Has a Police Report Been Filed?", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Yes", "No", "Will file soon"]}, "order": 7, "section": ""},
+                                  {"id": "ff-police-number", "type": "text", "label": "Police Report Number", "placeholder": "If available", "default_value": "", "validation": {"required": False}, "order": 8, "section": ""},
+                              ],
+                          }, sla_hours=4),
+                    _step("stp-block-card", "Block Card & Issue Replacement", "automation", 2,
+                          config={
+                              "actions": [
+                                  {"type": "set_field", "config": {"field": "replacementCardIssued", "value": True}},
+                                  {"type": "send_notification", "config": {"title": "Card Blocked", "message": "Your stolen card has been blocked. A replacement will be mailed within 5-7 business days."}},
+                              ],
+                          }),
+                ]),
+            ]),
+            _stage("stg-investigate", "Fraud Investigation", 2, [
+                _proc("proc-review-txns", "Review Transactions", 1, [
+                    _step("stp-flag-transactions", "Flag Unauthorized Transactions", "assignment", 1,
+                          config={
+                              "assignee_role": "WORKER",
+                              "instructions": "Review the cardholder's recent statement and flag all unauthorized transactions.",
+                              "form_fields": [
+                                  {"id": "ff-txn-count", "type": "number", "label": "Number of Unauthorized Transactions", "placeholder": "e.g. 5", "default_value": "", "validation": {"required": True, "minValue": 1}, "order": 1, "section": ""},
+                                  {"id": "ff-total-amount", "type": "number", "label": "Total Disputed Amount ($)", "placeholder": "e.g. 2450.00", "default_value": "", "validation": {"required": True, "minValue": 0.01}, "order": 2, "section": ""},
+                                  {"id": "ff-largest-txn", "type": "number", "label": "Largest Single Transaction ($)", "placeholder": "e.g. 899.99", "default_value": "", "validation": {"required": True, "minValue": 0.01}, "order": 3, "section": ""},
+                                  {"id": "ff-merchant-list", "type": "textarea", "label": "Merchant Names & Amounts", "placeholder": "List each merchant and amount on a new line", "default_value": "", "validation": {"required": True, "minLength": 10}, "order": 4, "section": ""},
+                                  {"id": "ff-txn-location", "type": "select", "label": "Transaction Location Pattern", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Same city as cardholder", "Different city", "Different state", "International", "Online only", "Mixed"]}, "order": 5, "section": ""},
+                                  {"id": "ff-card-present", "type": "radio", "label": "Were Transactions Card-Present or Card-Not-Present?", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Card-Present (physical swipe/tap)", "Card-Not-Present (online/phone)", "Both"]}, "order": 6, "section": ""},
+                              ],
+                          }, sla_hours=48),
+                    _step("stp-upload-evidence", "Upload Supporting Evidence", "attachment", 2,
+                          config={"required_categories": ["statement", "police_report"],
+                                  "instructions": "Upload the flagged bank statement and police report if available.",
+                                  "max_file_size_mb": 25}, sla_hours=72),
+                ]),
+                _proc("proc-fraud-decision", "Fraud Determination", 2, [
+                    _step("stp-fraud-decision", "Fraud Determination", "decision", 1,
+                          config={"mode": "first_match", "branches": [
+                              {"id": "br-high-value", "label": "High Value Fraud (>$5,000)",
+                               "condition": {"field": "totalDisputedAmount", "operator": "gt", "value": 5000},
+                               "next_step_id": "stp-senior-review"},
+                              {"id": "br-standard", "label": "Standard Fraud (≤$5,000)",
+                               "condition": {"field": "totalDisputedAmount", "operator": "lte", "value": 5000},
+                               "next_step_id": "stp-mgr-review"},
+                          ], "default_step_id": "stp-mgr-review"}),
+                    _step("stp-mgr-review", "Manager Fraud Review", "approval", 2,
+                          config={"mode": "sequential", "approver_roles": ["MANAGER"],
+                                  "allow_delegation": True, "rejection_stage_id": "stg-denied",
+                                  "instructions": "Review flagged transactions and approve or deny the fraud claim."}),
+                    _step("stp-senior-review", "Senior Fraud Review", "approval", 3,
+                          config={"mode": "sequential", "approver_roles": ["MANAGER", "ADMIN"],
+                                  "allow_delegation": True, "rejection_stage_id": "stg-denied",
+                                  "instructions": "Executive review required for high-value stolen card claims."}),
+                ]),
+            ]),
+            _stage("stg-resolution", "Resolution & Refund", 3, [
+                _proc("proc-refund", "Process Refund", 1, [
+                    _step("stp-process-refund", "Issue Provisional Credit", "assignment", 1,
+                          config={
+                              "assignee_role": "WORKER",
+                              "instructions": "Issue provisional credit to the cardholder's account.",
+                              "form_fields": [
+                                  {"id": "ff-refund-amount", "type": "number", "label": "Refund Amount ($)", "placeholder": "Amount to credit", "default_value": "", "validation": {"required": True, "minValue": 0.01}, "order": 1, "section": ""},
+                                  {"id": "ff-refund-method", "type": "select", "label": "Refund Method", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Provisional Credit", "Permanent Credit", "Check", "Wire Transfer"]}, "order": 2, "section": ""},
+                                  {"id": "ff-refund-notes", "type": "textarea", "label": "Refund Notes", "placeholder": "Any additional notes for the refund", "default_value": "", "validation": {"required": False}, "order": 3, "section": ""},
+                              ],
+                          }, sla_hours=24),
+                    _step("stp-close-notify", "Send Resolution Notification", "automation", 2,
+                          config={"actions": [{"type": "send_notification",
+                                               "config": {"title": "Stolen Card Claim Resolved",
+                                                          "message": "Your stolen card fraud claim has been resolved. A provisional credit has been applied to your account."}}]}),
+                ]),
+            ], on_complete="resolve_case", resolution_status="resolved_completed"),
+            _stage("stg-denied", "Claim Denied", 10, [
+                _proc("proc-deny", "Denial Process", 1, [
+                    _step("stp-deny-notify", "Send Denial Notice", "automation", 1,
+                          config={"actions": [{"type": "send_notification",
+                                               "config": {"title": "Stolen Card Claim Denied",
+                                                          "message": "Your stolen card fraud claim has been denied. Please contact us for further details."}}]}),
+                ]),
+            ], stage_type="alternate", on_complete="resolve_case", resolution_status="resolved_rejected"),
+        ],
+    }
+
+    # ──── 5) Credit Card Dispute Transaction ────
+    ct_cc_dispute = {
+        **ct_base,
+        "_id": "ct-cc-dispute", "name": "Credit Card Dispute Transaction", "slug": "cc_dispute_transaction",
+        "description": "Dispute a charge on your credit card statement — billing errors, undelivered goods, or service issues",
+        "prefix": "CCD", "icon": "gavel",
+        "field_schema": {
+            "cardholderName": {"type": "string", "label": "Cardholder Name"},
+            "cardLastFour": {"type": "string", "label": "Card Last 4 Digits"},
+            "merchantName": {"type": "string", "label": "Merchant Name"},
+            "disputedAmount": {"type": "number", "label": "Disputed Amount"},
+            "disputeReason": {"type": "string", "label": "Dispute Reason"},
+            "merchantResponded": {"type": "boolean", "label": "Merchant Responded"},
+            "chargebackIssued": {"type": "boolean", "label": "Chargeback Issued"},
+        },
+        "stages": [
+            _stage("stg-intake", "Dispute Intake", 1, [
+                _proc("proc-file-dispute", "File Dispute", 1, [
+                    _step("stp-dispute-form", "Dispute Details", "assignment", 1,
+                          config={
+                              "assignee_role": "WORKER",
+                              "instructions": "Collect all relevant details about the disputed transaction from the cardholder.",
+                              "form_fields": [
+                                  {"id": "ff-ch-name", "type": "text", "label": "Cardholder Full Name", "placeholder": "As shown on the card", "default_value": "", "validation": {"required": True, "minLength": 2, "maxLength": 100}, "order": 1, "section": ""},
+                                  {"id": "ff-card-last4", "type": "text", "label": "Card Last 4 Digits", "placeholder": "e.g. 7713", "default_value": "", "validation": {"required": True, "pattern": "^\\d{4}$"}, "order": 2, "section": ""},
+                                  {"id": "ff-merchant-name", "type": "text", "label": "Merchant Name", "placeholder": "As shown on statement", "default_value": "", "validation": {"required": True}, "order": 3, "section": ""},
+                                  {"id": "ff-txn-date", "type": "date", "label": "Transaction Date", "placeholder": "", "default_value": "", "validation": {"required": True}, "order": 4, "section": ""},
+                                  {"id": "ff-dispute-amount", "type": "number", "label": "Disputed Amount ($)", "placeholder": "e.g. 399.99", "default_value": "", "validation": {"required": True, "minValue": 0.01}, "order": 5, "section": ""},
+                                  {"id": "ff-dispute-reason", "type": "select", "label": "Reason for Dispute", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Goods not received", "Goods not as described", "Duplicate charge", "Billing error / wrong amount", "Cancelled but still charged", "Subscription not cancelled", "Service not provided", "Other"]}, "order": 6, "section": ""},
+                                  {"id": "ff-reason-details", "type": "textarea", "label": "Detailed Description of Dispute", "placeholder": "Explain the issue in detail — include dates, what was promised vs received, any communication with the merchant.", "default_value": "", "validation": {"required": True, "minLength": 30}, "order": 7, "section": ""},
+                                  {"id": "ff-contacted-merchant", "type": "radio", "label": "Have You Contacted the Merchant?", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Yes - no resolution", "Yes - partial resolution", "No - unable to reach", "No - not attempted"]}, "order": 8, "section": ""},
+                                  {"id": "ff-merchant-response", "type": "textarea", "label": "Merchant Response (if any)", "placeholder": "Summarize what the merchant said", "default_value": "", "validation": {"required": False}, "order": 9, "section": ""},
+                              ],
+                          }, sla_hours=8),
+                    _step("stp-upload-docs", "Upload Supporting Documents", "attachment", 2,
+                          config={"required_categories": ["receipt", "correspondence"],
+                                  "instructions": "Upload receipts, order confirmations, emails with merchant, or any supporting documentation.",
+                                  "max_file_size_mb": 25}, sla_hours=72),
+                ]),
+            ]),
+            _stage("stg-review", "Investigation & Merchant Contact", 2, [
+                _proc("proc-investigate", "Investigate Dispute", 1, [
+                    _step("stp-verify-charge", "Verify Charge Details", "assignment", 1,
+                          config={
+                              "assignee_role": "WORKER",
+                              "instructions": "Verify the disputed charge details against the merchant's transaction records.",
+                              "form_fields": [
+                                  {"id": "ff-merchant-id", "type": "text", "label": "Merchant ID / MCC Code", "placeholder": "From transaction processor", "default_value": "", "validation": {"required": True}, "order": 1, "section": ""},
+                                  {"id": "ff-auth-code", "type": "text", "label": "Authorization Code", "placeholder": "Transaction auth code", "default_value": "", "validation": {"required": False}, "order": 2, "section": ""},
+                                  {"id": "ff-charge-verified", "type": "radio", "label": "Is the Charge Legitimate?", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Yes - legitimate charge", "No - charge is invalid", "Inconclusive - needs further review"]}, "order": 3, "section": ""},
+                                  {"id": "ff-merchant-contacted", "type": "radio", "label": "Merchant Response to Inquiry", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Agrees to refund", "Disputes the claim", "No response within timeframe", "Merchant unreachable"]}, "order": 4, "section": ""},
+                                  {"id": "ff-investigator-notes", "type": "textarea", "label": "Investigation Notes", "placeholder": "Summarize findings from investigation", "default_value": "", "validation": {"required": True, "minLength": 20}, "order": 5, "section": ""},
+                              ],
+                          }, sla_hours=120),
+                ]),
+                _proc("proc-dispute-decision", "Dispute Decision", 2, [
+                    _step("stp-dispute-route", "Dispute Routing", "decision", 1,
+                          config={"mode": "first_match", "branches": [
+                              {"id": "br-high-amount", "label": "High Value Dispute (>$1,000)",
+                               "condition": {"field": "disputedAmount", "operator": "gt", "value": 1000},
+                               "next_step_id": "stp-senior-approval"},
+                              {"id": "br-standard", "label": "Standard Dispute (≤$1,000)",
+                               "condition": {"field": "disputedAmount", "operator": "lte", "value": 1000},
+                               "next_step_id": "stp-mgr-approval"},
+                          ], "default_step_id": "stp-mgr-approval"}),
+                    _step("stp-mgr-approval", "Manager Dispute Approval", "approval", 2,
+                          config={"mode": "sequential", "approver_roles": ["MANAGER"],
+                                  "allow_delegation": True, "rejection_stage_id": "stg-rejected",
+                                  "instructions": "Review dispute investigation and approve or deny the chargeback."}),
+                    _step("stp-senior-approval", "Senior Dispute Approval", "approval", 3,
+                          config={"mode": "sequential", "approver_roles": ["MANAGER", "ADMIN"],
+                                  "allow_delegation": True, "rejection_stage_id": "stg-rejected",
+                                  "instructions": "Senior review required for high-value disputes."}),
+                ]),
+            ]),
+            _stage("stg-chargeback", "Chargeback & Resolution", 3, [
+                _proc("proc-chargeback", "Process Chargeback", 1, [
+                    _step("stp-issue-chargeback", "Issue Chargeback", "assignment", 1,
+                          config={
+                              "assignee_role": "WORKER",
+                              "instructions": "Process the chargeback and issue credit to the cardholder.",
+                              "form_fields": [
+                                  {"id": "ff-chargeback-amount", "type": "number", "label": "Chargeback Amount ($)", "placeholder": "Amount to charge back", "default_value": "", "validation": {"required": True, "minValue": 0.01}, "order": 1, "section": ""},
+                                  {"id": "ff-chargeback-type", "type": "select", "label": "Chargeback Reason Code", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["4837 - No Cardholder Authorization", "4853 - Goods/Services Not as Described", "4855 - Goods/Services Not Received", "4860 - Credit Not Processed", "4863 - Duplicate Processing"]}, "order": 2, "section": ""},
+                                  {"id": "ff-credit-type", "type": "select", "label": "Credit Type", "placeholder": "", "default_value": "", "validation": {"required": True, "options": ["Provisional Credit", "Permanent Credit"]}, "order": 3, "section": ""},
+                                  {"id": "ff-resolution-notes", "type": "textarea", "label": "Resolution Summary", "placeholder": "Final notes on dispute resolution", "default_value": "", "validation": {"required": True, "minLength": 10}, "order": 4, "section": ""},
+                              ],
+                          }, sla_hours=24),
+                    _step("stp-resolve-notify", "Send Resolution Notification", "automation", 2,
+                          config={"actions": [{"type": "send_notification",
+                                               "config": {"title": "Dispute Resolved",
+                                                          "message": "Your credit card dispute has been resolved. A credit has been applied to your account."}}]}),
+                ]),
+            ], on_complete="resolve_case", resolution_status="resolved_completed"),
+            _stage("stg-rejected", "Dispute Rejected", 10, [
+                _proc("proc-reject", "Rejection Process", 1, [
+                    _step("stp-reject-notify", "Send Rejection Notice", "automation", 1,
+                          config={"actions": [{"type": "send_notification",
+                                               "config": {"title": "Dispute Rejected",
+                                                          "message": "Your credit card dispute has been denied. The charge has been deemed valid. You may appeal within 30 days."}}]}),
+                ]),
+            ], stage_type="alternate", on_complete="resolve_case", resolution_status="resolved_rejected"),
+        ],
+    }
+
+    await db.case_type_definitions.insert_many([ct_loan, ct_kyc, ct_claims, ct_cc_stolen, ct_cc_dispute])
 
     # ═══════════════════════════════════════════════════════════
     # COUNTERS (for case ID sequencing)
@@ -1095,6 +1310,8 @@ async def _insert_all(db):
         {"_id": "case_LOAN", "seq": 4},   # 4 loan cases seeded
         {"_id": "case_KYC", "seq": 4},    # 4 KYC cases (includes 1 subprocess child)
         {"_id": "case_CLM", "seq": 3},    # 3 claims cases
+        {"_id": "case_CCS", "seq": 2},    # 2 stolen card cases
+        {"_id": "case_CCD", "seq": 2},    # 2 dispute cases
     ]
     await db.counters.insert_many(counters)
 
@@ -1738,6 +1955,218 @@ async def _insert_all(db):
             "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
             "sla_target_date": sla_20, "sla_days_remaining": 10, "escalation_level": 0,
         },
+
+        # ── Stolen card case 1: in Fraud Investigation (flagging transactions) ──
+        {
+            "_id": "CCS-001", "case_type_id": "ct-cc-stolen", "case_type_name": "Credit Card Stolen Transaction",
+            "title": "Stolen Visa - Emily Chen", "status": "in_progress", "priority": "high",
+            "owner_id": "user-2", "team_id": "team-1",
+            "custom_fields": {"cardholderName": "Emily Chen", "cardLastFour": "4829", "cardType": "Visa",
+                              "totalDisputedAmount": 3475.50, "fraudConfirmed": False, "replacementCardIssued": True},
+            "current_stage_id": "stg-investigate", "current_process_id": "proc-review-txns",
+            "current_step_id": "stp-flag-transactions",
+            "stages": [
+                _rt_stage("stg-report", "Report & Card Block", 1, [
+                    _rt_proc("proc-report-incident", "Report Incident", 1, [
+                        _rt_step("stp-incident-details", "Incident Details", "assignment", 1,
+                                 status="completed", started_at="2026-03-20T08:30:00Z",
+                                 completed_at="2026-03-20T09:15:00Z", assigned_to="user-2"),
+                        _rt_step("stp-block-card", "Block Card & Issue Replacement", "automation", 2,
+                                 status="completed", started_at="2026-03-20T09:15:00Z",
+                                 completed_at="2026-03-20T09:15:00Z"),
+                    ], status="completed", started_at="2026-03-20T08:30:00Z",
+                       completed_at="2026-03-20T09:15:00Z"),
+                ], status="completed", entered_at="2026-03-20T08:30:00Z",
+                   completed_at="2026-03-20T09:15:00Z", completed_by="user-2"),
+                _rt_stage("stg-investigate", "Fraud Investigation", 2, [
+                    _rt_proc("proc-review-txns", "Review Transactions", 1, [
+                        _rt_step("stp-flag-transactions", "Flag Unauthorized Transactions", "assignment", 1,
+                                 status="in_progress", started_at="2026-03-20T09:15:00Z",
+                                 assigned_to="user-2"),
+                        _rt_step("stp-upload-evidence", "Upload Supporting Evidence", "attachment", 2),
+                    ], status="in_progress", started_at="2026-03-20T09:15:00Z"),
+                    _rt_proc("proc-fraud-decision", "Fraud Determination", 2, [
+                        _rt_step("stp-fraud-decision", "Fraud Determination", "decision", 1),
+                        _rt_step("stp-mgr-review", "Manager Fraud Review", "approval", 2),
+                        _rt_step("stp-senior-review", "Senior Fraud Review", "approval", 3),
+                    ]),
+                ], status="in_progress", entered_at="2026-03-20T09:15:00Z"),
+                _rt_stage("stg-resolution", "Resolution & Refund", 3, [
+                    _rt_proc("proc-refund", "Process Refund", 1, [
+                        _rt_step("stp-process-refund", "Issue Provisional Credit", "assignment", 1),
+                        _rt_step("stp-close-notify", "Send Resolution Notification", "automation", 2),
+                    ]),
+                ], on_complete="resolve_case", resolution_status="resolved_completed"),
+            ],
+            "created_by": "user-2", "created_at": "2026-03-20T08:30:00Z", "updated_at": now,
+            "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
+            "sla_target_date": sla_15, "sla_days_remaining": 12, "escalation_level": 0,
+        },
+
+        # ── Stolen card case 2: in Resolution (issuing refund) — high value ──
+        {
+            "_id": "CCS-002", "case_type_id": "ct-cc-stolen", "case_type_name": "Credit Card Stolen Transaction",
+            "title": "Stolen Amex - Marcus Williams", "status": "in_progress", "priority": "critical",
+            "owner_id": "user-1", "team_id": "team-1",
+            "custom_fields": {"cardholderName": "Marcus Williams", "cardLastFour": "9102", "cardType": "Amex",
+                              "totalDisputedAmount": 12890.00, "fraudConfirmed": True, "replacementCardIssued": True},
+            "current_stage_id": "stg-resolution", "current_process_id": "proc-refund",
+            "current_step_id": "stp-process-refund",
+            "stages": [
+                _rt_stage("stg-report", "Report & Card Block", 1, [
+                    _rt_proc("proc-report-incident", "Report Incident", 1, [
+                        _rt_step("stp-incident-details", "Incident Details", "assignment", 1,
+                                 status="completed", started_at="2026-03-10T14:00:00Z",
+                                 completed_at="2026-03-10T14:45:00Z", assigned_to="user-3"),
+                        _rt_step("stp-block-card", "Block Card & Issue Replacement", "automation", 2,
+                                 status="completed", started_at="2026-03-10T14:45:00Z",
+                                 completed_at="2026-03-10T14:45:00Z"),
+                    ], status="completed", started_at="2026-03-10T14:00:00Z",
+                       completed_at="2026-03-10T14:45:00Z"),
+                ], status="completed", entered_at="2026-03-10T14:00:00Z",
+                   completed_at="2026-03-10T14:45:00Z", completed_by="user-3"),
+                _rt_stage("stg-investigate", "Fraud Investigation", 2, [
+                    _rt_proc("proc-review-txns", "Review Transactions", 1, [
+                        _rt_step("stp-flag-transactions", "Flag Unauthorized Transactions", "assignment", 1,
+                                 status="completed", started_at="2026-03-10T14:45:00Z",
+                                 completed_at="2026-03-12T10:00:00Z", assigned_to="user-2"),
+                        _rt_step("stp-upload-evidence", "Upload Supporting Evidence", "attachment", 2,
+                                 status="completed", started_at="2026-03-12T10:00:00Z",
+                                 completed_at="2026-03-13T16:00:00Z"),
+                    ], status="completed", started_at="2026-03-10T14:45:00Z",
+                       completed_at="2026-03-13T16:00:00Z"),
+                    _rt_proc("proc-fraud-decision", "Fraud Determination", 2, [
+                        _rt_step("stp-fraud-decision", "Fraud Determination", "decision", 1,
+                                 status="completed", started_at="2026-03-13T16:00:00Z",
+                                 completed_at="2026-03-13T16:00:00Z"),
+                        _rt_step("stp-mgr-review", "Manager Fraud Review", "approval", 2,
+                                 status="skipped"),
+                        _rt_step("stp-senior-review", "Senior Fraud Review", "approval", 3,
+                                 status="completed", started_at="2026-03-13T16:00:00Z",
+                                 completed_at="2026-03-15T11:00:00Z", assigned_to="user-admin"),
+                    ], status="completed", started_at="2026-03-13T16:00:00Z",
+                       completed_at="2026-03-15T11:00:00Z"),
+                ], status="completed", entered_at="2026-03-10T14:45:00Z",
+                   completed_at="2026-03-15T11:00:00Z", completed_by="user-admin"),
+                _rt_stage("stg-resolution", "Resolution & Refund", 3, [
+                    _rt_proc("proc-refund", "Process Refund", 1, [
+                        _rt_step("stp-process-refund", "Issue Provisional Credit", "assignment", 1,
+                                 status="in_progress", started_at="2026-03-15T11:00:00Z",
+                                 assigned_to="user-1"),
+                        _rt_step("stp-close-notify", "Send Resolution Notification", "automation", 2),
+                    ], status="in_progress", started_at="2026-03-15T11:00:00Z"),
+                ], status="in_progress", entered_at="2026-03-15T11:00:00Z",
+                   on_complete="resolve_case", resolution_status="resolved_completed"),
+            ],
+            "created_by": "user-1", "created_at": "2026-03-10T14:00:00Z", "updated_at": now,
+            "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
+            "sla_target_date": sla_15, "sla_days_remaining": 3, "escalation_level": 1,
+        },
+
+        # ── Dispute case 1: in Investigation stage (verifying charge) ──
+        {
+            "_id": "CCD-001", "case_type_id": "ct-cc-dispute", "case_type_name": "Credit Card Dispute Transaction",
+            "title": "Dispute - Undelivered Electronics (Lisa Park)", "status": "in_progress", "priority": "medium",
+            "owner_id": "user-3", "team_id": "team-1",
+            "custom_fields": {"cardholderName": "Lisa Park", "cardLastFour": "7713", "merchantName": "TechGadgets Online",
+                              "disputedAmount": 649.99, "disputeReason": "Goods not received",
+                              "merchantResponded": False, "chargebackIssued": False},
+            "current_stage_id": "stg-review", "current_process_id": "proc-investigate",
+            "current_step_id": "stp-verify-charge",
+            "stages": [
+                _rt_stage("stg-intake", "Dispute Intake", 1, [
+                    _rt_proc("proc-file-dispute", "File Dispute", 1, [
+                        _rt_step("stp-dispute-form", "Dispute Details", "assignment", 1,
+                                 status="completed", started_at="2026-03-22T11:00:00Z",
+                                 completed_at="2026-03-22T11:40:00Z", assigned_to="user-3"),
+                        _rt_step("stp-upload-docs", "Upload Supporting Documents", "attachment", 2,
+                                 status="completed", started_at="2026-03-22T11:40:00Z",
+                                 completed_at="2026-03-23T09:00:00Z"),
+                    ], status="completed", started_at="2026-03-22T11:00:00Z",
+                       completed_at="2026-03-23T09:00:00Z"),
+                ], status="completed", entered_at="2026-03-22T11:00:00Z",
+                   completed_at="2026-03-23T09:00:00Z", completed_by="user-3"),
+                _rt_stage("stg-review", "Investigation & Merchant Contact", 2, [
+                    _rt_proc("proc-investigate", "Investigate Dispute", 1, [
+                        _rt_step("stp-verify-charge", "Verify Charge Details", "assignment", 1,
+                                 status="in_progress", started_at="2026-03-23T09:00:00Z",
+                                 assigned_to="user-2"),
+                    ], status="in_progress", started_at="2026-03-23T09:00:00Z"),
+                    _rt_proc("proc-dispute-decision", "Dispute Decision", 2, [
+                        _rt_step("stp-dispute-route", "Dispute Routing", "decision", 1),
+                        _rt_step("stp-mgr-approval", "Manager Dispute Approval", "approval", 2),
+                        _rt_step("stp-senior-approval", "Senior Dispute Approval", "approval", 3),
+                    ]),
+                ], status="in_progress", entered_at="2026-03-23T09:00:00Z"),
+                _rt_stage("stg-chargeback", "Chargeback & Resolution", 3, [
+                    _rt_proc("proc-chargeback", "Process Chargeback", 1, [
+                        _rt_step("stp-issue-chargeback", "Issue Chargeback", "assignment", 1),
+                        _rt_step("stp-resolve-notify", "Send Resolution Notification", "automation", 2),
+                    ]),
+                ], on_complete="resolve_case", resolution_status="resolved_completed"),
+            ],
+            "created_by": "user-3", "created_at": "2026-03-22T11:00:00Z", "updated_at": now,
+            "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
+            "sla_target_date": sla_30, "sla_days_remaining": 22, "escalation_level": 0,
+        },
+
+        # ── Dispute case 2: in Chargeback stage (high-value, issuing chargeback) ──
+        {
+            "_id": "CCD-002", "case_type_id": "ct-cc-dispute", "case_type_name": "Credit Card Dispute Transaction",
+            "title": "Dispute - Wrong Charge Amount (James Rivera)", "status": "in_progress", "priority": "high",
+            "owner_id": "user-1", "team_id": "team-1",
+            "custom_fields": {"cardholderName": "James Rivera", "cardLastFour": "3356", "merchantName": "Luxury Stays Hotel",
+                              "disputedAmount": 2875.00, "disputeReason": "Billing error / wrong amount",
+                              "merchantResponded": True, "chargebackIssued": False},
+            "current_stage_id": "stg-chargeback", "current_process_id": "proc-chargeback",
+            "current_step_id": "stp-issue-chargeback",
+            "stages": [
+                _rt_stage("stg-intake", "Dispute Intake", 1, [
+                    _rt_proc("proc-file-dispute", "File Dispute", 1, [
+                        _rt_step("stp-dispute-form", "Dispute Details", "assignment", 1,
+                                 status="completed", started_at="2026-03-05T10:00:00Z",
+                                 completed_at="2026-03-05T10:30:00Z", assigned_to="user-2"),
+                        _rt_step("stp-upload-docs", "Upload Supporting Documents", "attachment", 2,
+                                 status="completed", started_at="2026-03-05T10:30:00Z",
+                                 completed_at="2026-03-06T14:00:00Z"),
+                    ], status="completed", started_at="2026-03-05T10:00:00Z",
+                       completed_at="2026-03-06T14:00:00Z"),
+                ], status="completed", entered_at="2026-03-05T10:00:00Z",
+                   completed_at="2026-03-06T14:00:00Z", completed_by="user-2"),
+                _rt_stage("stg-review", "Investigation & Merchant Contact", 2, [
+                    _rt_proc("proc-investigate", "Investigate Dispute", 1, [
+                        _rt_step("stp-verify-charge", "Verify Charge Details", "assignment", 1,
+                                 status="completed", started_at="2026-03-06T14:00:00Z",
+                                 completed_at="2026-03-10T16:00:00Z", assigned_to="user-3"),
+                    ], status="completed", started_at="2026-03-06T14:00:00Z",
+                       completed_at="2026-03-10T16:00:00Z"),
+                    _rt_proc("proc-dispute-decision", "Dispute Decision", 2, [
+                        _rt_step("stp-dispute-route", "Dispute Routing", "decision", 1,
+                                 status="completed", started_at="2026-03-10T16:00:00Z",
+                                 completed_at="2026-03-10T16:00:00Z"),
+                        _rt_step("stp-mgr-approval", "Manager Dispute Approval", "approval", 2,
+                                 status="completed", started_at="2026-03-10T16:00:00Z",
+                                 completed_at="2026-03-12T10:00:00Z", assigned_to="user-1"),
+                        _rt_step("stp-senior-approval", "Senior Dispute Approval", "approval", 3,
+                                 status="skipped"),
+                    ], status="completed", started_at="2026-03-10T16:00:00Z",
+                       completed_at="2026-03-12T10:00:00Z"),
+                ], status="completed", entered_at="2026-03-06T14:00:00Z",
+                   completed_at="2026-03-12T10:00:00Z", completed_by="user-1"),
+                _rt_stage("stg-chargeback", "Chargeback & Resolution", 3, [
+                    _rt_proc("proc-chargeback", "Process Chargeback", 1, [
+                        _rt_step("stp-issue-chargeback", "Issue Chargeback", "assignment", 1,
+                                 status="in_progress", started_at="2026-03-12T10:00:00Z",
+                                 assigned_to="user-1"),
+                        _rt_step("stp-resolve-notify", "Send Resolution Notification", "automation", 2),
+                    ], status="in_progress", started_at="2026-03-12T10:00:00Z"),
+                ], status="in_progress", entered_at="2026-03-12T10:00:00Z",
+                   on_complete="resolve_case", resolution_status="resolved_completed"),
+            ],
+            "created_by": "user-1", "created_at": "2026-03-05T10:00:00Z", "updated_at": now,
+            "resolved_at": None, "resolution_status": None, "parent_case_id": None, "parent_step_id": None,
+            "sla_target_date": sla_20, "sla_days_remaining": 6, "escalation_level": 0,
+        },
     ]
     await db.cases.insert_many(cases)
 
@@ -1816,6 +2245,38 @@ async def _insert_all(db):
          "step_type": "assignment", "assigned_to": "user-2", "assigned_role": "WORKER",
          "status": "in_progress", "priority": "medium",
          "created_at": "2026-02-05T09:00:00Z", "due_at": "2026-02-07T09:00:00Z",
+         "completed_at": None, "completed_by": None},
+        # CCS-001: stp-flag-transactions assigned to Bob
+        {"_id": "asgn-10", "case_id": "CCS-001", "case_type_id": "ct-cc-stolen",
+         "stage_id": "stg-investigate", "process_id": "proc-review-txns",
+         "step_definition_id": "stp-flag-transactions", "step_name": "Flag Unauthorized Transactions",
+         "step_type": "assignment", "assigned_to": "user-2", "assigned_role": "WORKER",
+         "status": "in_progress", "priority": "high",
+         "created_at": "2026-03-20T09:15:00Z", "due_at": "2026-03-22T09:15:00Z",
+         "completed_at": None, "completed_by": None},
+        # CCS-002: stp-process-refund assigned to Alice
+        {"_id": "asgn-11", "case_id": "CCS-002", "case_type_id": "ct-cc-stolen",
+         "stage_id": "stg-resolution", "process_id": "proc-refund",
+         "step_definition_id": "stp-process-refund", "step_name": "Issue Provisional Credit",
+         "step_type": "assignment", "assigned_to": "user-1", "assigned_role": "MANAGER",
+         "status": "in_progress", "priority": "critical",
+         "created_at": "2026-03-15T11:00:00Z", "due_at": "2026-03-16T11:00:00Z",
+         "completed_at": None, "completed_by": None},
+        # CCD-001: stp-verify-charge assigned to Bob
+        {"_id": "asgn-12", "case_id": "CCD-001", "case_type_id": "ct-cc-dispute",
+         "stage_id": "stg-review", "process_id": "proc-investigate",
+         "step_definition_id": "stp-verify-charge", "step_name": "Verify Charge Details",
+         "step_type": "assignment", "assigned_to": "user-2", "assigned_role": "WORKER",
+         "status": "in_progress", "priority": "medium",
+         "created_at": "2026-03-23T09:00:00Z", "due_at": "2026-03-28T09:00:00Z",
+         "completed_at": None, "completed_by": None},
+        # CCD-002: stp-issue-chargeback assigned to Alice
+        {"_id": "asgn-13", "case_id": "CCD-002", "case_type_id": "ct-cc-dispute",
+         "stage_id": "stg-chargeback", "process_id": "proc-chargeback",
+         "step_definition_id": "stp-issue-chargeback", "step_name": "Issue Chargeback",
+         "step_type": "assignment", "assigned_to": "user-1", "assigned_role": "MANAGER",
+         "status": "in_progress", "priority": "high",
+         "created_at": "2026-03-12T10:00:00Z", "due_at": "2026-03-13T10:00:00Z",
          "completed_at": None, "completed_by": None},
     ]
     await db.assignments.insert_many(assignments)

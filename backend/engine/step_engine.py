@@ -117,6 +117,11 @@ async def activate_step(case_id: str, stage_id: str, process_id: str,
 
     result = await handler.activate(case, stage_id, process_id, step_with_config, case_type_def or {}, db)
 
+    # Persist approval_chain_id back onto the step when an approval is created
+    if result.get("approval_chain_id"):
+        await _update_step_extras(case_id, stage_id, process_id, step_def_id,
+                                  {"approval_chain_id": result["approval_chain_id"]}, now, db)
+
     # Handle auto-completing steps (decision, automation)
     if result.get("auto_complete"):
         # Record decision branch if applicable

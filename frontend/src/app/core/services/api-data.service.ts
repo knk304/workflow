@@ -152,6 +152,7 @@ export class ApiDataService extends DataService {
     return {
       userId: raw.user_id ?? raw.userId ?? '',
       userName: raw.user_name ?? raw.userName ?? undefined,
+      userRole: raw.user_role ?? raw.userRole ?? undefined,
       status: raw.status ?? 'pending',
       decidedAt: raw.decision_at ?? raw.decidedAt ?? undefined,
       comment: raw.decision_notes ?? raw.comment ?? undefined,
@@ -218,6 +219,12 @@ export class ApiDataService extends DataService {
       delegate_to: delegation.delegateTo,
       notes: delegation.comment,
     }).pipe(
+      map(item => this.mapApprovalChain(item))
+    );
+  }
+
+  claimApproval(id: string): Observable<ApprovalChain> {
+    return this.http.post<any>(`${this.caseUrl}/approvals/${id}/claim`, {}).pipe(
       map(item => this.mapApprovalChain(item))
     );
   }

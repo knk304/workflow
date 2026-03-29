@@ -39,7 +39,7 @@ async def _to_response(doc: dict, db=None) -> ApprovalChainResponse:
     approvers = []
     for a in doc.get("approvers", []):
         approver = Approver(**a)
-        if db is not None and not approver.user_name:
+        if db is not None and approver.user_id and not approver.user_name:
             approver.user_name = await _resolve_user_name(db, approver.user_id)
         approvers.append(approver)
 
@@ -263,6 +263,38 @@ async def delegate(approval_id: str, body: ApprovalDelegation, user: dict = Depe
 
     await log_approval_delegated(db, doc["case_id"], approval_id,
                                   user_id, body.delegate_to, user)
+
+    updated_doc = await find_by_id(db.approval_chains, approval_id)
+    return await _to_response(updated_doc, db)
+
+
+@router.post("/{approval_id}/claim", response_model=ApprovalChainResponse)
+async def claim(approval_id: str, user: dict = Depends(get_current_user)):
+    """Self-assign a role-based pending approver slot to the current user."""
+    db = get_db()
+    doc = await find_by_id(db.approval_chains, approval_id)
+    if not doc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Approval chain not found")
+
+    user_id = str(user["_id"])
+    user_role = user.get("role", "")
+    approvers = doc.get("approvers", [])
+
+    claimed = False
+    for a in approvers:
+        if a["status"] == "pending" and a.get("user_id") is None:
+            role_required = a.get("user_role", "")
+            if not role_required or user_role == role_required or user_role == "ADMIN":
+                a["user_id"] = user_id
+                claimed = True
+                break
+
+    if not claimed:
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            "No unassigned pending slot available for your role")
+
+    await update_by_id(db.approval_chains, approval_id,
+                       {"$set": {"approvers": approvers}})
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
     return await _to_response(updated_doc, db)

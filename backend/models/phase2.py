@@ -19,8 +19,9 @@ class ApprovalMode(str, Enum):
 
 
 class Approver(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     user_name: Optional[str] = None
+    user_role: Optional[str] = None
     sequence: int = 0
     status: ApprovalStatus = ApprovalStatus.pending
     delegated_to: Optional[str] = None

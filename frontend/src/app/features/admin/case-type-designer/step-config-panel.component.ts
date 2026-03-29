@@ -11,6 +11,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialog } from '@angular/material/dialog';
+import { StepFormBuilderDialogComponent, StepFormBuilderDialogData } from './step-form-builder-dialog.component';
 import {
   StepDefinition,
   StepType,
@@ -59,6 +61,11 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
       border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 12px;
+    }
+    .panel-scroll > div {
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #f1f5f9;
     }
   `],
   template: `
@@ -185,132 +192,6 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
               </mat-form-field>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
-                <mat-label>Form</mat-label>
-                <mat-select [(ngModel)]="step.config.formId" (ngModelChange)="emitChange()">
-                  <mat-option [value]="null">— None —</mat-option>
-                  @for (form of formDefinitions; track form.id) {
-                    <mat-option [value]="form.id">{{ form.name }}</mat-option>
-                  }
-                </mat-select>
-                <mat-hint>Select a saved form, or add inline fields below</mat-hint>
-              </mat-form-field>
-
-              <!-- Inline Form Fields Editor -->
-              <div class="border border-gray-200 rounded">
-                <div class="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded-t border-b border-gray-200 cursor-pointer"
-                     (click)="showFormFields = !showFormFields">
-                  <span class="text-xs font-semibold text-gray-600 flex items-center gap-1">
-                    <mat-icon class="!text-sm">dynamic_form</mat-icon>
-                    Inline Form Fields ({{ (step.config.formFields || []).length }})
-                  </span>
-                  <mat-icon class="!text-base text-gray-400">{{ showFormFields ? 'expand_less' : 'expand_more' }}</mat-icon>
-                </div>
-                @if (showFormFields) {
-                  <div class="p-2 space-y-2">
-                    @for (field of step.config.formFields || []; track $index; let fi = $index) {
-                      <div class="border border-gray-200 rounded p-2 space-y-1 bg-white">
-                        <div class="flex items-center justify-between">
-                          <span class="text-xs font-medium text-gray-500">Field {{ fi + 1 }}</span>
-                          <button mat-icon-button class="!w-5 !h-5" (click)="removeFormField(fi)">
-                            <mat-icon class="!text-sm text-gray-400 hover:text-red-500">close</mat-icon>
-                          </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5">
-                          <mat-form-field class="col-span-2" subscriptSizing="dynamic">
-                            <mat-label>Label</mat-label>
-                            <input matInput [(ngModel)]="field.label" (ngModelChange)="emitChange()">
-                          </mat-form-field>
-                          <mat-form-field subscriptSizing="dynamic">
-                            <mat-label>Type</mat-label>
-                            <mat-select [(ngModel)]="field.type" (ngModelChange)="emitChange()">
-                              <mat-option value="text">Text</mat-option>
-                              <mat-option value="textarea">Text Area</mat-option>
-                              <mat-option value="number">Number</mat-option>
-                              <mat-option value="date">Date</mat-option>
-                              <mat-option value="select">Dropdown</mat-option>
-                              <mat-option value="checkbox">Checkbox</mat-option>
-                              <mat-option value="radio">Radio</mat-option>
-                              <mat-option value="file">File</mat-option>
-                            </mat-select>
-                          </mat-form-field>
-                          <mat-form-field subscriptSizing="dynamic">
-                            <mat-label>Placeholder</mat-label>
-                            <input matInput [(ngModel)]="field.placeholder" (ngModelChange)="emitChange()">
-                          </mat-form-field>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <mat-slide-toggle [checked]="field.validation.required" (change)="toggleFieldRequired(fi, $event.checked)">
-                            Required
-                          </mat-slide-toggle>
-                        </div>
-                        @if (field.type === 'select' || field.type === 'radio') {
-                          <mat-form-field class="w-full" subscriptSizing="dynamic">
-                            <mat-label>Options (comma-separated)</mat-label>
-                            <input matInput [ngModel]="(field.validation.options || []).join(', ')" (ngModelChange)="updateFieldOptions(fi, $event)">
-                          </mat-form-field>
-                        }
-                        @if (field.type === 'text' || field.type === 'textarea') {
-                          <div class="grid grid-cols-2 gap-1.5">
-                            <mat-form-field subscriptSizing="dynamic">
-                              <mat-label>Min Length</mat-label>
-                              <input matInput type="number" [ngModel]="field.validation.minLength" (ngModelChange)="updateFieldValidation(fi, 'minLength', $event)" min="0">
-                            </mat-form-field>
-                            <mat-form-field subscriptSizing="dynamic">
-                              <mat-label>Max Length</mat-label>
-                              <input matInput type="number" [ngModel]="field.validation.maxLength" (ngModelChange)="updateFieldValidation(fi, 'maxLength', $event)" min="0">
-                            </mat-form-field>
-                          </div>
-                        }
-                        @if (field.type === 'number') {
-                          <div class="grid grid-cols-2 gap-1.5">
-                            <mat-form-field subscriptSizing="dynamic">
-                              <mat-label>Min Value</mat-label>
-                              <input matInput type="number" [ngModel]="field.validation.minValue" (ngModelChange)="updateFieldValidation(fi, 'minValue', $event)">
-                            </mat-form-field>
-                            <mat-form-field subscriptSizing="dynamic">
-                              <mat-label>Max Value</mat-label>
-                              <input matInput type="number" [ngModel]="field.validation.maxValue" (ngModelChange)="updateFieldValidation(fi, 'maxValue', $event)">
-                            </mat-form-field>
-                          </div>
-                        }
-                      </div>
-                    }
-                    <div class="flex gap-1.5">
-                      <button mat-stroked-button class="!text-xs !py-0 !min-h-[28px]" [matMenuTriggerFor]="addFieldMenu">
-                        <mat-icon class="!text-sm mr-1">add</mat-icon> Add Field
-                      </button>
-                      <mat-menu #addFieldMenu="matMenu">
-                        <button mat-menu-item (click)="addFormField('text')">
-                          <mat-icon>text_fields</mat-icon> Text
-                        </button>
-                        <button mat-menu-item (click)="addFormField('textarea')">
-                          <mat-icon>notes</mat-icon> Text Area
-                        </button>
-                        <button mat-menu-item (click)="addFormField('number')">
-                          <mat-icon>pin</mat-icon> Number
-                        </button>
-                        <button mat-menu-item (click)="addFormField('date')">
-                          <mat-icon>calendar_today</mat-icon> Date
-                        </button>
-                        <button mat-menu-item (click)="addFormField('select')">
-                          <mat-icon>arrow_drop_down_circle</mat-icon> Dropdown
-                        </button>
-                        <button mat-menu-item (click)="addFormField('checkbox')">
-                          <mat-icon>check_box</mat-icon> Checkbox
-                        </button>
-                        <button mat-menu-item (click)="addFormField('radio')">
-                          <mat-icon>radio_button_checked</mat-icon> Radio
-                        </button>
-                        <button mat-menu-item (click)="addFormField('file')">
-                          <mat-icon>attach_file</mat-icon> File Upload
-                        </button>
-                      </mat-menu>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Instructions</mat-label>
                 <textarea matInput [(ngModel)]="step.config.instructions" (ngModelChange)="emitChange()" rows="2"></textarea>
               </mat-form-field>
@@ -324,6 +205,95 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
                   <mat-option value="pending">Pending</mat-option>
                 </mat-select>
               </mat-form-field>
+
+              <!-- ── Form Source ── -->
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                  <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <mat-icon class="!text-sm text-indigo-500">dynamic_form</mat-icon>
+                    Form Configuration
+                  </span>
+                </div>
+                <div class="p-3 space-y-3">
+                  <!-- Option 1: Saved Form -->
+                  <div class="border rounded-lg p-3 transition-colors cursor-pointer"
+                       [ngClass]="step.config.formId ? 'border-indigo-300 bg-indigo-50/50' : 'border-gray-200 hover:border-gray-300'"
+                       (click)="step.config.formFields = []; emitChange()">
+                    <div class="flex items-center gap-2 mb-2">
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center"
+                           [ngClass]="step.config.formId ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-400'">
+                        <mat-icon class="!text-sm">description</mat-icon>
+                      </div>
+                      <div>
+                        <p class="text-xs font-semibold text-gray-700">Use Saved Form</p>
+                        <p class="text-[10px] text-gray-400">Select from previously created form definitions</p>
+                      </div>
+                    </div>
+                    <mat-form-field class="w-full" subscriptSizing="dynamic">
+                      <mat-label>Form Definition</mat-label>
+                      <mat-select [(ngModel)]="step.config.formId" (ngModelChange)="onFormSourceChange('saved')">
+                        <mat-option [value]="null">— None —</mat-option>
+                        @for (form of formDefinitions; track form.id) {
+                          <mat-option [value]="form.id">
+                            <span class="flex items-center gap-2">
+                              <mat-icon class="!text-base text-indigo-400">description</mat-icon>
+                              {{ form.name }}
+                              <span class="text-[10px] text-gray-400">· {{ form.fields.length }} fields</span>
+                            </span>
+                          </mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1 border-t border-gray-200"></div>
+                    <span class="text-[10px] font-semibold text-gray-400 uppercase">or</span>
+                    <div class="flex-1 border-t border-gray-200"></div>
+                  </div>
+
+                  <!-- Option 2: Custom Form Builder -->
+                  <div class="border rounded-lg p-3 transition-colors"
+                       [ngClass]="(step.config.formFields || []).length > 0 ? 'border-emerald-300 bg-emerald-50/50' : 'border-gray-200'">
+                    <div class="flex items-center gap-2 mb-2">
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center"
+                           [ngClass]="(step.config.formFields || []).length > 0 ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400'">
+                        <mat-icon class="!text-sm">build</mat-icon>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-xs font-semibold text-gray-700">Custom Form Fields</p>
+                        <p class="text-[10px] text-gray-400">Build form fields with the visual form builder</p>
+                      </div>
+                    </div>
+                    @if ((step.config.formFields || []).length > 0) {
+                      <div class="mb-2 space-y-1">
+                        @for (field of step.config.formFields; track field.id; let fi = $index) {
+                          <div class="flex items-center gap-2 px-2 py-1.5 bg-white rounded border border-gray-100 text-xs">
+                            <span class="text-[10px] text-gray-300 font-mono w-4 text-right">{{ fi + 1 }}</span>
+                            <mat-icon class="!text-sm text-emerald-500">{{ formFieldIcon(field.type) }}</mat-icon>
+                            <span class="font-medium text-gray-700 flex-1 truncate">{{ field.label }}</span>
+                            <span class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{{ field.type }}</span>
+                            @if (field.validation.required) {
+                              <span class="text-[10px] text-red-500 font-bold">*</span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                    <div class="flex gap-2">
+                      <button mat-stroked-button class="!text-xs !h-8 flex-1" (click)="openFormBuilder()">
+                        <mat-icon class="!text-sm mr-1">edit</mat-icon>
+                        {{ (step.config.formFields || []).length > 0 ? 'Edit Fields' : 'Open Form Builder' }}
+                      </button>
+                      @if ((step.config.formFields || []).length > 0) {
+                        <button mat-stroked-button color="warn" class="!text-xs !h-8" (click)="step.config.formFields = []; emitChange()">
+                          <mat-icon class="!text-sm">delete_outline</mat-icon>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
               </div>
             </div>
           }
@@ -715,6 +685,7 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
   }
 
   private dataService = inject(DataService);
+  private dialog = inject(MatDialog);
   formDefinitions: FormDefinition[] = [];
   decisionTables: DecisionTable[] = [];
 
@@ -928,7 +899,45 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
     this.emitChange();
   }
 
-  // --- Inline Form Fields ---
+  // --- Form Builder Modal ---
+  openFormBuilder(): void {
+    const dialogRef = this.dialog.open(StepFormBuilderDialogComponent, {
+      data: {
+        stepName: this.step.name,
+        fields: this.step.config.formFields || [],
+      } as StepFormBuilderDialogData,
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+    });
+    dialogRef.afterClosed().subscribe((fields: FormField[] | null) => {
+      if (fields) {
+        this.step.config.formFields = fields;
+        this.step.config.formId = undefined;
+        this.emitChange();
+      }
+    });
+  }
+
+  onFormSourceChange(source: 'saved'): void {
+    if (source === 'saved' && this.step.config.formId) {
+      this.step.config.formFields = [];
+    }
+    this.emitChange();
+  }
+
+  formFieldIcon(type: string): string {
+    const map: Record<string, string> = {
+      text: 'short_text', textarea: 'notes', number: 'pin',
+      date: 'calendar_today', select: 'arrow_drop_down_circle',
+      radio: 'radio_button_checked', checkbox: 'check_box',
+      file: 'attach_file', grid: 'grid_view',
+    };
+    return map[type] || 'text_fields';
+  }
+
+  // --- Inline Form Fields (kept for backward compat) ---
   addFormField(type: string): void {
     this.step.config.formFields = this.step.config.formFields || [];
     const idx = this.step.config.formFields.length;

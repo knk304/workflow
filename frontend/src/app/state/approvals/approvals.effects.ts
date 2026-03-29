@@ -78,5 +78,17 @@ export class ApprovalsEffects {
     )
   );
 
+  claimApproval$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ApprovalsActions.claimApproval),
+      mergeMap(({ id }) =>
+        this.dataService.claimApproval(id).pipe(
+          map(approval => ApprovalsActions.claimApprovalSuccess({ approval })),
+          catchError(error => of(ApprovalsActions.claimApprovalFailure({ error: error.message })))
+        )
+      )
+    )
+  );
+
   constructor(private actions$: Actions, private dataService: DataService) {}
 }
