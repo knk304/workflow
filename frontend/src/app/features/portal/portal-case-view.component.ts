@@ -27,6 +27,7 @@ import { AiSummaryCardComponent } from '@features/ai/summary-card/ai-summary-car
 import { RecommendationSidebarComponent } from '@features/ai/recommendation-sidebar/recommendation-sidebar.component';
 import { RiskSidebarComponent } from '@features/ai/risk-sidebar/risk-sidebar.component';
 import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-sidebar.component';
+import { OutcomeReportComponent } from '@features/portal/outcome-report/outcome-report.component';
 
 @Component({
   selector: 'app-portal-case-view',
@@ -48,6 +49,7 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
     RecommendationSidebarComponent,
     RiskSidebarComponent,
     RoutingSidebarComponent,
+    OutcomeReportComponent,
   ],
   template: `
     @if (isLoading) {
@@ -276,8 +278,8 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
 
         <!-- ========== MAIN CONTENT ========== -->
         <div class="flex-1 min-w-0 flex flex-col bg-slate-50">
-          <!-- Stage Chevron Bar -->
-          @if (c.stages && c.stages.length > 0) {
+          <!-- Stage Chevron Bar — hidden when case is fully closed -->
+          @if (c.stages && c.stages.length > 0 && !isCaseCompleted()) {
             <div class="bg-white border-b border-slate-200 px-6 py-3">
               <div class="flex items-center gap-2">
                 <!-- Old chevron stage style (commented out)
@@ -331,61 +333,65 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
 
           <!-- Step Content Area -->
           <div class="flex-1 overflow-y-auto px-6 py-5">
-            @if (currentStage(); as stage) {
-              <!-- Current step assignment header -->
-              @if (currentStepObj(stage); as curStep) {
-                <div class="flex items-center gap-3 mb-4">
-                  <div class="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold">
-                    {{ (c.ownerId || 'U')[0].toUpperCase() }}
-                  </div>
-                  <div>
-                    <h2 class="text-lg font-bold text-slate-800">{{ curStep.name }}</h2>
-                    @if (curStep.slaTarget) {
-                      <p class="text-xs text-slate-500">Due {{ curStep.slaTarget | date:'medium' }}</p>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- SLA warning banner -->
-              @if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) {
-                <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <mat-icon class="text-red-500 !text-xl mt-0.5">warning</mat-icon>
-                  <div>
-                    <p class="text-sm font-semibold text-red-700">This case is overdue</p>
-                    <p class="text-xs text-red-600">Target date was {{ c.slaTargetDate | date:'medium' }}</p>
-                  </div>
-                </div>
-              }
-
-              <!-- Steps list grouped by process -->
-              @for (proc of stage.processes || []; track proc.processDefinitionId) {
-                @if ((stage.processes || []).length > 1) {
-                  <div class="flex items-center gap-2 mt-4 mb-2 first:mt-0">
-                    <div class="h-px flex-1 bg-slate-200"></div>
-                    <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">
-                      {{ proc.name }}
-                      @if (proc.status === 'completed') {
-                        <mat-icon class="!text-xs align-middle text-emerald-500 ml-0.5">check_circle</mat-icon>
-                      } @else if (proc.status === 'in_progress') {
-                        <mat-icon class="!text-xs align-middle text-blue-500 ml-0.5">pending</mat-icon>
+            @if (isCaseCompleted()) {
+              <!-- Closed case: show Case Report directly, no steps/chevron -->
+              <app-outcome-report [c]="c"></app-outcome-report>
+            } @else {
+              @if (currentStage(); as stage) {
+                <!-- Current step assignment header -->
+                @if (currentStepObj(stage); as curStep) {
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold">
+                      {{ (c.ownerId || 'U')[0].toUpperCase() }}
+                    </div>
+                    <div>
+                      <h2 class="text-lg font-bold text-slate-800">{{ curStep.name }}</h2>
+                      @if (curStep.slaTarget) {
+                        <p class="text-xs text-slate-500">Due {{ curStep.slaTarget | date:'medium' }}</p>
                       }
-                    </span>
-                    <div class="h-px flex-1 bg-slate-200"></div>
+                    </div>
                   </div>
                 }
-                <div class="space-y-3">
-                  @for (step of proc.steps || []; track step.stepDefinitionId) {
-                    <app-step-card
-                      [step]="step"
-                      [isCurrent]="isCurrentStep(step, stage)"
-                      [caseId]="c.id"
-                      [currentUser]="currentUser"
-                      (onComplete)="onCompleteStep($event)">
-                    </app-step-card>
+
+                <!-- SLA warning banner -->
+                @if (c.slaDaysRemaining != null && c.slaDaysRemaining < 0) {
+                  <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                    <mat-icon class="text-red-500 !text-xl mt-0.5">warning</mat-icon>
+                    <div>
+                      <p class="text-sm font-semibold text-red-700">This case is overdue</p>
+                      <p class="text-xs text-red-600">Target date was {{ c.slaTargetDate | date:'medium' }}</p>
+                    </div>
+                  </div>
+                }
+
+                <!-- Steps list grouped by process -->
+                @for (proc of stage.processes || []; track proc.processDefinitionId) {
+                  @if ((stage.processes || []).length > 1) {
+                    <div class="flex items-center gap-2 mt-4 mb-2 first:mt-0">
+                      <div class="h-px flex-1 bg-slate-200"></div>
+                      <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">
+                        {{ proc.name }}
+                        @if (proc.status === 'completed') {
+                          <mat-icon class="!text-xs align-middle text-emerald-500 ml-0.5">check_circle</mat-icon>
+                        } @else if (proc.status === 'in_progress') {
+                          <mat-icon class="!text-xs align-middle text-blue-500 ml-0.5">pending</mat-icon>
+                        }
+                      </span>
+                      <div class="h-px flex-1 bg-slate-200"></div>
+                    </div>
                   }
-                </div>
-              }
+                  <div class="space-y-3">
+                    @for (step of proc.steps || []; track step.stepDefinitionId) {
+                      <app-step-card
+                        [step]="step"
+                        [isCurrent]="isCurrentStep(step, stage)"
+                        [caseId]="c.id"
+                        [currentUser]="currentUser"
+                        (onComplete)="onCompleteStep($event)">
+                      </app-step-card>
+                    }
+                  </div>
+                }
 
                 <!-- Stage advancement prompt -->
                 @if (allStepsComplete(stage)) {
@@ -415,15 +421,27 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
                         <p class="text-sm font-semibold text-emerald-800">All steps complete — Case resolved</p>
                         <p class="text-xs text-emerald-600">This was the final stage of the case</p>
                       </div>
+                      @if (!reportVisible()) {
+                        <button mat-flat-button color="primary" (click)="scrollToReport()">
+                          <mat-icon class="mr-1">summarize</mat-icon> View Outcome Report
+                        </button>
+                      } @else {
+                        <button mat-button color="primary" (click)="reportVisible.set(false)">
+                          <mat-icon class="mr-1">expand_less</mat-icon> Collapse
+                        </button>
+                      }
                     </div>
+                    @if (reportVisible()) {
+                      <div id="case-report-section" class="mt-6 animate-fade-in">
+                        <app-outcome-report [c]="c"></app-outcome-report>
+                      </div>
+                    }
                   }
                 }
-            } @else {
-              <div class="text-center py-12 text-slate-400">
-                <mat-icon class="!text-5xl mb-2">check_circle_outline</mat-icon>
-                <p class="text-lg font-medium">All stages complete</p>
-                <p class="text-sm">This case has been processed through all stages</p>
-              </div>
+              } @else {
+                <!-- Case Report – shown when all stages are done but case not yet formally closed -->
+                <app-outcome-report [c]="c"></app-outcome-report>
+              }
             }
           </div>
         </div>
@@ -455,7 +473,7 @@ import { RoutingSidebarComponent } from '@features/ai/routing-sidebar/routing-si
 
             <!-- AI Components Stack -->
             <div class="px-4 py-3 divide-y divide-slate-100">
-              <!-- Case Summary -->
+              <!-- AI Summary -->
               <div class="pb-4">
                 <app-ai-summary-card [caseId]="c.id"></app-ai-summary-card>
               </div>
@@ -650,6 +668,7 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
   commentCount$: Observable<number> | null = null;
   sidebarWidth = signal(288); // default ~w-72
   aiPanelOpen = signal(false);
+  reportVisible = signal(false);
   private isResizing = false;
   private resizeStartX = 0;
   private resizeStartWidth = 288;
@@ -735,6 +754,21 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
     const steps = this.stepsForStage(stage);
     const idx = this.currentStepIndex(stage);
     return steps[idx] === step;
+  }
+
+  /** True when the case is in any terminal/closed state */
+  isCaseCompleted(): boolean {
+    return ['resolved_completed', 'resolved_cancelled', 'resolved_rejected', 'withdrawn']
+      .includes(this.c?.status ?? '');
+  }
+
+  /** Reveal the Case Report and scroll to it */
+  scrollToReport(): void {
+    this.reportVisible.set(true);
+    setTimeout(() => {
+      document.getElementById('case-report-section')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   }
 
   allStepsComplete(stage: StageInstance): boolean {
