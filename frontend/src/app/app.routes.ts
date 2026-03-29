@@ -22,6 +22,7 @@ import { PortalCaseCreateComponent } from './features/portal/portal-case-create.
 import { PortalCaseViewComponent } from './features/portal/portal-case-view.component';
 import { PortalWorklistComponent } from './features/portal/portal-worklist.component';
 import { PortalFlowListComponent } from './features/portal/portal-flow-list.component';
+import { PortalFlowCreateComponent } from './features/portal/portal-flow-create.component';
 import { PortalFlowRunnerComponent } from './features/portal/portal-flow-runner.component';
 import { PortalFlowSummaryComponent } from './features/portal/portal-flow-summary.component';
 
@@ -93,9 +94,10 @@ export const routes: Routes = [
           { path: 'cases/new', component: PortalCaseCreateComponent, data: { title: 'Create Case' } },
           { path: 'cases/:id', component: PortalCaseViewComponent, data: { title: 'Case View' } },
           { path: 'worklist', component: PortalWorklistComponent, data: { title: 'Worklist' } },
-          { path: 'flows', component: PortalFlowListComponent, data: { title: 'Flows' } },
+          { path: 'flows', component: PortalFlowListComponent, data: { title: 'All Requests' } },
+          { path: 'flows/new', component: PortalFlowCreateComponent, data: { title: 'Create Request' } },
           { path: 'flows/:execId/run', component: PortalFlowRunnerComponent, data: { title: 'Flow Runner' } },
-          { path: 'flows/:execId/summary', component: PortalFlowSummaryComponent, data: { title: 'Flow Summary' } },
+          { path: 'flows/:execId/summary', component: PortalFlowSummaryComponent, data: { title: 'Request Summary' } },
         ],
       },
       {

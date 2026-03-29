@@ -182,8 +182,12 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
           </a>
           <mat-divider></mat-divider>
           <a mat-menu-item routerLink="/portal/flows" routerLinkActive="menu-active">
-            <mat-icon>quiz</mat-icon>
-            <span>Run Flows</span>
+            <mat-icon>list_alt</mat-icon>
+            <span>All Requests</span>
+          </a>
+          <a mat-menu-item routerLink="/portal/flows/new" routerLinkActive="menu-active">
+            <mat-icon>add_circle_outline</mat-icon>
+            <span>Create Request</span>
           </a>
         </mat-menu>
 

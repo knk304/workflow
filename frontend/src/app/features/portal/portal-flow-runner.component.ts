@@ -13,7 +13,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from '@core/services/data.service';
 import {
   FlowDefinition, FlowExecution, FlowNode, FlowField,
@@ -28,418 +28,589 @@ import {
     MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatRadioModule, MatCheckboxModule, MatProgressBarModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatStepperModule,
+    MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
   ],
   template: `
-    <div class="max-w-3xl mx-auto py-4">
-      @if (loading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      } @else if (execution() && flowDef()) {
-        <!-- Header -->
-        <div class="mb-4">
-          <div class="flex items-center gap-2 mb-1">
-            <button mat-icon-button class="no-padding !w-8 !h-8" (click)="goToList()">
-              <mat-icon class="!text-lg">arrow_back</mat-icon>
-            </button>
-            <h1 class="text-lg font-bold text-slate-800">{{ flowDef()!.name }}</h1>
-          </div>
-          @if (flowDef()!.description) {
-            <p class="text-xs text-slate-500 ml-10">{{ flowDef()!.description }}</p>
-          }
-        </div>
+    @if (loading()) {
+      <div class="flex flex-col items-center justify-center h-64 gap-3">
+        <mat-progress-bar mode="indeterminate" class="w-64 rounded-full"></mat-progress-bar>
+        <p class="text-sm text-slate-400">Loading flow...</p>
+      </div>
+    } @else if (execution() && flowDef()) {
 
-        <!-- Progress -->
-        <div class="mb-4 px-2">
-          <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>Progress</span>
-            <span>{{ progressPercent() }}%</span>
+      <!-- ── Top Header Bar ── -->
+      <div class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30 -mx-5 px-5">
+        <div class="max-w-6xl mx-auto flex items-center gap-3 h-14">
+          <button mat-icon-button class="!w-8 !h-8 shrink-0" (click)="goToList()"
+                  matTooltip="Back to All Requests">
+            <mat-icon class="!text-lg text-slate-500">arrow_back</mat-icon>
+          </button>
+          <div class="w-px h-5 bg-slate-200 shrink-0"></div>
+          <div class="flex items-center gap-2.5 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-[#EAF4FB] flex items-center justify-center shrink-0">
+              <mat-icon class="!text-base text-[#056DAE]">account_tree</mat-icon>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-800 truncate">{{ flowDef()!.name }}</p>
+              @if (flowDef()!.category) {
+                <p class="text-[10px] text-slate-400 leading-none">{{ flowDef()!.category }}</p>
+              }
+            </div>
           </div>
-          <mat-progress-bar mode="determinate" [value]="progressPercent()"></mat-progress-bar>
-          <!-- Visited nodes breadcrumb -->
-          <div class="flex items-center gap-1 mt-2 flex-wrap">
-            @for (nid of execution()!.visitedNodes; track nid; let i = $index) {
-              @if (getNodeById(nid); as vNode) {
-                @if (vNode.type !== 'start' && vNode.type !== 'decision') {
-                  <span class="text-[10px] px-1.5 py-0.5 rounded"
-                        [ngClass]="nid === execution()!.currentNodeId ? 'bg-[#056DAE] text-white' : 'bg-slate-100 text-slate-500'">
-                    {{ vNode.label }}
-                  </span>
-                  @if (i < execution()!.visitedNodes.length - 1) {
-                    <mat-icon class="!text-[10px] !w-3 !h-3 text-slate-300">chevron_right</mat-icon>
+          <!-- Progress pill -->
+          <div class="hidden sm:flex items-center gap-2 shrink-0">
+            <div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full bg-[#056DAE] rounded-full transition-all duration-500"
+                   [style.width]="progressPercent() + '%'"></div>
+            </div>
+            <span class="text-xs font-semibold text-[#056DAE]">{{ progressPercent() }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Main 2-column Layout ── -->
+      <div class="max-w-6xl mx-auto flex gap-6 pt-5">
+
+        <!-- ── LEFT: Step Tracker Sidebar ── -->
+        <aside class="hidden lg:block w-56 shrink-0">
+          <div class="sticky top-20">
+            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-3 pl-1">Steps</p>
+            <div class="relative">
+              <!-- vertical line -->
+              <div class="absolute left-3.5 top-4 bottom-4 w-0.5 bg-slate-100"></div>
+              <div class="space-y-1">
+                @for (nid of visibleStepNodes(); track nid; let si = $index) {
+                  @if (getNodeById(nid); as sNode) {
+                    <div class="flex items-center gap-2.5 relative rounded-lg px-2 py-1.5 transition-all"
+                         [ngClass]="nid === execution()!.currentNodeId
+                           ? 'bg-[#EAF4FB]'
+                           : isNodeVisited(nid) ? 'bg-transparent' : 'bg-transparent'">
+                      <!-- dot -->
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 relative z-10 transition-all"
+                           [ngClass]="nid === execution()!.currentNodeId
+                             ? 'bg-[#056DAE] shadow-md'
+                             : isNodeVisited(nid) ? 'bg-green-500' : 'bg-slate-200'">
+                        @if (isNodeVisited(nid) && nid !== execution()!.currentNodeId) {
+                          <mat-icon class="!text-[11px] !w-3 !h-3 text-white">check</mat-icon>
+                        } @else if (nid === execution()!.currentNodeId) {
+                          <mat-icon class="!text-[11px] !w-3 !h-3 text-white">edit</mat-icon>
+                        } @else {
+                          <span class="text-[9px] font-bold text-slate-400">{{ si + 1 }}</span>
+                        }
+                      </div>
+                      <!-- label -->
+                      <div class="min-w-0 flex-1">
+                        <p class="text-xs truncate leading-tight"
+                           [ngClass]="nid === execution()!.currentNodeId
+                             ? 'font-semibold text-[#056DAE]'
+                             : isNodeVisited(nid) ? 'text-green-700 font-medium' : 'text-slate-400'">
+                          {{ sNode.label }}
+                        </p>
+                        <p class="text-[9px] uppercase tracking-wide"
+                           [ngClass]="nid === execution()!.currentNodeId ? 'text-[#056DAE]' : 'text-slate-300'">
+                          {{ sNode.type }}
+                        </p>
+                      </div>
+                    </div>
                   }
                 }
-              }
-            }
+              </div>
+            </div>
           </div>
-        </div>
+        </aside>
 
-        <!-- Current Node Content -->
-        @if (currentNode(); as node) {
-          @if (execution()!.status === 'completed') {
-            <!-- Completed state -->
-            <mat-card class="!rounded-xl !shadow-sm border border-green-200 bg-green-50">
-              <mat-card-content class="pt-6 pb-4 text-center">
-                <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+        <!-- ── RIGHT: Main Content ── -->
+        <main class="flex-1 min-w-0 pb-28">
+
+          @if (currentNode(); as node) {
+
+            <!-- ═══ COMPLETED STATE ═══ -->
+            @if (execution()!.status === 'completed') {
+              <div class="flex flex-col items-center justify-center py-16 text-center">
+                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4 shadow-inner">
                   <mat-icon class="!text-4xl !w-10 !h-10 text-green-600">check_circle</mat-icon>
                 </div>
-                <h2 class="text-lg font-bold text-green-800 mb-1">Flow Completed</h2>
-                <p class="text-sm text-green-600 mb-4">Thank you for completing this flow.</p>
-                <div class="flex justify-center gap-3">
-                  <button mat-raised-button (click)="goToList()">
-                    <mat-icon>list</mat-icon> Back to Flows
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">All Done!</h2>
+                <p class="text-sm text-slate-500 max-w-sm mb-6">Your request has been submitted successfully. You can view the full summary of your answers.</p>
+                <div class="flex gap-3">
+                  <button mat-stroked-button (click)="goToList()">
+                    <mat-icon>list</mat-icon> All Requests
                   </button>
                   <button mat-raised-button color="primary" (click)="viewSummary()">
                     <mat-icon>summarize</mat-icon> View Summary
                   </button>
                 </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'question') {
-            <!-- Question Node -->
-            <mat-card class="!rounded-xl !shadow-sm border border-slate-100">
-              <mat-card-content class="pt-4">
-                <h2 class="text-base font-semibold text-slate-800 mb-3">{{ node.label }}</h2>
-                @if (node.content) {
-                  <p class="text-xs text-slate-500 mb-4">{{ node.content }}</p>
+              </div>
+
+            <!-- ═══ QUESTION NODE ═══ -->
+            } @else if (node.type === 'question') {
+              <!-- Section identifier row -->
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Section {{ currentSectionIndex() }} of {{ totalSections() }}
+                </span>
+                <div class="flex-1 h-px bg-slate-100"></div>
+                @if (node.fields.length > 0) {
+                  <span class="text-[10px] text-slate-400">{{ answeredFieldCount(node) }}/{{ node.fields.length }} answered</span>
                 }
-                <div class="space-y-3">
-                  @for (field of node.fields; track field.id) {
-                    <div>
-                      @switch (field.type) {
-                        @case ('text') {
-                          <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
-                            <mat-label>{{ field.label }}</mat-label>
-                            <input matInput
-                                   [placeholder]="field.placeholder || ''"
-                                   [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                   (input)="setAnswer(node.id, field.id, $event)">
-                            @if (field.helpText) {
-                              <mat-hint>{{ field.helpText }}</mat-hint>
+              </div>
+
+              <!-- Section card -->
+              <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
+                <!-- Section Header -->
+                <div class="flex items-start gap-4 px-6 pt-5 pb-4 border-b border-slate-100">
+                  <div class="w-10 h-10 rounded-xl bg-[#056DAE] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                    <span class="text-sm font-bold text-white">{{ currentSectionIndex() }}</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h2 class="text-lg font-bold text-slate-800 leading-tight">{{ node.label }}</h2>
+                    @if (node.content) {
+                      <p class="text-sm text-slate-500 mt-1 leading-relaxed">{{ node.content }}</p>
+                    }
+                  </div>
+                </div>
+
+                <!-- Fields List -->
+                <div>
+                  @for (field of node.fields; track field.id; let fi = $index) {
+                    <!-- Skip alert type — render separately -->
+                    @if (field.type === 'alert') {
+                      <div class="px-6 py-3 border-b border-slate-50 last:border-0">
+                        <div class="rounded-xl px-4 py-3 flex items-start gap-3"
+                             [ngClass]="alertBoxClass(field.placeholder || 'info')">
+                          <mat-icon class="!text-base !w-5 !h-5 shrink-0 mt-0.5"
+                                    [ngClass]="alertIconClass(field.placeholder || 'info')">
+                            {{ alertIcon(field.placeholder || 'info') }}
+                          </mat-icon>
+                          <div>
+                            <p class="text-sm font-semibold mb-0.5">{{ field.label }}</p>
+                            <p class="text-xs opacity-90">{{ field.defaultValue || '' }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="px-6 py-4 border-b border-slate-50 last:border-0 transition-colors"
+                           [ngClass]="focusedField() === field.id ? 'bg-slate-50' : ''">
+
+                        <!-- Field label row -->
+                        <div class="flex items-baseline justify-between mb-2">
+                          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                            <span class="w-4 h-4 rounded bg-slate-100 text-slate-400 text-[9px] font-bold flex items-center justify-center">{{ fi + 1 }}</span>
+                            {{ field.label }}
+                            @if (field.validation.required) {
+                              <span class="text-red-500 font-bold">*</span>
                             }
-                          </mat-form-field>
+                          </label>
+                          @if (hasFieldAnswer(node.id, field.id)) {
+                            <span class="text-[10px] text-green-600 flex items-center gap-0.5 font-medium">
+                              <mat-icon class="!text-[10px] !w-3 !h-3">check_circle</mat-icon> Answered
+                            </span>
+                          }
+                        </div>
+
+                        <!-- Help text -->
+                        @if (field.helpText) {
+                          <p class="text-xs text-slate-400 mb-2 leading-relaxed">{{ field.helpText }}</p>
                         }
-                        @case ('textarea') {
-                          <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
-                            <mat-label>{{ field.label }}</mat-label>
-                            <textarea matInput rows="3"
-                                      [placeholder]="field.placeholder || ''"
+
+                        <!-- ── Field Controls ── -->
+                        @switch (field.type) {
+
+                          @case ('text') {
+                            <div class="runner-input-wrap" [class.focused]="focusedField() === field.id">
+                              <input class="runner-input"
+                                     [placeholder]="field.placeholder || 'Enter ' + field.label"
+                                     [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
+                                     (focus)="focusedField.set(field.id)"
+                                     (blur)="focusedField.set(null)"
+                                     (input)="setAnswer(node.id, field.id, $event)">
+                            </div>
+                          }
+
+                          @case ('textarea') {
+                            <div class="runner-input-wrap" [class.focused]="focusedField() === field.id">
+                              <textarea class="runner-input runner-textarea"
+                                        rows="3"
+                                        [placeholder]="field.placeholder || 'Enter ' + field.label"
+                                        [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
+                                        (focus)="focusedField.set(field.id)"
+                                        (blur)="focusedField.set(null)"
+                                        (input)="setAnswer(node.id, field.id, $event)"></textarea>
+                            </div>
+                          }
+
+                          @case ('number') {
+                            <div class="runner-input-wrap max-w-xs" [class.focused]="focusedField() === field.id">
+                              <input class="runner-input" type="number"
+                                     [placeholder]="field.placeholder || '0'"
+                                     [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
+                                     (focus)="focusedField.set(field.id)"
+                                     (blur)="focusedField.set(null)"
+                                     (input)="setAnswer(node.id, field.id, $event)">
+                            </div>
+                          }
+
+                          @case ('date') {
+                            <div class="runner-input-wrap max-w-xs" [class.focused]="focusedField() === field.id">
+                              <input class="runner-input" type="date"
+                                     [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
+                                     (focus)="focusedField.set(field.id)"
+                                     (blur)="focusedField.set(null)"
+                                     (input)="setAnswer(node.id, field.id, $event)">
+                            </div>
+                          }
+
+                          @case ('select') {
+                            <div class="runner-input-wrap runner-select-wrap" [class.focused]="focusedField() === field.id">
+                              <select class="runner-input runner-select"
                                       [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                      (input)="setAnswer(node.id, field.id, $event)"></textarea>
-                            @if (field.helpText) {
-                              <mat-hint>{{ field.helpText }}</mat-hint>
-                            }
-                          </mat-form-field>
-                        }
-                        @case ('number') {
-                          <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
-                            <mat-label>{{ field.label }}</mat-label>
-                            <input matInput type="number"
-                                   [placeholder]="field.placeholder || ''"
-                                   [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                   (input)="setAnswer(node.id, field.id, $event)">
-                            @if (field.helpText) {
-                              <mat-hint>{{ field.helpText }}</mat-hint>
-                            }
-                          </mat-form-field>
-                        }
-                        @case ('date') {
-                          <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
-                            <mat-label>{{ field.label }}</mat-label>
-                            <input matInput type="date"
-                                   [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                   (input)="setAnswer(node.id, field.id, $event)">
-                            @if (field.helpText) {
-                              <mat-hint>{{ field.helpText }}</mat-hint>
-                            }
-                          </mat-form-field>
-                        }
-                        @case ('select') {
-                          <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
-                            <mat-label>{{ field.label }}</mat-label>
-                            <mat-select [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                        (selectionChange)="setAnswerDirect(node.id, field.id, $event.value)">
+                                      (focus)="focusedField.set(field.id)"
+                                      (blur)="focusedField.set(null)"
+                                      (change)="setAnswerDirect(node.id, field.id, $any($event.target).value)">
+                                <option value="" disabled>Select an option...</option>
+                                @for (opt of field.options; track opt.value) {
+                                  <option [value]="opt.value">{{ opt.label }}</option>
+                                }
+                              </select>
+                              <mat-icon class="runner-select-icon">expand_more</mat-icon>
+                            </div>
+                          }
+
+                          @case ('radio') {
+                            <div class="flex flex-wrap gap-2">
                               @for (opt of field.options; track opt.value) {
-                                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
-                              }
-                            </mat-select>
-                            @if (field.helpText) {
-                              <mat-hint>{{ field.helpText }}</mat-hint>
-                            }
-                          </mat-form-field>
-                        }
-                        @case ('radio') {
-                          <div class="mb-2">
-                            <label class="text-xs font-medium text-slate-700 mb-1 block">{{ field.label }}</label>
-                            @if (field.helpText) {
-                              <p class="text-[10px] text-slate-400 mb-1">{{ field.helpText }}</p>
-                            }
-                            <div class="space-y-1">
-                              @for (opt of field.options; track opt.value) {
-                                <label class="flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm"
-                                       [class.border-[#056DAE]]="getAnswer(node.id, field.id) === opt.value"
-                                       [class.bg-[#EAF4FB]]="getAnswer(node.id, field.id) === opt.value"
-                                       [class.border-slate-200]="getAnswer(node.id, field.id) !== opt.value"
-                                       (click)="setAnswerDirect(node.id, field.id, opt.value)">
-                                  <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
-                                       [class.border-[#056DAE]]="getAnswer(node.id, field.id) === opt.value"
-                                       [class.border-slate-300]="getAnswer(node.id, field.id) !== opt.value">
+                                <button type="button"
+                                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all"
+                                        [ngClass]="getAnswer(node.id, field.id) === opt.value
+                                          ? 'border-[#056DAE] bg-[#EAF4FB] text-[#056DAE] shadow-sm'
+                                          : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'"
+                                        (click)="setAnswerDirect(node.id, field.id, opt.value)">
+                                  <div class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0"
+                                       [ngClass]="getAnswer(node.id, field.id) === opt.value ? 'border-[#056DAE]' : 'border-slate-300'">
                                     @if (getAnswer(node.id, field.id) === opt.value) {
-                                      <div class="w-2 h-2 rounded-full bg-[#056DAE]"></div>
+                                      <div class="w-1.5 h-1.5 rounded-full bg-[#056DAE]"></div>
                                     }
                                   </div>
                                   {{ opt.label }}
-                                </label>
+                                </button>
                               }
                             </div>
-                          </div>
-                        }
-                        @case ('checkbox') {
-                          <div class="mb-2">
-                            <label class="flex items-center gap-2 text-sm cursor-pointer">
-                              <input type="checkbox"
-                                     [checked]="getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'"
-                                     (change)="setAnswerDirect(node.id, field.id, $any($event.target).checked)"
-                                     class="w-4 h-4 rounded border-slate-300">
+                          }
+
+                          @case ('checkbox') {
+                            <button type="button"
+                                    class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all"
+                                    [ngClass]="getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'
+                                      ? 'border-[#056DAE] bg-[#EAF4FB] text-[#056DAE]'
+                                      : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'"
+                                    (click)="setAnswerDirect(node.id, field.id, !(getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'))">
+                              <div class="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
+                                   [ngClass]="getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'
+                                     ? 'border-[#056DAE] bg-[#056DAE]' : 'border-slate-300'">
+                                @if (getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true') {
+                                  <mat-icon class="!text-[10px] !w-3 !h-3 text-white">check</mat-icon>
+                                }
+                              </div>
                               {{ field.label }}
-                            </label>
-                            @if (field.helpText) {
-                              <p class="text-[10px] text-slate-400 ml-6">{{ field.helpText }}</p>
-                            }
-                          </div>
-                        }
-                        @case ('multi_select') {
-                          <div class="mb-2">
-                            <label class="text-xs font-medium text-slate-700 mb-1 block">{{ field.label }}</label>
-                            @if (field.helpText) {
-                              <p class="text-[10px] text-slate-400 mb-1">{{ field.helpText }}</p>
-                            }
-                            <div class="space-y-1">
+                            </button>
+                          }
+
+                          @case ('multi_select') {
+                            <div class="flex flex-wrap gap-2">
                               @for (opt of field.options; track opt.value) {
-                                <label class="flex items-center gap-2 px-3 py-1.5 rounded border cursor-pointer text-sm"
-                                       [class.border-[#056DAE]]="isMultiSelected(node.id, field.id, opt.value)"
-                                       [class.bg-[#EAF4FB]]="isMultiSelected(node.id, field.id, opt.value)"
-                                       [class.border-slate-200]="!isMultiSelected(node.id, field.id, opt.value)">
-                                  <input type="checkbox"
-                                         [checked]="isMultiSelected(node.id, field.id, opt.value)"
-                                         (change)="toggleMultiSelect(node.id, field.id, opt.value)"
-                                         class="w-3.5 h-3.5">
+                                <button type="button"
+                                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all"
+                                        [ngClass]="isMultiSelected(node.id, field.id, opt.value)
+                                          ? 'border-[#056DAE] bg-[#EAF4FB] text-[#056DAE] shadow-sm'
+                                          : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'"
+                                        (click)="toggleMultiSelect(node.id, field.id, opt.value)">
+                                  <div class="w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0"
+                                       [ngClass]="isMultiSelected(node.id, field.id, opt.value) ? 'border-[#056DAE] bg-[#056DAE]' : 'border-slate-300'">
+                                    @if (isMultiSelected(node.id, field.id, opt.value)) {
+                                      <mat-icon class="!text-[9px] !w-2.5 !h-2.5 text-white">check</mat-icon>
+                                    }
+                                  </div>
                                   {{ opt.label }}
-                                </label>
+                                </button>
                               }
                             </div>
-                          </div>
-                        }
-                        @default {
-                          @if (field.type === 'alert') {
-                            <div class=\"rounded-lg border px-4 py-3 text-sm flex items-start gap-3 mb-2\"\n                                 [ngClass]=\"alertBoxClass(field.placeholder || 'info')\">\n                              <mat-icon class=\"!text-lg !w-5 !h-5 shrink-0 mt-0.5\"\n                                        [ngClass]=\"alertIconClass(field.placeholder || 'info')\">\n                                {{ alertIcon(field.placeholder || 'info') }}\n                              </mat-icon>\n                              <div>\n                                <div class=\"font-semibold text-sm mb-0.5\">{{ field.label }}</div>\n                                <div class=\"text-xs opacity-90\">{{ field.defaultValue || '' }}</div>\n                              </div>\n                            </div>
-                          } @else {
-                            <mat-form-field class=\"w-full dense-field\" subscriptSizing=\"dynamic\">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <input matInput [value]=\"getAnswer(node.id, field.id) ?? ''\" (input)=\"setAnswer(node.id, field.id, $event)\">
-                            </mat-form-field>
+                          }
+
+                          @default {
+                            <div class="runner-input-wrap" [class.focused]="focusedField() === field.id">
+                              <input class="runner-input"
+                                     [placeholder]="field.placeholder || ''"
+                                     [value]="getAnswer(node.id, field.id) ?? ''"
+                                     (focus)="focusedField.set(field.id)"
+                                     (blur)="focusedField.set(null)"
+                                     (input)="setAnswer(node.id, field.id, $event)">
+                            </div>
                           }
                         }
-                      }
+                      </div>
+                    }
+                  }
+                </div>
+
+                <!-- Section completion bar -->
+                @if (node.fields.length > 1) {
+                  <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+                    <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                      <div class="h-full bg-[#056DAE] rounded-full transition-all duration-300"
+                           [style.width]="(answeredFieldCount(node) / node.fields.length * 100) + '%'"></div>
+                    </div>
+                    <span class="text-[10px] font-medium text-slate-400 shrink-0">
+                      {{ answeredFieldCount(node) }}/{{ node.fields.length }}
+                    </span>
+                  </div>
+                }
+              </div>
+
+            <!-- ═══ DISPLAY NODE ═══ -->
+            } @else if (node.type === 'display') {
+              <div class="bg-blue-50 border-l-4 border-blue-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-start gap-4">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                  <mat-icon class="text-blue-600">info</mat-icon>
+                </div>
+                <div>
+                  <h2 class="text-base font-bold text-blue-800 mb-1">{{ node.label }}</h2>
+                  <p class="text-sm text-blue-700 leading-relaxed whitespace-pre-wrap">{{ node.content }}</p>
+                </div>
+              </div>
+
+            <!-- ═══ TASK NODE ═══ -->
+            } @else if (node.type === 'task') {
+              <div class="bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="bg-amber-50 border-b border-amber-100 px-5 py-3 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <mat-icon class="text-amber-600 !text-lg">assignment</mat-icon>
+                  </div>
+                  <div>
+                    <p class="text-xs text-amber-500 uppercase tracking-wider font-semibold">Task</p>
+                    <h2 class="text-sm font-bold text-amber-800">{{ node.label }}</h2>
+                  </div>
+                </div>
+                <div class="px-5 py-4">
+                  @if (node.content) {
+                    <p class="text-sm text-slate-600 leading-relaxed mb-3">{{ node.content }}</p>
+                  }
+                  @if (node.config?.['assigneeRole']) {
+                    <div class="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
+                      <mat-icon class="!text-sm !w-4 !h-4">person</mat-icon>
+                      Assigned to: <span class="font-semibold">{{ node.config!['assigneeRole'] }}</span>
+                    </div>
+                  }
+                  <p class="text-xs text-slate-400 mt-3">Complete this task and click Next to proceed.</p>
+                </div>
+              </div>
+
+            <!-- ═══ APPROVAL NODE ═══ -->
+            } @else if (node.type === 'approval') {
+              <div class="bg-white border border-emerald-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="bg-emerald-50 border-b border-emerald-100 px-5 py-3 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <mat-icon class="text-emerald-600 !text-lg">verified</mat-icon>
+                  </div>
+                  <div>
+                    <p class="text-xs text-emerald-500 uppercase tracking-wider font-semibold">Approval Required</p>
+                    <h2 class="text-sm font-bold text-emerald-800">{{ node.label }}</h2>
+                  </div>
+                </div>
+                <div class="px-5 py-4">
+                  @if (node.content) {
+                    <p class="text-sm text-slate-600 leading-relaxed mb-3">{{ node.content }}</p>
+                  }
+                  @if (node.config?.['assigneeRole']) {
+                    <div class="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                      <mat-icon class="!text-sm !w-4 !h-4">person</mat-icon>
+                      Approver: <span class="font-semibold">{{ node.config!['assigneeRole'] }}</span>
+                    </div>
+                  }
+                  <p class="text-xs text-slate-400 mt-3">Review and click Next to submit for approval.</p>
+                </div>
+              </div>
+
+            <!-- ═══ NOTIFICATION NODE ═══ -->
+            } @else if (node.type === 'notification') {
+              <div class="bg-orange-50 border-l-4 border-orange-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-start gap-4">
+                <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                  <mat-icon class="text-orange-600">notifications</mat-icon>
+                </div>
+                <div>
+                  <h2 class="text-base font-bold text-orange-800 mb-1">{{ node.label }}</h2>
+                  @if (node.content) {
+                    <p class="text-sm text-orange-700 leading-relaxed mb-2">{{ node.content }}</p>
+                  }
+                  <p class="text-xs text-orange-400">A notification will be sent. Click Next to continue.</p>
+                </div>
+              </div>
+
+            <!-- ═══ TIMER NODE ═══ -->
+            } @else if (node.type === 'timer') {
+              <div class="bg-cyan-50 border-l-4 border-cyan-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-start gap-4">
+                <div class="w-9 h-9 rounded-xl bg-cyan-100 flex items-center justify-center shrink-0">
+                  <mat-icon class="text-cyan-600">schedule</mat-icon>
+                </div>
+                <div>
+                  <h2 class="text-base font-bold text-cyan-800 mb-1">{{ node.label }}</h2>
+                  @if (node.config?.['durationMinutes']) {
+                    <p class="text-sm text-cyan-700">Wait period: <span class="font-semibold">{{ node.config!['durationMinutes'] }} minutes</span></p>
+                  }
+                  <p class="text-xs text-cyan-400 mt-2">Click Next to continue after the wait period.</p>
+                </div>
+              </div>
+
+            <!-- ═══ API CALL NODE ═══ -->
+            } @else if (node.type === 'api_call') {
+              <div class="bg-white border border-teal-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="bg-teal-50 border-b border-teal-100 px-5 py-3 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                    <mat-icon class="text-teal-600 !text-lg">cloud</mat-icon>
+                  </div>
+                  <div>
+                    <p class="text-xs text-teal-500 uppercase tracking-wider font-semibold">API Integration</p>
+                    <h2 class="text-sm font-bold text-teal-800">{{ node.label }}</h2>
+                  </div>
+                </div>
+                <div class="px-5 py-4">
+                  @if (node.config?.['apiMethod'] && node.config?.['apiUrl']) {
+                    <div class="flex items-center gap-2 mb-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <span class="px-2 py-0.5 rounded bg-teal-600 text-white font-mono font-bold text-[10px]">{{ node.config!['apiMethod'] }}</span>
+                      <span class="font-mono text-xs text-slate-600 truncate">{{ node.config!['apiUrl'] }}</span>
+                    </div>
+                  }
+                  @if (apiCallLoading()) {
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-teal-50 border border-teal-200">
+                      <mat-spinner diameter="18"></mat-spinner>
+                      <span class="text-sm text-teal-800 font-medium">Executing API call…</span>
+                    </div>
+                  } @else if (apiCallError()) {
+                    <div class="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                      <mat-icon class="!text-lg text-red-500">error</mat-icon>
+                      <span>{{ apiCallError() }}</span>
+                    </div>
+                  } @else if (apiCallDone()) {
+                    <div class="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
+                      <mat-icon class="!text-lg text-green-500">check_circle</mat-icon>
+                      <span>API call completed successfully</span>
                     </div>
                   }
                 </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'display') {
-            <!-- Display Node (info/instructions) -->
-            <mat-card class="!rounded-xl !shadow-sm border border-blue-100 bg-blue-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-blue-600 mt-0.5">info</mat-icon>
-                  <div>
-                    <h2 class="text-base font-semibold text-blue-800 mb-1">{{ node.label }}</h2>
-                    <p class="text-sm text-blue-700 whitespace-pre-wrap">{{ node.content }}</p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'task') {
-            <!-- Task Node (process work item) -->
-            <mat-card class="!rounded-xl !shadow-sm border border-amber-100 bg-amber-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-amber-600 mt-0.5">assignment</mat-icon>
-                  <div class="flex-1">
-                    <h2 class="text-base font-semibold text-amber-800 mb-1">{{ node.label }}</h2>
-                    @if (node.content) {
-                      <p class="text-sm text-amber-700 whitespace-pre-wrap mb-3">{{ node.content }}</p>
-                    }
-                    @if (node.config?.['assigneeRole']) {
-                      <div class="flex items-center gap-1 text-xs text-amber-600">
-                        <mat-icon class="!text-xs !w-3.5 !h-3.5">person</mat-icon>
-                        Assigned to: <span class="font-medium ml-1">{{ node.config!['assigneeRole'] }}</span>
-                      </div>
-                    }
-                    <p class="text-xs text-amber-500 mt-2">Complete this task and click Next to proceed.</p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'parallel') {
-            <!-- Parallel Gateway -->
-            <mat-card class="!rounded-xl !shadow-sm border border-purple-100 bg-purple-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-purple-600 mt-0.5">fork_right</mat-icon>
-                  <div>
-                    <h2 class="text-base font-semibold text-purple-800 mb-1">{{ node.label }}</h2>
-                    <p class="text-sm text-purple-700">This is a parallel gateway. Click Next to continue.</p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'approval') {
-            <!-- Approval Node -->
-            <mat-card class="!rounded-xl !shadow-sm border border-emerald-100 bg-emerald-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-emerald-600 mt-0.5">verified</mat-icon>
-                  <div class="flex-1">
-                    <h2 class="text-base font-semibold text-emerald-800 mb-1">{{ node.label }}</h2>
-                    @if (node.content) {
-                      <p class="text-sm text-emerald-700 whitespace-pre-wrap mb-3">{{ node.content }}</p>
-                    }
-                    @if (node.config?.['assigneeRole']) {
-                      <div class="flex items-center gap-1 text-xs text-emerald-600">
-                        <mat-icon class="!text-xs !w-3.5 !h-3.5">person</mat-icon>
-                        Approver: <span class="font-medium ml-1">{{ node.config!['assigneeRole'] }}</span>
-                      </div>
-                    }
-                    <p class="text-xs text-emerald-500 mt-2">Review and approve to proceed.</p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'notification') {
-            <!-- Notification Node -->
-            <mat-card class="!rounded-xl !shadow-sm border border-orange-100 bg-orange-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-orange-600 mt-0.5">notifications</mat-icon>
-                  <div>
-                    <h2 class="text-base font-semibold text-orange-800 mb-1">{{ node.label }}</h2>
-                    @if (node.content) {
-                      <p class="text-sm text-orange-700 whitespace-pre-wrap">{{ node.content }}</p>
-                    }
-                    <p class="text-xs text-orange-500 mt-2">A notification will be sent. Click Next to continue.</p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'timer') {
-            <!-- Timer Node -->
-            <mat-card class="!rounded-xl !shadow-sm border border-cyan-100 bg-cyan-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-cyan-600 mt-0.5">schedule</mat-icon>
-                  <div>
-                    <h2 class="text-base font-semibold text-cyan-800 mb-1">{{ node.label }}</h2>
-                    @if (node.config?.['durationMinutes']) {
-                      <p class="text-sm text-cyan-700">Wait: {{ node.config!['durationMinutes'] }} minutes</p>
-                    }
-                    <p class="text-xs text-cyan-500 mt-2">Click Next to continue after the wait period.</p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'api_call') {
-            <!-- External API Call Node -->
-            <mat-card class="!rounded-xl !shadow-sm border border-teal-100 bg-teal-50">
-              <mat-card-content class="pt-4">
-                <div class="flex items-start gap-3">
-                  <mat-icon class="text-teal-600 mt-0.5">cloud</mat-icon>
-                  <div class="flex-1">
-                    <h2 class="text-base font-semibold text-teal-800 mb-1">{{ node.label }}</h2>
-                    @if (node.content) {
-                      <p class="text-sm text-teal-700 whitespace-pre-wrap mb-3">{{ node.content }}</p>
-                    }
-                    <!-- API request info -->
-                    <div class="rounded border border-teal-200 bg-white p-3 text-xs space-y-2">
-                      @if (node.config?.['apiMethod'] && node.config?.['apiUrl']) {
-                        <div class="flex items-center gap-2">
-                          <span class="px-1.5 py-0.5 rounded bg-teal-600 text-white font-mono font-bold text-[10px]">{{ node.config!['apiMethod'] }}</span>
-                          <span class="font-mono text-slate-600 truncate">{{ node.config!['apiUrl'] }}</span>
-                        </div>
-                      }
-                      @if (node.config?.['apiHeaders']?.length) {
-                        <div>
-                          <span class="text-[10px] font-semibold text-slate-500 uppercase">Headers</span>
-                          @for (h of node.config!['apiHeaders']; track $index) {
-                            <div class="font-mono text-[11px] text-slate-500">{{ h.key }}: {{ h.value }}</div>
-                          }
-                        </div>
-                      }
-                      @if (node.config?.['apiResponseMappings']?.length) {
-                        <div>
-                          <span class="text-[10px] font-semibold text-slate-500 uppercase">Response Capture</span>
-                          @for (m of node.config!['apiResponseMappings']; track $index) {
-                            <div class="font-mono text-[11px] text-slate-500">
-                              <span class="text-teal-700">{{ m.expression }}</span>
-                              <mat-icon class="!text-[10px] !w-3 !h-3 align-middle mx-1">arrow_forward</mat-icon>
-                              <span class="text-indigo-600">{{ m.variableName }}</span>
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                    <!-- Loading / result state -->
-                    @if (apiCallLoading()) {
-                      <div class="flex items-center gap-3 mt-3 p-3 rounded bg-teal-100 border border-teal-200">
-                        <mat-spinner diameter="20" color="primary"></mat-spinner>
-                        <span class="text-sm text-teal-800 font-medium">Executing API call…</span>
-                      </div>
-                    } @else if (apiCallError()) {
-                      <div class="flex items-center gap-2 mt-3 p-3 rounded bg-red-50 border border-red-200 text-sm text-red-700">
-                        <mat-icon class="!text-lg text-red-500">error</mat-icon>
-                        <span>{{ apiCallError() }}</span>
-                      </div>
-                    } @else if (apiCallDone()) {
-                      <div class="flex items-center gap-2 mt-3 p-3 rounded bg-green-50 border border-green-200 text-sm text-green-700">
-                        <mat-icon class="!text-lg text-green-500">check_circle</mat-icon>
-                        <span>API call completed successfully</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (node.type === 'end') {
-            <!-- Should be caught by completed state above, but fallback -->
-            <mat-card class="!rounded-xl !shadow-sm border border-green-200 bg-green-50 text-center p-6">
-              <mat-icon class="!text-4xl text-green-600 mb-2">check_circle</mat-icon>
-              <h2 class="text-lg font-bold text-green-800">Complete</h2>
-            </mat-card>
-          }
+              </div>
 
-          <!-- Navigation -->
-          @if (execution()!.status !== 'completed') {
-            <div class="flex items-center justify-between mt-4">
-              <button mat-button (click)="goBack()" [disabled]="!canGoBack()">
-                <mat-icon>arrow_back</mat-icon> Back
-              </button>
-              <button mat-raised-button color="primary" (click)="submitAndAdvance()" [disabled]="!canAdvance()">
-                {{ isLastQuestionNode() ? 'Submit' : 'Next' }}
-                <mat-icon>{{ isLastQuestionNode() ? 'send' : 'arrow_forward' }}</mat-icon>
-              </button>
-            </div>
+            <!-- ═══ PARALLEL / END ═══ -->
+            } @else if (node.type === 'parallel') {
+              <div class="bg-purple-50 border-l-4 border-purple-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-center gap-4">
+                <mat-icon class="text-purple-600">fork_right</mat-icon>
+                <div>
+                  <h2 class="text-base font-bold text-purple-800">{{ node.label }}</h2>
+                  <p class="text-sm text-purple-600 mt-0.5">Parallel gateway — click Next to continue.</p>
+                </div>
+              </div>
+            } @else if (node.type === 'end') {
+              <div class="flex flex-col items-center justify-center py-12 text-center">
+                <mat-icon class="!text-5xl text-green-500 mb-3">check_circle</mat-icon>
+                <h2 class="text-xl font-bold text-slate-800">Flow Complete</h2>
+              </div>
+            }
+
+            <!-- ── Sticky Bottom Navigation ── -->
+            @if (execution()!.status !== 'completed') {
+              <div class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg">
+                <div class="max-w-6xl mx-auto flex items-center justify-between px-5 h-16">
+                  <!-- Left: back + step info -->
+                  <div class="flex items-center gap-3">
+                    <button mat-stroked-button class="!h-9 !text-xs"
+                            (click)="goBack()" [disabled]="!canGoBack()">
+                      <mat-icon>arrow_back</mat-icon> Back
+                    </button>
+                    <span class="text-xs text-slate-400 hidden sm:block">
+                      Step {{ currentStepNumber() }} of {{ totalSteps() }}
+                    </span>
+                  </div>
+                  <!-- Center: mini progress bar (mobile) -->
+                  <div class="flex-1 mx-6 hidden md:block">
+                    <div class="h-1 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-[#056DAE] rounded-full transition-all duration-500"
+                           [style.width]="progressPercent() + '%'"></div>
+                    </div>
+                  </div>
+                  <!-- Right: next/submit -->
+                  @if (isLastQuestionNode()) {
+                    <button mat-raised-button color="primary"
+                            class="!h-9 !text-sm !font-semibold !px-6 !rounded-xl"
+                            (click)="submitAndAdvance()" [disabled]="!canAdvance()">
+                      Submit <mat-icon iconPositionEnd>send</mat-icon>
+                    </button>
+                  } @else {
+                    <button mat-raised-button color="primary"
+                            class="!h-9 !text-sm !font-semibold !px-6 !rounded-xl"
+                            (click)="submitAndAdvance()" [disabled]="!canAdvance()">
+                      Next <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
           }
-        }
-      } @else {
-        <div class="text-center py-12 text-slate-400">
-          <mat-icon class="!text-5xl mb-2">error_outline</mat-icon>
-          <p class="text-sm">Flow not found</p>
-        </div>
-      }
-    </div>
+        </main>
+      </div>
+
+    } @else {
+      <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+        <mat-icon class="!text-5xl !w-12 !h-12 mb-3 text-slate-300">error_outline</mat-icon>
+        <p class="text-sm">Flow not found</p>
+        <button mat-button class="mt-3 text-[#056DAE]" (click)="goToList()">Back to All Requests</button>
+      </div>
+    }
   `,
   styles: [`
-    .dense-field { font-size: 13px; }
-    .dense-field .mat-mdc-form-field-infix { min-height: 36px !important; padding-top: 8px !important; padding-bottom: 8px !important; }
+    .runner-input-wrap {
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 150ms, box-shadow 150ms;
+      position: relative;
+    }
+    .runner-input-wrap:hover {
+      border-color: #cbd5e1;
+    }
+    .runner-input-wrap.focused {
+      border-color: #056DAE;
+      box-shadow: 0 0 0 3px rgba(5,109,174,0.08);
+    }
+    .runner-input {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #1e293b;
+      background: transparent;
+      border: none;
+      outline: none;
+    }
+    .runner-input::placeholder { color: #94a3b8; }
+    .runner-textarea { resize: vertical; min-height: 80px; }
+    .runner-select-wrap { cursor: pointer; }
+    .runner-select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 32px !important;
+      cursor: pointer;
+    }
+    .runner-select-icon {
+      position: absolute;
+      right: 8px;
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      color: #94a3b8;
+      pointer-events: none;
+    }
   `],
 })
 export class PortalFlowRunnerComponent implements OnInit {
@@ -450,6 +621,7 @@ export class PortalFlowRunnerComponent implements OnInit {
   apiCallLoading = signal(false);
   apiCallDone = signal(false);
   apiCallError = signal<string | null>(null);
+  focusedField = signal<string | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -695,5 +867,54 @@ export class PortalFlowRunnerComponent implements OnInit {
 
   alertIconClass(style: string): string {
     return ({ info: 'text-blue-600', success: 'text-green-600', warning: 'text-amber-600', error: 'text-red-600' } as Record<string, string>)[style] || 'text-blue-600';
+  }
+
+  hasFieldAnswer(nodeId: string, fieldId: string): boolean {
+    const val = this.getAnswer(nodeId, fieldId);
+    return val !== undefined && val !== null && val !== '';
+  }
+
+  answeredFieldCount(node: FlowNode): number {
+    return node.fields.filter(f => this.hasFieldAnswer(node.id, f.id)).length;
+  }
+
+  /** Nodes to show in the left step tracker (exclude start/decision) */
+  visibleStepNodes(): string[] {
+    const def = this.flowDef();
+    if (!def) return [];
+    return def.definition.nodes
+      .filter(n => n.type !== 'start' && n.type !== 'decision')
+      .map(n => n.id);
+  }
+
+  isNodeVisited(nodeId: string): boolean {
+    return this.execution()?.visitedNodes.includes(nodeId) ?? false;
+  }
+
+  /** Which section index is the current question node (1-based, counting only question nodes) */
+  currentSectionIndex(): number {
+    const def = this.flowDef();
+    const exec = this.execution();
+    if (!def || !exec) return 1;
+    const questionNodes = def.definition.nodes.filter(n => n.type === 'question');
+    const idx = questionNodes.findIndex(n => n.id === exec.currentNodeId);
+    return idx >= 0 ? idx + 1 : 1;
+  }
+
+  totalSections(): number {
+    return this.flowDef()?.definition.nodes.filter(n => n.type === 'question').length ?? 1;
+  }
+
+  currentStepNumber(): number {
+    const def = this.flowDef();
+    const exec = this.execution();
+    if (!def || !exec) return 1;
+    const steps = def.definition.nodes.filter(n => n.type !== 'start' && n.type !== 'decision');
+    const idx = steps.findIndex(n => n.id === exec.currentNodeId);
+    return idx >= 0 ? idx + 1 : 1;
+  }
+
+  totalSteps(): number {
+    return this.flowDef()?.definition.nodes.filter(n => n.type !== 'start' && n.type !== 'decision').length ?? 1;
   }
 }
