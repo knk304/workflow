@@ -797,7 +797,7 @@ export interface FlowAnswer {
 
 export interface FlowExecution {
   id: string;
-  requestNumber: string;
+  requestNumber?: string;
   flowDefinitionId: string;
   flowName: string;
   currentNodeId: string;

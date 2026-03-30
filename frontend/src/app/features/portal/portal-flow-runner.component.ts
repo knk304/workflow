@@ -55,9 +55,12 @@ import {
             <div class="min-w-0">
               <p class="text-sm font-bold text-slate-800 truncate">{{ flowDef()!.name }}</p>
               <p class="text-[10px] text-slate-400 leading-none">
-                <span class="font-mono font-semibold text-[#056DAE]">{{ execution()!.requestNumber }}</span>
+                @if (execution()!.requestNumber) {
+                  <span class="font-mono font-semibold text-[#056DAE]">{{ execution()!.requestNumber }}</span>
+                }
                 @if (flowDef()!.category) {
-                  <span class="mx-1">·</span>{{ flowDef()!.category }}
+                  @if (execution()!.requestNumber) { <span class="mx-1">·</span> }
+                  {{ flowDef()!.category }}
                 }
               </p>
             </div>

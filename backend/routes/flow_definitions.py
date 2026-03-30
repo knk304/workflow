@@ -58,10 +58,9 @@ def _to_exec_response(doc: dict, flow_name: str = "") -> dict:
             "fieldId": a.get("field_id") or a.get("fieldId", ""),
             "value": a.get("value"),
         })
-    req_num = doc.get("request_number", 0)
     return {
         "id": str(doc["_id"]),
-        "requestNumber": f"REQ-{req_num:04d}" if req_num else str(doc["_id"])[:8],
+        "requestNumber": doc.get("request_number", ""),
         "flowDefinitionId": doc.get("flow_definition_id", ""),
         "flowName": flow_name or doc.get("flow_name", ""),
         "currentNodeId": doc.get("current_node_id", ""),
@@ -369,17 +368,19 @@ async def start_flow_execution(body: FlowExecutionCreate, user: dict = Depends(g
 
     now = datetime.now(timezone.utc).isoformat()
 
-    # Generate sequential request number
-    last = await db.flow_executions.find_one(
-        {"request_number": {"$exists": True}},
-        sort=[("request_number", -1)],
+    # Atomically increment a global counter so request_number is always unique
+    counter_doc = await db.counters.find_one_and_update(
+        {"_id": "flow_executions"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=True,
     )
-    next_num = (last.get("request_number", 0) + 1) if last else 1
+    request_number = f"REQ-{counter_doc['seq']:04d}"
 
     doc = {
         "flow_definition_id": body.flow_definition_id,
         "flow_name": flow_def.get("name", ""),
-        "request_number": next_num,
+        "request_number": request_number,
         "current_node_id": first_node_id,
         "visited_nodes": [start_id, first_node_id],
         "answers": [],
