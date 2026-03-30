@@ -14,7 +14,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Store } from '@ngrx/store';
 import { DataService } from '@core/services/data.service';
+import { selectUserRole } from '@state/auth/auth.selectors';
 import {
   FlowDefinition, FlowExecution, FlowNode, FlowField,
   FlowAnswer, FlowNodeType,
@@ -52,9 +54,12 @@ import {
             </div>
             <div class="min-w-0">
               <p class="text-sm font-bold text-slate-800 truncate">{{ flowDef()!.name }}</p>
-              @if (flowDef()!.category) {
-                <p class="text-[10px] text-slate-400 leading-none">{{ flowDef()!.category }}</p>
-              }
+              <p class="text-[10px] text-slate-400 leading-none">
+                <span class="font-mono font-semibold text-[#056DAE]">{{ execution()!.requestNumber }}</span>
+                @if (flowDef()!.category) {
+                  <span class="mx-1">·</span>{{ flowDef()!.category }}
+                }
+              </p>
             </div>
           </div>
           <!-- Progress pill -->
@@ -133,6 +138,9 @@ import {
                 <h2 class="text-2xl font-bold text-slate-800 mb-2">All Done!</h2>
                 <p class="text-sm text-slate-500 max-w-sm mb-6">Your request has been submitted successfully. You can view the full summary of your answers.</p>
                 <div class="flex gap-3">
+                  <button mat-stroked-button (click)="goBack()" [disabled]="!canGoBack()">
+                    <mat-icon>arrow_back</mat-icon> Go Back
+                  </button>
                   <button mat-stroked-button (click)="goToList()">
                     <mat-icon>list</mat-icon> All Requests
                   </button>
@@ -427,7 +435,46 @@ import {
                       Approver: <span class="font-semibold">{{ node.config!['assigneeRole'] }}</span>
                     </div>
                   }
-                  <p class="text-xs text-slate-400 mt-3">Review and click Next to submit for approval.</p>
+
+                  <!-- Summary of answers so far -->
+                  @if (execution()!.answers.length) {
+                    <div class="mt-4 border rounded-xl overflow-hidden">
+                      <div class="bg-slate-50 px-4 py-2 border-b">
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Submitted Data</span>
+                      </div>
+                      <div class="divide-y">
+                        @for (ans of execution()!.answers; track ans.fieldId) {
+                          @if (getFieldLabel(ans.nodeId, ans.fieldId); as label) {
+                            <div class="flex justify-between px-4 py-2 text-xs">
+                              <span class="text-slate-500">{{ label }}</span>
+                              <span class="font-medium text-slate-800">{{ ans.value }}</span>
+                            </div>
+                          }
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Approve / Reject buttons (role-gated) -->
+                  @if (userRole() === node.config?.['assigneeRole'] || userRole() === 'ADMIN') {
+                    <div class="flex items-center gap-3 mt-5">
+                      <button mat-raised-button color="primary"
+                              class="!h-10 !text-sm !font-semibold !px-6 !rounded-xl flex-1"
+                              (click)="approveNode()">
+                        <mat-icon class="mr-1">check_circle</mat-icon> Approve
+                      </button>
+                      <button mat-stroked-button color="warn"
+                              class="!h-10 !text-sm !font-semibold !px-6 !rounded-xl flex-1"
+                              (click)="rejectNode()">
+                        <mat-icon class="mr-1">cancel</mat-icon> Reject
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="mt-5 text-center py-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <mat-icon class="text-slate-400 !text-2xl">hourglass_empty</mat-icon>
+                      <p class="text-sm text-slate-500 mt-1">Pending approval from <span class="font-semibold">{{ node.config?.['assigneeRole'] || 'assigned approver' }}</span></p>
+                    </div>
+                  }
                 </div>
               </div>
 
@@ -516,7 +563,7 @@ import {
             }
 
             <!-- ── Sticky Bottom Navigation ── -->
-            @if (execution()!.status !== 'completed') {
+            @if (execution()!.status !== 'completed' && currentNode()?.type !== 'approval') {
               <div class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg">
                 <div class="max-w-6xl mx-auto flex items-center justify-between px-5 h-16">
                   <!-- Left: back + step info -->
@@ -622,13 +669,18 @@ export class PortalFlowRunnerComponent implements OnInit {
   apiCallDone = signal(false);
   apiCallError = signal<string | null>(null);
   focusedField = signal<string | null>(null);
+  userRole = signal<string | undefined>(undefined);
+  private _lastAutoAdvancedDecision: string | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private dataService: DataService,
     private snackBar: MatSnackBar,
-  ) {}
+    private store: Store,
+  ) {
+    this.store.select(selectUserRole).subscribe(r => this.userRole.set(r));
+  }
 
   ngOnInit(): void {
     const execId = this.route.snapshot.paramMap.get('execId');
@@ -796,14 +848,12 @@ export class PortalFlowRunnerComponent implements OnInit {
           this.apiCallDone.set(true);
         }
         this.execution.set(updated);
-        // Update local answers
+        // Rebuild local answers from server state (handles pruning on path change)
+        const newMap = new Map<string, unknown>();
         for (const a of updated.answers) {
-          this.localAnswers.update(map => {
-            const newMap = new Map(map);
-            newMap.set(`${a.nodeId}::${a.fieldId}`, a.value);
-            return newMap;
-          });
+          newMap.set(`${a.nodeId}::${a.fieldId}`, a.value);
         }
+        this.localAnswers.set(newMap);
         if (updated.status === 'completed') {
           this.snackBar.open('Flow completed successfully!', 'OK', { duration: 3000 });
         } else {
@@ -825,10 +875,21 @@ export class PortalFlowRunnerComponent implements OnInit {
     const node = this.currentNode();
     if (!node) return;
     // Decision nodes should never be displayed — auto-advance through them
+    // But guard against infinite loops: if we've already tried this decision, stop
     if (node.type === 'decision') {
+      const exec = this.execution();
+      const lastNodeId = this._lastAutoAdvancedDecision;
+      if (lastNodeId === node.id) {
+        // Already tried this decision and it came back to itself — stop looping
+        this._lastAutoAdvancedDecision = null;
+        this.snackBar.open('Decision node has no matching condition or default route. Please check the flow design.', 'OK', { duration: 5000 });
+        return;
+      }
+      this._lastAutoAdvancedDecision = node.id;
       setTimeout(() => this.submitAndAdvance(), 100);
       return;
     }
+    this._lastAutoAdvancedDecision = null;
     if (node.type !== 'api_call') return;
     // Reset state and auto-fire
     this.apiCallLoading.set(true);
@@ -843,7 +904,70 @@ export class PortalFlowRunnerComponent implements OnInit {
     if (!exec) return;
     this.dataService.goBackFlowExecution(exec.id).subscribe(updated => {
       this.execution.set(updated);
+      // Sync local answers from server state (answers are preserved on back)
+      const newMap = new Map<string, unknown>();
+      for (const a of updated.answers) {
+        newMap.set(`${a.nodeId}::${a.fieldId}`, a.value);
+      }
+      this.localAnswers.set(newMap);
     });
+  }
+
+  approveNode(): void {
+    const exec = this.execution();
+    const node = this.currentNode();
+    if (!exec || !node) return;
+    const answers: FlowAnswer[] = [{
+      nodeId: node.id, fieldId: '__approval__', value: 'approved',
+    }];
+    this.dataService.submitFlowAnswer(exec.id, answers, exec.currentNodeId).subscribe({
+      next: updated => {
+        this.execution.set(updated);
+        const newMap = new Map<string, unknown>();
+        for (const a of updated.answers) {
+          newMap.set(`${a.nodeId}::${a.fieldId}`, a.value);
+        }
+        this.localAnswers.set(newMap);
+        if (updated.status === 'completed') {
+          this.snackBar.open('Flow completed!', 'OK', { duration: 3000 });
+        } else {
+          this._autoExecuteIfApiCall();
+        }
+      },
+      error: () => this.snackBar.open('Failed to approve', 'OK', { duration: 3000 }),
+    });
+  }
+
+  rejectNode(): void {
+    const exec = this.execution();
+    const node = this.currentNode();
+    if (!exec || !node) return;
+    const answers: FlowAnswer[] = [{
+      nodeId: node.id, fieldId: '__approval__', value: 'rejected',
+    }];
+    this.dataService.submitFlowAnswer(exec.id, answers, exec.currentNodeId).subscribe({
+      next: updated => {
+        this.execution.set(updated);
+        const newMap = new Map<string, unknown>();
+        for (const a of updated.answers) {
+          newMap.set(`${a.nodeId}::${a.fieldId}`, a.value);
+        }
+        this.localAnswers.set(newMap);
+        this.snackBar.open('Approval rejected. Flow has been sent back.', 'OK', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('Failed to reject', 'OK', { duration: 3000 }),
+    });
+  }
+
+  /** Get a human-readable label for a field by node+field ID */
+  getFieldLabel(nodeId: string, fieldId: string): string | null {
+    if (fieldId.startsWith('__')) return null; // skip internal fields
+    const def = this.flowDef();
+    if (!def) return null;
+    const node = def.definition.nodes.find(n => n.id === nodeId);
+    if (!node) return null;
+    const field = node.fields.find(f => f.id === fieldId);
+    return field?.label || null;
   }
 
   goToList(): void {
@@ -881,38 +1005,59 @@ export class PortalFlowRunnerComponent implements OnInit {
   /** Walk the edge graph from the start node to get nodes in execution order */
   private _graphOrderedNodes(): FlowNode[] {
     const def = this.flowDef();
+    const exec = this.execution();
     if (!def) return [];
     const { nodes, edges } = def.definition;
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const skipTypes = new Set(['start', 'decision']);
+
+    const ordered: FlowNode[] = [];
+    const seen = new Set<string>();
+
+    // 1. Add visited nodes in their actual execution order
+    if (exec) {
+      for (const nid of exec.visitedNodes) {
+        const node = nodeMap.get(nid);
+        if (node && !seen.has(nid)) {
+          ordered.push(node);
+          seen.add(nid);
+        }
+      }
+    }
+
+    // 2. BFS forward from current node for unvisited nodes
     const edgeMap = new Map<string, string[]>();
     for (const e of edges) {
       const targets = edgeMap.get(e.source) || [];
       targets.push(e.target);
       edgeMap.set(e.source, targets);
     }
-    // Find start node
-    const startNode = nodes.find(n => n.type === 'start');
-    if (!startNode) return nodes; // fallback to array order
-
-    // BFS traversal following edges
-    const ordered: FlowNode[] = [];
-    const visited = new Set<string>();
-    const queue = [startNode.id];
-    visited.add(startNode.id);
-    while (queue.length) {
-      const id = queue.shift()!;
-      const node = nodeMap.get(id);
-      if (node) ordered.push(node);
-      for (const target of edgeMap.get(id) || []) {
-        if (!visited.has(target)) {
-          visited.add(target);
-          queue.push(target);
+    const startId = exec?.currentNodeId || nodes.find(n => n.type === 'start')?.id;
+    if (startId) {
+      const queue = [startId];
+      const bfsVisited = new Set(seen);
+      while (queue.length) {
+        const id = queue.shift()!;
+        for (const target of edgeMap.get(id) || []) {
+          if (!bfsVisited.has(target)) {
+            bfsVisited.add(target);
+            const node = nodeMap.get(target);
+            if (node && !seen.has(target)) {
+              ordered.push(node);
+              seen.add(target);
+            }
+            queue.push(target);
+          }
         }
       }
     }
-    // Append any unconnected nodes at the end
+
+    // 3. Append any remaining unconnected nodes
     for (const n of nodes) {
-      if (!visited.has(n.id)) ordered.push(n);
+      if (!seen.has(n.id)) {
+        ordered.push(n);
+        seen.add(n.id);
+      }
     }
     return ordered;
   }

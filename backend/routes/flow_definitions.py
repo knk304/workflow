@@ -58,8 +58,10 @@ def _to_exec_response(doc: dict, flow_name: str = "") -> dict:
             "fieldId": a.get("field_id") or a.get("fieldId", ""),
             "value": a.get("value"),
         })
+    req_num = doc.get("request_number", 0)
     return {
         "id": str(doc["_id"]),
+        "requestNumber": f"REQ-{req_num:04d}" if req_num else str(doc["_id"])[:8],
         "flowDefinitionId": doc.get("flow_definition_id", ""),
         "flowName": flow_name or doc.get("flow_name", ""),
         "currentNodeId": doc.get("current_node_id", ""),
@@ -366,9 +368,18 @@ async def start_flow_execution(body: FlowExecutionCreate, user: dict = Depends(g
             break
 
     now = datetime.now(timezone.utc).isoformat()
+
+    # Generate sequential request number
+    last = await db.flow_executions.find_one(
+        {"request_number": {"$exists": True}},
+        sort=[("request_number", -1)],
+    )
+    next_num = (last.get("request_number", 0) + 1) if last else 1
+
     doc = {
         "flow_definition_id": body.flow_definition_id,
         "flow_name": flow_def.get("name", ""),
+        "request_number": next_num,
         "current_node_id": first_node_id,
         "visited_nodes": [start_id, first_node_id],
         "answers": [],
@@ -431,8 +442,10 @@ async def submit_answer_and_advance(
     definition = FlowDefinitionBody(**flow_def.get("definition", {}))
     current_id = exec_doc["current_node_id"]
 
-    # Merge new answers
-    existing_answers = exec_doc.get("answers", [])
+    existing_answers = list(exec_doc.get("answers", []))
+    visited = list(exec_doc.get("visited_nodes", []))
+
+    # Merge new answers (before pruning — we need updated answers for decision eval)
     if body.answers:
         for new_a in body.answers:
             new_a_dict = new_a.model_dump(by_alias=True)
@@ -471,34 +484,71 @@ async def submit_answer_and_advance(
             existing_answers.append(ma)
 
     if current_node and current_node.type == "decision":
+        decision_node_id: str | None = None
         next_node_id = _evaluate_decision(current_node, existing_answers)
     elif current_node and current_node.type == "end":
+        decision_node_id = None
         # Already at end
         pass
     else:
         # Follow edges from current node
-        for edge in definition.edges:
-            if edge.source == current_id:
-                target_node = node_map.get(edge.target)
-                if target_node and target_node.type == "decision":
-                    # Auto-evaluate decision
-                    next_node_id = _evaluate_decision(target_node, existing_answers)
-                    if next_node_id:
-                        # Record we visited the decision node
-                        visited = exec_doc.get("visited_nodes", [])
-                        if edge.target not in visited:
-                            visited.append(edge.target)
-                        exec_doc["visited_nodes"] = visited
-                    else:
-                        next_node_id = edge.target
+        decision_node_id = None
+        outgoing = [e for e in definition.edges if e.source == current_id]
+
+        # Prefer edges that don't loop back to already-visited decision nodes
+        selected_edge = None
+        for edge in outgoing:
+            t = node_map.get(edge.target)
+            if t and t.type == "decision" and edge.target in visited:
+                continue  # skip loop-back to a decision we already passed through
+            selected_edge = edge
+            break
+        if not selected_edge and outgoing:
+            selected_edge = outgoing[0]  # fallback
+
+        if selected_edge:
+            target_node = node_map.get(selected_edge.target)
+            if target_node and target_node.type == "decision":
+                # Auto-evaluate decision
+                decision_node_id = selected_edge.target
+                decision_result = _evaluate_decision(target_node, existing_answers)
+                if decision_result:
+                    next_node_id = decision_result
                 else:
-                    next_node_id = edge.target
-                break
+                    # Decision had no matching condition and no default target
+                    # Park at the decision node so frontend can show an error
+                    next_node_id = selected_edge.target
+            else:
+                next_node_id = selected_edge.target
 
     if not next_node_id:
         next_node_id = current_id
 
-    visited = exec_doc.get("visited_nodes", [])
+    # ── Prune forward path only when the path actually diverges ──
+    if current_id in visited:
+        cur_idx = visited.index(current_id)
+        old_forward = visited[cur_idx + 1:]
+        if old_forward:
+            # Find the first "real" (non-decision) node in old forward path
+            old_next = None
+            for nid in old_forward:
+                n = node_map.get(nid)
+                if n and n.type != "decision":
+                    old_next = nid
+                    break
+            if old_next and old_next != next_node_id:
+                # Path changed — prune old forward nodes and their answers
+                pruned_ids = set(old_forward)
+                visited = visited[: cur_idx + 1]
+                existing_answers = [
+                    a for a in existing_answers
+                    if (a.get("node_id") or a.get("nodeId", "")) not in pruned_ids
+                ]
+
+    # Record decision node visit (after prune so it doesn't get removed)
+    if decision_node_id and decision_node_id not in visited:
+        visited.append(decision_node_id)
+
     if next_node_id not in visited:
         visited.append(next_node_id)
 
@@ -551,32 +601,36 @@ async def submit_answer_and_advance(
 
 @exec_router.post("/{exec_id}/back")
 async def go_back(exec_id: str, user: dict = Depends(get_current_user)):
-    """Go back to previous node."""
+    """Go back to previous interactive node, keeping answers and visited list intact."""
     db = get_db()
     exec_doc = await find_by_id(db.flow_executions, exec_id)
     if not exec_doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Flow execution not found")
 
-    visited = exec_doc.get("visited_nodes", [])
+    visited = list(exec_doc.get("visited_nodes", []))
     current = exec_doc.get("current_node_id")
 
-    # Find previous non-decision node
     if len(visited) > 1 and current in visited:
         idx = visited.index(current)
         if idx > 0:
-            prev_id = visited[idx - 1]
-            # Skip decision nodes when going back
+            prev_idx = idx - 1
+            prev_id = visited[prev_idx]
+            # Skip decision and start nodes when going back
             flow_def = await find_by_id(db.flow_definitions, exec_doc["flow_definition_id"])
             if flow_def:
                 definition = FlowDefinitionBody(**flow_def.get("definition", {}))
                 node_map = {n.id: n for n in definition.nodes}
-                while idx > 1 and node_map.get(prev_id, None) and node_map[prev_id].type in ("decision", "start"):
-                    idx -= 1
-                    prev_id = visited[idx - 1]
+                while prev_idx > 1 and node_map.get(prev_id) and node_map[prev_id].type in ("decision", "start"):
+                    prev_idx -= 1
+                    prev_id = visited[prev_idx]
 
-            await update_by_id(db.flow_executions, exec_id, {
-                "$set": {"current_node_id": prev_id}
-            })
+            updates: dict = {"current_node_id": prev_id}
+            # Reset completion status if going back from a completed flow
+            if exec_doc.get("status") == "completed":
+                updates["status"] = "in_progress"
+                updates["completed_at"] = None
+
+            await update_by_id(db.flow_executions, exec_id, {"$set": updates})
 
     updated = await find_by_id(db.flow_executions, exec_id)
     return _to_exec_response(updated)

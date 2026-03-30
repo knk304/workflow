@@ -462,9 +462,18 @@ import { FlowNodeFormEditorComponent, FormEditorDialogData } from './flow-node-f
                     </button>
                   </div>
                   <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
-                    <mat-label>Field ID (from question node)</mat-label>
-                    <input matInput [value]="cond.fieldId"
-                           (blur)="updateCondition(cond.id, 'fieldId', $any($event.target).value)">
+                    <mat-label>Field (from question node)</mat-label>
+                    <mat-select [value]="cond.fieldId"
+                                (selectionChange)="updateCondition(cond.id, 'fieldId', $event.value)">
+                      <mat-option value="">-- select field --</mat-option>
+                      @for (qn of getQuestionNodes(); track qn.id) {
+                        <mat-optgroup [label]="qn.label">
+                          @for (f of qn.fields; track f.id) {
+                            <mat-option [value]="f.id">{{ f.label }} ({{ f.type }})</mat-option>
+                          }
+                        </mat-optgroup>
+                      }
+                    </mat-select>
                   </mat-form-field>
                   <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
                     <mat-label>Operator</mat-label>
@@ -1007,6 +1016,11 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
       alert: 'info',
     };
     return map[type] || 'text_fields';
+  }
+
+  /** Get all question nodes that have fields (for decision condition dropdowns) */
+  getQuestionNodes(): FlowNode[] {
+    return this.canvasNodes().filter(n => n.type === 'question' && n.fields.length > 0);
   }
 
   // == Node property updates ==

@@ -183,6 +183,7 @@ class FlowExecutionUpdate(BaseModel):
 class FlowExecutionResponse(BaseModel):
     model_config = {"populate_by_name": True}
     id: str
+    request_number: str = Field(default="", alias="requestNumber")
     flow_definition_id: str = Field(..., alias="flowDefinitionId")
     flow_name: str = Field(default="", alias="flowName")
     current_node_id: str = Field(default="", alias="currentNodeId")

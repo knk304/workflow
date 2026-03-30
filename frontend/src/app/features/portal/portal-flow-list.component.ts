@@ -140,7 +140,7 @@ import { FlowExecution } from '@core/models';
               <td mat-cell *matCellDef="let row" class="!text-xs">
                 <span class="font-mono text-[#056DAE] font-medium cursor-pointer hover:underline"
                       (click)="viewExecution(row)">
-                  {{ row.id | slice:0:8 }}...
+                  {{ row.requestNumber || (row.id | slice:0:8) + '...' }}
                 </span>
               </td>
             </ng-container>
@@ -327,7 +327,7 @@ export class PortalFlowListComponent implements OnInit, AfterViewInit {
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(e =>
-        e.flowName.toLowerCase().includes(term) || e.id.toLowerCase().includes(term)
+        e.flowName.toLowerCase().includes(term) || e.id.toLowerCase().includes(term) || (e.requestNumber || '').toLowerCase().includes(term)
       );
     }
     if (this.statusFilter) {
