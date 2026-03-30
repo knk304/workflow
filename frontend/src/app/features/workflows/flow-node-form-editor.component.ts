@@ -86,13 +86,22 @@ export interface FormEditorDialogData {
                   @if (field.validation.required) {
                     <span class="text-[10px] text-red-500 font-bold">*</span>
                   }
+                  <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded cursor-text"
+                        matTooltip="Field ID — use this in decision nodes"
+                        (click)="$event.stopPropagation()">{{ field.id }}</span>
                   <mat-icon class="!text-sm text-gray-400">{{ expandedFieldId === field.id ? 'expand_less' : 'expand_more' }}</mat-icon>
                 </div>
 
                 <!-- Expanded editor -->
                 @if (expandedFieldId === field.id) {
                   <div class="px-3 pb-3 space-y-2 border-t bg-slate-50/50">
-                    <div class="grid grid-cols-2 gap-2 pt-2">
+                    <!-- Field ID display -->
+                    <div class="flex items-center gap-2 pt-2 pb-1">
+                      <span class="text-[10px] font-semibold text-gray-500">FIELD ID:</span>
+                      <code class="text-[11px] font-mono bg-slate-100 text-[#056DAE] px-2 py-0.5 rounded select-all">{{ field.id }}</code>
+                      <span class="text-[9px] text-gray-400">Use this ID in decision or other nodes</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
                       <mat-form-field class="dense-field" subscriptSizing="dynamic">
                         <mat-label>Label</mat-label>
                         <input matInput [(ngModel)]="field.label">

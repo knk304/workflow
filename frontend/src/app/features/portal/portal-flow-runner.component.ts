@@ -878,11 +878,48 @@ export class PortalFlowRunnerComponent implements OnInit {
     return node.fields.filter(f => this.hasFieldAnswer(node.id, f.id)).length;
   }
 
-  /** Nodes to show in the left step tracker (exclude start/decision) */
-  visibleStepNodes(): string[] {
+  /** Walk the edge graph from the start node to get nodes in execution order */
+  private _graphOrderedNodes(): FlowNode[] {
     const def = this.flowDef();
     if (!def) return [];
-    return def.definition.nodes
+    const { nodes, edges } = def.definition;
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const edgeMap = new Map<string, string[]>();
+    for (const e of edges) {
+      const targets = edgeMap.get(e.source) || [];
+      targets.push(e.target);
+      edgeMap.set(e.source, targets);
+    }
+    // Find start node
+    const startNode = nodes.find(n => n.type === 'start');
+    if (!startNode) return nodes; // fallback to array order
+
+    // BFS traversal following edges
+    const ordered: FlowNode[] = [];
+    const visited = new Set<string>();
+    const queue = [startNode.id];
+    visited.add(startNode.id);
+    while (queue.length) {
+      const id = queue.shift()!;
+      const node = nodeMap.get(id);
+      if (node) ordered.push(node);
+      for (const target of edgeMap.get(id) || []) {
+        if (!visited.has(target)) {
+          visited.add(target);
+          queue.push(target);
+        }
+      }
+    }
+    // Append any unconnected nodes at the end
+    for (const n of nodes) {
+      if (!visited.has(n.id)) ordered.push(n);
+    }
+    return ordered;
+  }
+
+  /** Nodes to show in the left step tracker (exclude start/decision) */
+  visibleStepNodes(): string[] {
+    return this._graphOrderedNodes()
       .filter(n => n.type !== 'start' && n.type !== 'decision')
       .map(n => n.id);
   }
@@ -893,28 +930,26 @@ export class PortalFlowRunnerComponent implements OnInit {
 
   /** Which section index is the current question node (1-based, counting only question nodes) */
   currentSectionIndex(): number {
-    const def = this.flowDef();
     const exec = this.execution();
-    if (!def || !exec) return 1;
-    const questionNodes = def.definition.nodes.filter(n => n.type === 'question');
+    if (!exec) return 1;
+    const questionNodes = this._graphOrderedNodes().filter(n => n.type === 'question');
     const idx = questionNodes.findIndex(n => n.id === exec.currentNodeId);
     return idx >= 0 ? idx + 1 : 1;
   }
 
   totalSections(): number {
-    return this.flowDef()?.definition.nodes.filter(n => n.type === 'question').length ?? 1;
+    return this._graphOrderedNodes().filter(n => n.type === 'question').length || 1;
   }
 
   currentStepNumber(): number {
-    const def = this.flowDef();
     const exec = this.execution();
-    if (!def || !exec) return 1;
-    const steps = def.definition.nodes.filter(n => n.type !== 'start' && n.type !== 'decision');
+    if (!exec) return 1;
+    const steps = this._graphOrderedNodes().filter(n => n.type !== 'start' && n.type !== 'decision');
     const idx = steps.findIndex(n => n.id === exec.currentNodeId);
     return idx >= 0 ? idx + 1 : 1;
   }
 
   totalSteps(): number {
-    return this.flowDef()?.definition.nodes.filter(n => n.type !== 'start' && n.type !== 'decision').length ?? 1;
+    return this._graphOrderedNodes().filter(n => n.type !== 'start' && n.type !== 'decision').length || 1;
   }
 }
