@@ -1,7 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FlowFormRenderComponent, FieldAnswerChange } from './shared/flow-form-render.component';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +20,7 @@ import { DataService } from '@core/services/data.service';
 import { selectUserRole } from '@state/auth/auth.selectors';
 import {
   FlowDefinition, FlowExecution, FlowNode, FlowField,
-  FlowAnswer, FlowNodeType,
+  FlowAnswer, FlowNodeType, FormDefinition, FormField,
 } from '@core/models';
 
 @Component({
@@ -31,6 +32,7 @@ import {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatRadioModule, MatCheckboxModule, MatProgressBarModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
+    FlowFormRenderComponent,
   ],
   template: `
     @if (loading()) {
@@ -40,7 +42,7 @@ import {
       </div>
     } @else if (execution() && flowDef()) {
 
-      <!-- ── Top Header Bar ── -->
+      <!-- â”€â”€ Top Header Bar â”€â”€ -->
       <div class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30 -mx-5 px-5">
         <div class="max-w-6xl mx-auto flex items-center gap-3 h-14">
           <button mat-icon-button class="!w-8 !h-8 shrink-0" (click)="goToList()"
@@ -59,7 +61,7 @@ import {
                   <span class="font-mono font-semibold text-[#056DAE]">{{ execution()!.requestNumber }}</span>
                 }
                 @if (flowDef()!.category) {
-                  @if (execution()!.requestNumber) { <span class="mx-1">·</span> }
+                  @if (execution()!.requestNumber) { <span class="mx-1">Â·</span> }
                   {{ flowDef()!.category }}
                 }
               </p>
@@ -76,10 +78,10 @@ import {
         </div>
       </div>
 
-      <!-- ── Main 2-column Layout ── -->
+      <!-- â”€â”€ Main 2-column Layout â”€â”€ -->
       <div class="max-w-6xl mx-auto flex gap-6 pt-5">
 
-        <!-- ── LEFT: Step Tracker Sidebar ── -->
+        <!-- â”€â”€ LEFT: Step Tracker Sidebar â”€â”€ -->
         <aside class="hidden lg:block w-56 shrink-0">
           <div class="sticky top-20">
             <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-3 pl-1">Steps</p>
@@ -127,12 +129,12 @@ import {
           </div>
         </aside>
 
-        <!-- ── RIGHT: Main Content ── -->
+        <!-- â”€â”€ RIGHT: Main Content â”€â”€ -->
         <main class="flex-1 min-w-0 pb-28">
 
           @if (currentNode(); as node) {
 
-            <!-- ═══ COMPLETED STATE ═══ -->
+            <!-- â•â•â• COMPLETED STATE â•â•â• -->
             @if (execution()!.status === 'completed') {
               <div class="flex flex-col items-center justify-center py-16 text-center">
                 <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4 shadow-inner">
@@ -153,7 +155,7 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ QUESTION NODE ═══ -->
+            <!-- â•â•â• QUESTION NODE â•â•â• -->
             } @else if (node.type === 'question') {
               <!-- Section identifier row -->
               <div class="flex items-center gap-2 mb-3">
@@ -161,8 +163,8 @@ import {
                   Section {{ currentSectionIndex() }} of {{ totalSections() }}
                 </span>
                 <div class="flex-1 h-px bg-slate-100"></div>
-                @if (node.fields.length > 0) {
-                  <span class="text-[10px] text-slate-400">{{ answeredFieldCount(node) }}/{{ node.fields.length }} answered</span>
+                @if (getEffectiveFieldCount(node) > 0) {
+                  <span class="text-[10px] text-slate-400">{{ getEffectiveAnsweredCount(node) }}/{{ getEffectiveFieldCount(node) }} answered</span>
                 }
               </div>
 
@@ -182,203 +184,18 @@ import {
                   </div>
                 </div>
 
-                <!-- Fields List -->
-                <div>
-                  @for (field of node.fields; track field.id; let fi = $index) {
-                    <!-- Skip alert type — render separately -->
-                    @if (field.type === 'alert') {
-                      <div class="px-6 py-3 border-b border-slate-50 last:border-0">
-                        <div class="rounded-xl px-4 py-3 flex items-start gap-3"
-                             [ngClass]="alertBoxClass(field.placeholder || 'info')">
-                          <mat-icon class="!text-base !w-5 !h-5 shrink-0 mt-0.5"
-                                    [ngClass]="alertIconClass(field.placeholder || 'info')">
-                            {{ alertIcon(field.placeholder || 'info') }}
-                          </mat-icon>
-                          <div>
-                            <p class="text-sm font-semibold mb-0.5">{{ field.label }}</p>
-                            <p class="text-xs opacity-90">{{ field.defaultValue || '' }}</p>
-                          </div>
-                        </div>
-                      </div>
-                    } @else {
-                      <div class="px-6 py-4 border-b border-slate-50 last:border-0 transition-colors"
-                           [ngClass]="focusedField() === field.id ? 'bg-slate-50' : ''">
+                <!-- Form fields rendered by FlowFormRenderComponent -->
+                <app-flow-form-render
+                  [node]="node"
+                  [linkedFormDef]="linkedFormDef()"
+                  [linkedFormLoading]="linkedFormLoading()"
+                  [answers]="localAnswers()"
+                  (answerChange)="onFieldAnswer(node.id, $event)">
+                </app-flow-form-render>
 
-                        <!-- Field label row -->
-                        <div class="flex items-baseline justify-between mb-2">
-                          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                            <span class="w-4 h-4 rounded bg-slate-100 text-slate-400 text-[9px] font-bold flex items-center justify-center">{{ fi + 1 }}</span>
-                            {{ field.label }}
-                            @if (field.validation.required) {
-                              <span class="text-red-500 font-bold">*</span>
-                            }
-                          </label>
-                          @if (hasFieldAnswer(node.id, field.id)) {
-                            <span class="text-[10px] text-green-600 flex items-center gap-0.5 font-medium">
-                              <mat-icon class="!text-[10px] !w-3 !h-3">check_circle</mat-icon> Answered
-                            </span>
-                          }
-                        </div>
-
-                        <!-- Help text -->
-                        @if (field.helpText) {
-                          <p class="text-xs text-slate-400 mb-2 leading-relaxed">{{ field.helpText }}</p>
-                        }
-
-                        <!-- ── Field Controls ── -->
-                        @switch (field.type) {
-
-                          @case ('text') {
-                            <div class="runner-input-wrap" [class.focused]="focusedField() === field.id">
-                              <input class="runner-input"
-                                     [placeholder]="field.placeholder || 'Enter ' + field.label"
-                                     [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                     (focus)="focusedField.set(field.id)"
-                                     (blur)="focusedField.set(null)"
-                                     (input)="setAnswer(node.id, field.id, $event)">
-                            </div>
-                          }
-
-                          @case ('textarea') {
-                            <div class="runner-input-wrap" [class.focused]="focusedField() === field.id">
-                              <textarea class="runner-input runner-textarea"
-                                        rows="3"
-                                        [placeholder]="field.placeholder || 'Enter ' + field.label"
-                                        [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                        (focus)="focusedField.set(field.id)"
-                                        (blur)="focusedField.set(null)"
-                                        (input)="setAnswer(node.id, field.id, $event)"></textarea>
-                            </div>
-                          }
-
-                          @case ('number') {
-                            <div class="runner-input-wrap max-w-xs" [class.focused]="focusedField() === field.id">
-                              <input class="runner-input" type="number"
-                                     [placeholder]="field.placeholder || '0'"
-                                     [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                     (focus)="focusedField.set(field.id)"
-                                     (blur)="focusedField.set(null)"
-                                     (input)="setAnswer(node.id, field.id, $event)">
-                            </div>
-                          }
-
-                          @case ('date') {
-                            <div class="runner-input-wrap max-w-xs" [class.focused]="focusedField() === field.id">
-                              <input class="runner-input" type="date"
-                                     [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                     (focus)="focusedField.set(field.id)"
-                                     (blur)="focusedField.set(null)"
-                                     (input)="setAnswer(node.id, field.id, $event)">
-                            </div>
-                          }
-
-                          @case ('select') {
-                            <div class="runner-input-wrap runner-select-wrap" [class.focused]="focusedField() === field.id">
-                              <select class="runner-input runner-select"
-                                      [value]="getAnswer(node.id, field.id) ?? field.defaultValue ?? ''"
-                                      (focus)="focusedField.set(field.id)"
-                                      (blur)="focusedField.set(null)"
-                                      (change)="setAnswerDirect(node.id, field.id, $any($event.target).value)">
-                                <option value="" disabled>Select an option...</option>
-                                @for (opt of field.options; track opt.value) {
-                                  <option [value]="opt.value">{{ opt.label }}</option>
-                                }
-                              </select>
-                              <mat-icon class="runner-select-icon">expand_more</mat-icon>
-                            </div>
-                          }
-
-                          @case ('radio') {
-                            <div class="flex flex-wrap gap-2">
-                              @for (opt of field.options; track opt.value) {
-                                <button type="button"
-                                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all"
-                                        [ngClass]="getAnswer(node.id, field.id) === opt.value
-                                          ? 'border-[#056DAE] bg-[#EAF4FB] text-[#056DAE] shadow-sm'
-                                          : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'"
-                                        (click)="setAnswerDirect(node.id, field.id, opt.value)">
-                                  <div class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0"
-                                       [ngClass]="getAnswer(node.id, field.id) === opt.value ? 'border-[#056DAE]' : 'border-slate-300'">
-                                    @if (getAnswer(node.id, field.id) === opt.value) {
-                                      <div class="w-1.5 h-1.5 rounded-full bg-[#056DAE]"></div>
-                                    }
-                                  </div>
-                                  {{ opt.label }}
-                                </button>
-                              }
-                            </div>
-                          }
-
-                          @case ('checkbox') {
-                            <button type="button"
-                                    class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all"
-                                    [ngClass]="getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'
-                                      ? 'border-[#056DAE] bg-[#EAF4FB] text-[#056DAE]'
-                                      : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'"
-                                    (click)="setAnswerDirect(node.id, field.id, !(getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'))">
-                              <div class="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
-                                   [ngClass]="getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true'
-                                     ? 'border-[#056DAE] bg-[#056DAE]' : 'border-slate-300'">
-                                @if (getAnswer(node.id, field.id) === true || getAnswer(node.id, field.id) === 'true') {
-                                  <mat-icon class="!text-[10px] !w-3 !h-3 text-white">check</mat-icon>
-                                }
-                              </div>
-                              {{ field.label }}
-                            </button>
-                          }
-
-                          @case ('multi_select') {
-                            <div class="flex flex-wrap gap-2">
-                              @for (opt of field.options; track opt.value) {
-                                <button type="button"
-                                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all"
-                                        [ngClass]="isMultiSelected(node.id, field.id, opt.value)
-                                          ? 'border-[#056DAE] bg-[#EAF4FB] text-[#056DAE] shadow-sm'
-                                          : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'"
-                                        (click)="toggleMultiSelect(node.id, field.id, opt.value)">
-                                  <div class="w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0"
-                                       [ngClass]="isMultiSelected(node.id, field.id, opt.value) ? 'border-[#056DAE] bg-[#056DAE]' : 'border-slate-300'">
-                                    @if (isMultiSelected(node.id, field.id, opt.value)) {
-                                      <mat-icon class="!text-[9px] !w-2.5 !h-2.5 text-white">check</mat-icon>
-                                    }
-                                  </div>
-                                  {{ opt.label }}
-                                </button>
-                              }
-                            </div>
-                          }
-
-                          @default {
-                            <div class="runner-input-wrap" [class.focused]="focusedField() === field.id">
-                              <input class="runner-input"
-                                     [placeholder]="field.placeholder || ''"
-                                     [value]="getAnswer(node.id, field.id) ?? ''"
-                                     (focus)="focusedField.set(field.id)"
-                                     (blur)="focusedField.set(null)"
-                                     (input)="setAnswer(node.id, field.id, $event)">
-                            </div>
-                          }
-                        }
-                      </div>
-                    }
-                  }
-                </div>
-
-                <!-- Section completion bar -->
-                @if (node.fields.length > 1) {
-                  <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
-                    <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
-                      <div class="h-full bg-[#056DAE] rounded-full transition-all duration-300"
-                           [style.width]="(answeredFieldCount(node) / node.fields.length * 100) + '%'"></div>
-                    </div>
-                    <span class="text-[10px] font-medium text-slate-400 shrink-0">
-                      {{ answeredFieldCount(node) }}/{{ node.fields.length }}
-                    </span>
-                  </div>
-                }
               </div>
 
-            <!-- ═══ DISPLAY NODE ═══ -->
+            <!-- â•â•â• DISPLAY NODE â•â•â• -->
             } @else if (node.type === 'display') {
               <div class="bg-blue-50 border-l-4 border-blue-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-start gap-4">
                 <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
@@ -390,7 +207,7 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ TASK NODE ═══ -->
+            <!-- â•â•â• TASK NODE â•â•â• -->
             } @else if (node.type === 'task') {
               <div class="bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
                 <div class="bg-amber-50 border-b border-amber-100 px-5 py-3 flex items-center gap-3">
@@ -416,7 +233,7 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ APPROVAL NODE ═══ -->
+            <!-- â•â•â• APPROVAL NODE â•â•â• -->
             } @else if (node.type === 'approval') {
               <div class="bg-white border border-emerald-200 rounded-2xl shadow-sm overflow-hidden">
                 <div class="bg-emerald-50 border-b border-emerald-100 px-5 py-3 flex items-center gap-3">
@@ -481,7 +298,7 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ NOTIFICATION NODE ═══ -->
+            <!-- â•â•â• NOTIFICATION NODE â•â•â• -->
             } @else if (node.type === 'notification') {
               <div class="bg-orange-50 border-l-4 border-orange-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-start gap-4">
                 <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
@@ -496,7 +313,7 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ TIMER NODE ═══ -->
+            <!-- â•â•â• TIMER NODE â•â•â• -->
             } @else if (node.type === 'timer') {
               <div class="bg-cyan-50 border-l-4 border-cyan-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-start gap-4">
                 <div class="w-9 h-9 rounded-xl bg-cyan-100 flex items-center justify-center shrink-0">
@@ -511,7 +328,7 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ API CALL NODE ═══ -->
+            <!-- â•â•â• API CALL NODE â•â•â• -->
             } @else if (node.type === 'api_call') {
               <div class="bg-white border border-teal-200 rounded-2xl shadow-sm overflow-hidden">
                 <div class="bg-teal-50 border-b border-teal-100 px-5 py-3 flex items-center gap-3">
@@ -533,7 +350,7 @@ import {
                   @if (apiCallLoading()) {
                     <div class="flex items-center gap-3 p-3 rounded-lg bg-teal-50 border border-teal-200">
                       <mat-spinner diameter="18"></mat-spinner>
-                      <span class="text-sm text-teal-800 font-medium">Executing API call…</span>
+                      <span class="text-sm text-teal-800 font-medium">Executing API callâ€¦</span>
                     </div>
                   } @else if (apiCallError()) {
                     <div class="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
@@ -549,13 +366,13 @@ import {
                 </div>
               </div>
 
-            <!-- ═══ PARALLEL / END ═══ -->
+            <!-- â•â•â• PARALLEL / END â•â•â• -->
             } @else if (node.type === 'parallel') {
               <div class="bg-purple-50 border-l-4 border-purple-400 rounded-r-2xl rounded-bl-2xl p-5 flex items-center gap-4">
                 <mat-icon class="text-purple-600">fork_right</mat-icon>
                 <div>
                   <h2 class="text-base font-bold text-purple-800">{{ node.label }}</h2>
-                  <p class="text-sm text-purple-600 mt-0.5">Parallel gateway — click Next to continue.</p>
+                  <p class="text-sm text-purple-600 mt-0.5">Parallel gateway â€” click Next to continue.</p>
                 </div>
               </div>
             } @else if (node.type === 'end') {
@@ -565,7 +382,7 @@ import {
               </div>
             }
 
-            <!-- ── Sticky Bottom Navigation ── -->
+            <!-- â”€â”€ Sticky Bottom Navigation â”€â”€ -->
             @if (execution()!.status !== 'completed' && currentNode()?.type !== 'approval') {
               <div class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg">
                 <div class="max-w-6xl mx-auto flex items-center justify-between px-5 h-16">
@@ -616,52 +433,7 @@ import {
       </div>
     }
   `,
-  styles: [`
-    .runner-input-wrap {
-      display: flex;
-      align-items: center;
-      background: #fff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 10px;
-      overflow: hidden;
-      transition: border-color 150ms, box-shadow 150ms;
-      position: relative;
-    }
-    .runner-input-wrap:hover {
-      border-color: #cbd5e1;
-    }
-    .runner-input-wrap.focused {
-      border-color: #056DAE;
-      box-shadow: 0 0 0 3px rgba(5,109,174,0.08);
-    }
-    .runner-input {
-      width: 100%;
-      padding: 9px 12px;
-      font-size: 13px;
-      color: #1e293b;
-      background: transparent;
-      border: none;
-      outline: none;
-    }
-    .runner-input::placeholder { color: #94a3b8; }
-    .runner-textarea { resize: vertical; min-height: 80px; }
-    .runner-select-wrap { cursor: pointer; }
-    .runner-select {
-      appearance: none;
-      -webkit-appearance: none;
-      padding-right: 32px !important;
-      cursor: pointer;
-    }
-    .runner-select-icon {
-      position: absolute;
-      right: 8px;
-      font-size: 18px !important;
-      width: 18px !important;
-      height: 18px !important;
-      color: #94a3b8;
-      pointer-events: none;
-    }
-  `],
+  styles: [],
 })
 export class PortalFlowRunnerComponent implements OnInit {
   loading = signal(true);
@@ -671,9 +443,11 @@ export class PortalFlowRunnerComponent implements OnInit {
   apiCallLoading = signal(false);
   apiCallDone = signal(false);
   apiCallError = signal<string | null>(null);
-  focusedField = signal<string | null>(null);
   userRole = signal<string | undefined>(undefined);
   private _lastAutoAdvancedDecision: string | null = null;
+  linkedFormDef = signal<FormDefinition | null>(null);
+  linkedFormLoading = signal(false);
+  private _lastLoadedFormId: string | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -683,6 +457,25 @@ export class PortalFlowRunnerComponent implements OnInit {
     private store: Store,
   ) {
     this.store.select(selectUserRole).subscribe(r => this.userRole.set(r));
+    // Whenever the current node changes to a linked-form question, load the form def
+    effect(() => {
+      const node = this.currentNode();
+      if (node?.type === 'question' && node.config?.['formSource'] === 'linked') {
+        const formId = node.config['formId'] as string | undefined;
+        if (formId && formId !== this._lastLoadedFormId) {
+          this._lastLoadedFormId = formId;
+          this.linkedFormLoading.set(true);
+          this.linkedFormDef.set(null);
+          this.dataService.getFormDefinitionById(formId).subscribe({
+            next: def => { this.linkedFormDef.set(def); this.linkedFormLoading.set(false); },
+            error: () => this.linkedFormLoading.set(false),
+          });
+        }
+      } else {
+        this._lastLoadedFormId = null;
+        this.linkedFormDef.set(null);
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -756,21 +549,9 @@ export class PortalFlowRunnerComponent implements OnInit {
     });
   }
 
-  isMultiSelected(nodeId: string, fieldId: string, value: string): boolean {
-    const current = this.getAnswer(nodeId, fieldId);
-    if (Array.isArray(current)) return current.includes(value);
-    return false;
-  }
-
-  toggleMultiSelect(nodeId: string, fieldId: string, value: string): void {
-    const current = this.getAnswer(nodeId, fieldId);
-    let arr: string[] = Array.isArray(current) ? [...current] : [];
-    if (arr.includes(value)) {
-      arr = arr.filter(v => v !== value);
-    } else {
-      arr.push(value);
-    }
-    this.setAnswerDirect(nodeId, fieldId, arr);
+  /** Called by FlowFormRenderComponent (answerChange) output. */
+  onFieldAnswer(nodeId: string, change: FieldAnswerChange): void {
+    this.setAnswerDirect(nodeId, change.fieldId, change.value);
   }
 
   canGoBack(): boolean {
@@ -782,12 +563,21 @@ export class PortalFlowRunnerComponent implements OnInit {
   canAdvance(): boolean {
     const node = this.currentNode();
     if (!node) return false;
-    // These node types need no form input — always allow advance
+    // These node types need no form input â€” always allow advance
     if (node.type === 'display' || node.type === 'task' || node.type === 'parallel'
         || node.type === 'approval' || node.type === 'notification' || node.type === 'timer'
         || node.type === 'api_call') return true;
     if (node.type === 'question') {
-      // Check required fields
+      if (node.config?.['formSource'] === 'linked') {
+        for (const field of this.getLinkedFormFields()) {
+          if (field.validation?.required) {
+            const val = this.getAnswer(node.id, field.id);
+            if (val === undefined || val === null || val === '') return false;
+          }
+        }
+        return true;
+      }
+      // Custom fields mode
       for (const field of node.fields) {
         if (field.validation?.required) {
           const val = this.getAnswer(node.id, field.id);
@@ -828,10 +618,13 @@ export class PortalFlowRunnerComponent implements OnInit {
     // Collect answers for current node
     const answers: FlowAnswer[] = [];
     if (node.type === 'question') {
-      for (const field of node.fields) {
-        const val = this.getAnswer(node.id, field.id);
+      const fieldsToCollect = node.config?.['formSource'] === 'linked'
+        ? this.getLinkedFormFields().map(f => f.id)
+        : node.fields.map(f => f.id);
+      for (const fieldId of fieldsToCollect) {
+        const val = this.getAnswer(node.id, fieldId);
         if (val !== undefined && val !== null) {
-          answers.push({ nodeId: node.id, fieldId: field.id, value: val });
+          answers.push({ nodeId: node.id, fieldId, value: val });
         }
       }
     }
@@ -877,13 +670,13 @@ export class PortalFlowRunnerComponent implements OnInit {
   private _autoExecuteIfApiCall(): void {
     const node = this.currentNode();
     if (!node) return;
-    // Decision nodes should never be displayed — auto-advance through them
+    // Decision nodes should never be displayed â€” auto-advance through them
     // But guard against infinite loops: if we've already tried this decision, stop
     if (node.type === 'decision') {
       const exec = this.execution();
       const lastNodeId = this._lastAutoAdvancedDecision;
       if (lastNodeId === node.id) {
-        // Already tried this decision and it came back to itself — stop looping
+        // Already tried this decision and it came back to itself â€” stop looping
         this._lastAutoAdvancedDecision = null;
         this.snackBar.open('Decision node has no matching condition or default route. Please check the flow design.', 'OK', { duration: 5000 });
         return;
@@ -984,24 +777,48 @@ export class PortalFlowRunnerComponent implements OnInit {
     }
   }
 
-  alertIcon(style: string): string {
-    return ({ info: 'info', success: 'check_circle', warning: 'warning', error: 'error' } as Record<string, string>)[style] || 'info';
-  }
-
-  alertBoxClass(style: string): string {
-    return ({ info: 'bg-blue-50 border-blue-300 text-blue-900', success: 'bg-green-50 border-green-300 text-green-900', warning: 'bg-amber-50 border-amber-300 text-amber-900', error: 'bg-red-50 border-red-300 text-red-900' } as Record<string, string>)[style] || 'bg-blue-50 border-blue-300 text-blue-900';
-  }
-
-  alertIconClass(style: string): string {
-    return ({ info: 'text-blue-600', success: 'text-green-600', warning: 'text-amber-600', error: 'text-red-600' } as Record<string, string>)[style] || 'text-blue-600';
-  }
-
   hasFieldAnswer(nodeId: string, fieldId: string): boolean {
     const val = this.getAnswer(nodeId, fieldId);
     return val !== undefined && val !== null && val !== '';
   }
 
   answeredFieldCount(node: FlowNode): number {
+    return node.fields.filter(f => this.hasFieldAnswer(node.id, f.id)).length;
+  }
+
+  /** Returns sorted FormField list from the linked form def (flattened across sections). */
+  getLinkedFormFields(): FormField[] {
+    const def = this.linkedFormDef();
+    if (!def) return [];
+    // Sort sections, then sort fields within each section by order
+    const sectionOrder = new Map(def.sections.map(s => [s.id, s.order]));
+    return [...def.fields].sort((a, b) => {
+      const so = (sectionOrder.get(a.section) ?? 0) - (sectionOrder.get(b.section) ?? 0);
+      return so !== 0 ? so : a.order - b.order;
+    });
+  }
+
+  /** Whether a linked FormField should be visible based on its visibleWhen condition. */
+  isLinkedFieldVisible(field: FormField, nodeId: string): boolean {
+    if (!field.visibleWhen || Object.keys(field.visibleWhen).length === 0) return true;
+    return Object.entries(field.visibleWhen).every(([triggerFieldId, expectedValue]) =>
+      this.getAnswer(nodeId, triggerFieldId) === expectedValue
+    );
+  }
+
+  /** Total effective field count for progress bar: linked form fields OR node.fields. */
+  getEffectiveFieldCount(node: FlowNode): number {
+    if (node.config?.['formSource'] === 'linked') {
+      return this.getLinkedFormFields().length;
+    }
+    return node.fields.length;
+  }
+
+  /** Answered count for progress bar, respecting linked vs custom mode. */
+  getEffectiveAnsweredCount(node: FlowNode): number {
+    if (node.config?.['formSource'] === 'linked') {
+      return this.getLinkedFormFields().filter(f => this.hasFieldAnswer(node.id, f.id)).length;
+    }
     return node.fields.filter(f => this.hasFieldAnswer(node.id, f.id)).length;
   }
 

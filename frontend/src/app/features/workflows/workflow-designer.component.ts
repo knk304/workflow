@@ -417,33 +417,82 @@ import { FlowNodeFormEditorComponent, FormEditorDialogData } from './flow-node-f
 
               <mat-divider class="!my-2"></mat-divider>
 
-              <!-- Form Fields -->
-              <div class="flex items-center justify-between pt-1">
-                <p class="text-[10px] font-semibold text-gray-500 tracking-wider">FORM FIELDS</p>
-                <button mat-raised-button color="primary" class="!h-6 !text-[10px] !px-2" (click)="openFormEditor()">
-                  <mat-icon class="!text-xs !w-3 !h-3 mr-0.5">edit</mat-icon> Edit Form
+              <!-- Form Source Mode Toggle -->
+              <p class="text-[10px] font-semibold text-gray-500 tracking-wider pt-1 mb-1">FORM SOURCE</p>
+              <div class="flex w-full rounded border border-gray-300 overflow-hidden mb-2 text-xs">
+                <button type="button"
+                  class="flex-1 flex items-center justify-center gap-1 py-1.5 transition-colors"
+                  [class.bg-[#056DAE]]="(getNode()?.config?.['formSource'] || 'custom') === 'linked'"
+                  [class.text-white]="(getNode()?.config?.['formSource'] || 'custom') === 'linked'"
+                  [class.bg-white]="(getNode()?.config?.['formSource'] || 'custom') !== 'linked'"
+                  [class.text-gray-600]="(getNode()?.config?.['formSource'] || 'custom') !== 'linked'"
+                  (click)="updateConfig('formSource', 'linked')">
+                  <mat-icon class="!text-sm !w-4 !h-4 leading-none">link</mat-icon>
+                  <span>Linked Form</span>
+                </button>
+                <button type="button"
+                  class="flex-1 flex items-center justify-center gap-1 py-1.5 border-l border-gray-300 transition-colors"
+                  [class.bg-[#056DAE]]="(getNode()?.config?.['formSource'] || 'custom') === 'custom'"
+                  [class.text-white]="(getNode()?.config?.['formSource'] || 'custom') === 'custom'"
+                  [class.bg-white]="(getNode()?.config?.['formSource'] || 'custom') !== 'custom'"
+                  [class.text-gray-600]="(getNode()?.config?.['formSource'] || 'custom') !== 'custom'"
+                  (click)="updateConfig('formSource', 'custom')">
+                  <mat-icon class="!text-sm !w-4 !h-4 leading-none">edit_note</mat-icon>
+                  <span>Custom Fields</span>
                 </button>
               </div>
-              @if (getNode()?.fields?.length) {
-                <div class="space-y-1 mt-1">
-                  @for (field of getNode()!.fields; track field.id) {
-                    <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 border text-xs">
-                      <mat-icon class="!text-xs !w-3 !h-3 text-[#056DAE]">{{ fieldTypeIcon(field.type) }}</mat-icon>
-                      <span class="flex-1 truncate">{{ field.label }}</span>
-                      <span class="text-[10px] text-gray-400">{{ field.type }}</span>
-                      @if (field.validation.required) {
-                        <span class="text-red-500 text-[10px] font-bold">*</span>
-                      }
-                    </div>
-                  }
+
+              <!-- Option 1: Linked Form (select from form builder) -->
+              @if ((getNode()?.config?.['formSource'] || 'custom') === 'linked') {
+                <mat-form-field class="w-full dense-field" subscriptSizing="dynamic">
+                  <mat-label>Select Form</mat-label>
+                  <mat-select [value]="getNode()?.config?.['formId'] || ''"
+                              (selectionChange)="updateConfig('formId', $event.value)">
+                    <mat-option value="">-- None --</mat-option>
+                    @for (form of availableForms(); track form.id) {
+                      <mat-option [value]="form.id">{{ form.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (getNode()?.config?.['formId']) {
+                  <div class="flex items-center gap-1.5 px-2 py-1.5 rounded bg-blue-50 border border-blue-200 text-xs text-blue-800">
+                    <mat-icon class="!text-xs !w-3.5 !h-3.5 shrink-0">check_circle</mat-icon>
+                    <span class="truncate">{{ getLinkedFormName(getNode()?.config?.['formId']) }}</span>
+                  </div>
+                } @else {
+                  <p class="text-[10px] text-gray-400 text-center py-2">No form linked yet</p>
+                }
+              }
+
+              <!-- Option 2: Custom inline fields -->
+              @if ((getNode()?.config?.['formSource'] || 'custom') === 'custom') {
+                <div class="flex items-center justify-between">
+                  <p class="text-[10px] font-semibold text-gray-500 tracking-wider">FIELDS</p>
+                  <button mat-raised-button color="primary" class="!h-6 !text-[10px] !px-2" (click)="openFormEditor()">
+                    <mat-icon class="!text-xs !w-3 !h-3 mr-0.5">edit</mat-icon> Edit Form
+                  </button>
                 </div>
-              } @else {
-                <p class="text-[10px] text-gray-400 text-center py-3">
-                  No fields yet &mdash; click "Edit Form" to add
-                </p>
+                @if (getNode()?.fields?.length) {
+                  <div class="space-y-1 mt-1">
+                    @for (field of getNode()!.fields; track field.id) {
+                      <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 border text-xs">
+                        <mat-icon class="!text-xs !w-3 !h-3 text-[#056DAE]">{{ fieldTypeIcon(field.type) }}</mat-icon>
+                        <span class="flex-1 truncate">{{ field.label }}</span>
+                        <span class="text-[10px] text-gray-400">{{ field.type }}</span>
+                        @if (field.validation.required) {
+                          <span class="text-red-500 text-[10px] font-bold">*</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-[10px] text-gray-400 text-center py-3">
+                    No fields yet &mdash; click "Edit Form" to add
+                  </p>
+                }
               }
             }
-
+0
             <!-- DECISION conditions editor -->
             @if (getNode()?.type === 'decision') {
               <mat-divider></mat-divider>
@@ -1005,6 +1054,11 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
       subprocess: 'bg-[#EAF4FB] border-[#0A8AD2]',
     };
     return map[type] || 'bg-white border-gray-200';
+  }
+
+  getLinkedFormName(formId: string | undefined): string {
+    if (!formId) return '';
+    return this.availableForms().find(f => f.id === formId)?.name ?? formId;
   }
 
   fieldTypeIcon(type: FlowFieldType): string {

@@ -2731,6 +2731,9 @@ async def _insert_all(db):
         },
     ]
     await db.case_forms.insert_many(form_definitions)
+    # Seed the all-fields demo form (defined in seed_forms_demo.py)
+    from seed_forms_demo import seed_demo_form
+    await seed_demo_form(db)
 
     # ─── Approval Routing Rules ─────────────────
     routing_rules = [
