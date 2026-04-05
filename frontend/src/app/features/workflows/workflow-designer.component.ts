@@ -375,7 +375,7 @@ import { FlowNodeFormEditorComponent, FormEditorDialogData } from './flow-node-f
             }
 
             <!-- CUSTOM FORM settings (alert box + form fields) -->
-            @if (getNode()?.type === 'question') {
+            @if (getNode()?.type === 'form') {
               <mat-divider></mat-divider>
 
               <!-- Alert / Info Box -->
@@ -785,7 +785,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
   nodeTypes: { type: FlowNodeType; label: string; icon: string; color: string }[] = [
     { type: 'start',        label: 'Start',        icon: 'play_circle',         color: 'text-green-600' },
     { type: 'end',          label: 'End',           icon: 'stop_circle',         color: 'text-red-600' },
-    { type: 'question',     label: 'Custom Form',  icon: 'help_outline',        color: 'text-blue-600' },
+    { type: 'form',          label: 'Form',          icon: 'dynamic_form',        color: 'text-blue-600' },
     { type: 'decision',     label: 'Decision',      icon: 'call_split',          color: 'text-yellow-600' },
     { type: 'display',      label: 'Display',       icon: 'chat_bubble_outline', color: 'text-indigo-600' },
     { type: 'task',         label: 'Task',          icon: 'task_alt',            color: 'text-gray-600' },
@@ -1043,7 +1043,7 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
     const map: Record<string, string> = {
       start: 'bg-green-50 border-green-300',
       end: 'bg-red-50 border-red-300',
-      question: 'bg-blue-50 border-blue-300',
+      form: 'bg-blue-50 border-blue-300',
       decision: 'bg-yellow-50 border-yellow-300',
       display: 'bg-indigo-50 border-indigo-300',
       task: 'bg-white border-gray-200',
@@ -1072,9 +1072,9 @@ export class WorkflowDesignerComponent implements OnInit, OnDestroy {
     return map[type] || 'text_fields';
   }
 
-  /** Get all question nodes that have fields (for decision condition dropdowns) */
+  /** Get all form nodes that have fields (for decision condition dropdowns) */
   getQuestionNodes(): FlowNode[] {
-    return this.canvasNodes().filter(n => n.type === 'question' && n.fields.length > 0);
+    return this.canvasNodes().filter(n => n.type === 'form' && n.fields.length > 0);
   }
 
   // == Node property updates ==

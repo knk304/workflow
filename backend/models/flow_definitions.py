@@ -1,8 +1,8 @@
-"""Flow Definition models — independent questionnaire/flow config system.
+"""Flow Definition models — independent form/flow config system.
 
 Separate from WorkflowDefinition (visual workflow designer).
-A FlowDefinition describes a questionnaire or guided flow with:
-  - question nodes (with field definitions)
+A FlowDefinition describes a form or guided flow with:
+  - form nodes (with field definitions)
   - decision nodes (with condition routing)
   - start/end nodes
   - edges connecting them
@@ -16,7 +16,7 @@ from enum import Enum
 class FlowNodeType(str, Enum):
     start = "start"
     end = "end"
-    question = "question"
+    form = "form"
     decision = "decision"
     display = "display"        # read-only info node
     subprocess = "subprocess"  # link to another flow
@@ -56,7 +56,7 @@ class FlowFieldOption(BaseModel):
 
 
 class FlowField(BaseModel):
-    """A single field within a question node."""
+    """A single field within a form node."""
     model_config = {"populate_by_name": True}
     id: str
     type: FlowFieldType
@@ -92,7 +92,7 @@ class FlowNode(BaseModel):
     type: FlowNodeType
     label: str
     position: FlowNodePosition = FlowNodePosition()
-    # Question nodes: fields to display
+    # Form nodes: fields to display
     fields: list[FlowField] = []
     # Decision nodes: conditions for routing
     conditions: list[DecisionCondition] = []
@@ -161,7 +161,7 @@ class FlowExecutionStatus(str, Enum):
 
 
 class FlowAnswer(BaseModel):
-    """An answer to a single field in a question node."""
+    """An answer to a single field in a form node."""
     model_config = {"populate_by_name": True}
     node_id: str = Field(..., alias="nodeId")
     field_id: str = Field(..., alias="fieldId")

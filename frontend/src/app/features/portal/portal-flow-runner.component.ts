@@ -155,8 +155,8 @@ import {
                 </div>
               </div>
 
-            <!-- â•â•â• QUESTION NODE â•â•â• -->
-            } @else if (node.type === 'question') {
+            <!-- ═══ FORM NODE ═══ -->
+            } @else if (node.type === 'form') {
               <!-- Section identifier row -->
               <div class="flex items-center gap-2 mb-3">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -457,10 +457,10 @@ export class PortalFlowRunnerComponent implements OnInit {
     private store: Store,
   ) {
     this.store.select(selectUserRole).subscribe(r => this.userRole.set(r));
-    // Whenever the current node changes to a linked-form question, load the form def
+    // Whenever the current node changes to a linked form node, load the form def
     effect(() => {
       const node = this.currentNode();
-      if (node?.type === 'question' && node.config?.['formSource'] === 'linked') {
+      if (node?.type === 'form' && node.config?.['formSource'] === 'linked') {
         const formId = node.config['formId'] as string | undefined;
         if (formId && formId !== this._lastLoadedFormId) {
           this._lastLoadedFormId = formId;
@@ -567,7 +567,7 @@ export class PortalFlowRunnerComponent implements OnInit {
     if (node.type === 'display' || node.type === 'task' || node.type === 'parallel'
         || node.type === 'approval' || node.type === 'notification' || node.type === 'timer'
         || node.type === 'api_call') return true;
-    if (node.type === 'question') {
+    if (node.type === 'form') {
       if (node.config?.['formSource'] === 'linked') {
         for (const field of this.getLinkedFormFields()) {
           if (field.validation?.required) {
@@ -617,7 +617,7 @@ export class PortalFlowRunnerComponent implements OnInit {
 
     // Collect answers for current node
     const answers: FlowAnswer[] = [];
-    if (node.type === 'question') {
+    if (node.type === 'form') {
       const fieldsToCollect = node.config?.['formSource'] === 'linked'
         ? this.getLinkedFormFields().map(f => f.id)
         : node.fields.map(f => f.id);
@@ -893,17 +893,17 @@ export class PortalFlowRunnerComponent implements OnInit {
     return this.execution()?.visitedNodes.includes(nodeId) ?? false;
   }
 
-  /** Which section index is the current question node (1-based, counting only question nodes) */
+  /** Which section index is the current form node (1-based, counting only form nodes) */
   currentSectionIndex(): number {
     const exec = this.execution();
     if (!exec) return 1;
-    const questionNodes = this._graphOrderedNodes().filter(n => n.type === 'question');
+    const questionNodes = this._graphOrderedNodes().filter(n => n.type === 'form');
     const idx = questionNodes.findIndex(n => n.id === exec.currentNodeId);
     return idx >= 0 ? idx + 1 : 1;
   }
 
   totalSections(): number {
-    return this._graphOrderedNodes().filter(n => n.type === 'question').length || 1;
+    return this._graphOrderedNodes().filter(n => n.type === 'form').length || 1;
   }
 
   currentStepNumber(): number {

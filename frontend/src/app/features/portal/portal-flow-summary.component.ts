@@ -360,7 +360,7 @@ export class PortalFlowSummaryComponent implements OnInit {
 
   nodeTypeIcon(type: string): string {
     return {
-      start: 'play_circle', end: 'stop_circle', question: 'edit_note', decision: 'call_split',
+      start: 'play_circle', end: 'stop_circle', form: 'edit_note', decision: 'call_split',
       display: 'info', subprocess: 'mediation', task: 'assignment', parallel: 'fork_right',
       approval: 'verified', notification: 'notifications', timer: 'schedule', api_call: 'cloud',
     }[type] || 'circle';
@@ -370,7 +370,7 @@ export class PortalFlowSummaryComponent implements OnInit {
     return {
       start: 'bg-slate-100 text-slate-600',
       end: 'bg-green-50 text-green-700',
-      question: 'bg-blue-50 text-blue-700',
+      form: 'bg-blue-50 text-blue-700',
       decision: 'bg-indigo-50 text-indigo-700',
       display: 'bg-cyan-50 text-cyan-700',
       task: 'bg-amber-50 text-amber-700',

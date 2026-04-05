@@ -100,7 +100,7 @@ async def _seed_flow_definitions(db):
                     {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 250}},
 
                     # Q1: General Info
-                    {"id": "n-q1", "type": "question", "label": "Personal Information",
+                    {"id": "n-q1", "type": "form", "label": "Personal Information",
                      "position": {"x": 250, "y": 250},
                      "fields": [
                          {"id": "f-name", "type": "text", "label": "Full Name", "placeholder": "Enter your full name",
@@ -114,7 +114,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q2: Smoking status
-                    {"id": "n-q2", "type": "question", "label": "Smoking Status",
+                    {"id": "n-q2", "type": "form", "label": "Smoking Status",
                      "position": {"x": 500, "y": 250},
                      "fields": [
                          {"id": "f-smoker", "type": "radio", "label": "Do you currently smoke?",
@@ -136,7 +136,7 @@ async def _seed_flow_definitions(db):
                      "content": None, "config": {}},
 
                     # Q3a: Smoking details (for current smokers)
-                    {"id": "n-q3a", "type": "question", "label": "Smoking Details",
+                    {"id": "n-q3a", "type": "form", "label": "Smoking Details",
                      "position": {"x": 1000, "y": 100},
                      "fields": [
                          {"id": "f-cigs-per-day", "type": "number", "label": "How many cigarettes per day?",
@@ -150,7 +150,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q3b: Quit smoking details
-                    {"id": "n-q3b", "type": "question", "label": "Quit Smoking Details",
+                    {"id": "n-q3b", "type": "form", "label": "Quit Smoking Details",
                      "position": {"x": 1000, "y": 400},
                      "fields": [
                          {"id": "f-quit-duration", "type": "select", "label": "How long ago did you quit?",
@@ -160,7 +160,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q4: Exercise habits
-                    {"id": "n-q4", "type": "question", "label": "Exercise & Activity",
+                    {"id": "n-q4", "type": "form", "label": "Exercise & Activity",
                      "position": {"x": 1250, "y": 250},
                      "fields": [
                          {"id": "f-exercise-freq", "type": "radio", "label": "How often do you exercise?",
@@ -184,7 +184,7 @@ async def _seed_flow_definitions(db):
                      "content": None, "config": {}},
 
                     # Q5a: Sedentary lifestyle follow-up
-                    {"id": "n-q5a", "type": "question", "label": "Sedentary Lifestyle",
+                    {"id": "n-q5a", "type": "form", "label": "Sedentary Lifestyle",
                      "position": {"x": 1750, "y": 100},
                      "fields": [
                          {"id": "f-sitting-hours", "type": "number", "label": "Average hours sitting per day?",
@@ -196,7 +196,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q5: Family history
-                    {"id": "n-q5", "type": "question", "label": "Family Medical History",
+                    {"id": "n-q5", "type": "form", "label": "Family Medical History",
                      "position": {"x": 1750, "y": 400},
                      "fields": [
                          {"id": "f-family-conditions", "type": "multi_select", "label": "Any family history of the following?",
@@ -207,7 +207,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q6: Mental health
-                    {"id": "n-q6", "type": "question", "label": "Mental Wellness",
+                    {"id": "n-q6", "type": "form", "label": "Mental Wellness",
                      "position": {"x": 2000, "y": 250},
                      "fields": [
                          {"id": "f-stress-level", "type": "radio", "label": "How would you rate your stress level?",
@@ -222,7 +222,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q7: Diet
-                    {"id": "n-q7", "type": "question", "label": "Diet & Nutrition",
+                    {"id": "n-q7", "type": "form", "label": "Diet & Nutrition",
                      "position": {"x": 2250, "y": 250},
                      "fields": [
                          {"id": "f-diet-type", "type": "select", "label": "How would you describe your diet?",
@@ -248,7 +248,7 @@ async def _seed_flow_definitions(db):
                      "content": None, "config": {}},
 
                     # Q7a: Heavy drinking follow-up
-                    {"id": "n-q7a", "type": "question", "label": "Alcohol Consumption Details",
+                    {"id": "n-q7a", "type": "form", "label": "Alcohol Consumption Details",
                      "position": {"x": 2750, "y": 100},
                      "fields": [
                          {"id": "f-drinks-per-week", "type": "number", "label": "Average drinks per week?",
@@ -260,7 +260,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q8: Current medical conditions
-                    {"id": "n-q8", "type": "question", "label": "Current Health Status",
+                    {"id": "n-q8", "type": "form", "label": "Current Health Status",
                      "position": {"x": 2750, "y": 400},
                      "fields": [
                          {"id": "f-conditions", "type": "multi_select", "label": "Do you currently have any of these conditions?",
@@ -274,7 +274,7 @@ async def _seed_flow_definitions(db):
                      "conditions": [], "content": None, "config": {}},
 
                     # Q9: Final review consent
-                    {"id": "n-q9", "type": "question", "label": "Review & Consent",
+                    {"id": "n-q9", "type": "form", "label": "Review & Consent",
                      "position": {"x": 3000, "y": 250},
                      "fields": [
                          {"id": "f-consent", "type": "checkbox", "label": "I confirm all information provided is accurate to the best of my knowledge.",
@@ -329,7 +329,7 @@ async def _seed_flow_definitions(db):
             "definition": {
                 "nodes": [
                     {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}, "fields": [], "conditions": []},
-                    {"id": "n-q1", "type": "question", "label": "Applicant Details",
+                    {"id": "n-q1", "type": "form", "label": "Applicant Details",
                      "position": {"x": 250, "y": 200},
                      "fields": [
                          {"id": "f-fullname", "type": "text", "label": "Full Legal Name", "options": [], "validation": {"required": True, "minLength": 2}, "order": 0},
@@ -340,7 +340,7 @@ async def _seed_flow_definitions(db):
                           "options": [{"label": "Home Purchase", "value": "home"}, {"label": "Auto", "value": "auto"}, {"label": "Education", "value": "education"}, {"label": "Personal", "value": "personal"}, {"label": "Business", "value": "business"}],
                           "validation": {"required": True}, "order": 4},
                      ], "conditions": [], "config": {"alertMessage": "All information must match government-issued ID exactly.", "alertType": "warning"}},
-                    {"id": "n-q2", "type": "question", "label": "Income & Employment",
+                    {"id": "n-q2", "type": "form", "label": "Income & Employment",
                      "position": {"x": 500, "y": 200},
                      "fields": [
                          {"id": "f-employer", "type": "text", "label": "Current Employer", "options": [], "validation": {"required": True}, "order": 0},
@@ -360,7 +360,7 @@ async def _seed_flow_definitions(db):
                          {"id": "c-fair", "label": "Score 600-699", "fieldId": "credit_score", "operator": "gt", "value": "599", "targetNodeId": "n-q3"},
                      ],
                      "defaultTarget": "n-reject", "config": {}},
-                    {"id": "n-q3", "type": "question", "label": "Additional Documentation",
+                    {"id": "n-q3", "type": "form", "label": "Additional Documentation",
                      "position": {"x": 1250, "y": 100},
                      "fields": [
                          {"id": "f-collateral", "type": "text", "label": "Collateral Description", "options": [], "validation": {"required": True}, "order": 0},
@@ -411,7 +411,7 @@ async def _seed_flow_definitions(db):
             "definition": {
                 "nodes": [
                     {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}, "fields": [], "conditions": []},
-                    {"id": "n-q1", "type": "question", "label": "Policy & Personal Info",
+                    {"id": "n-q1", "type": "form", "label": "Policy & Personal Info",
                      "position": {"x": 250, "y": 200},
                      "fields": [
                          {"id": "f-policy-num", "type": "text", "label": "Policy Number", "options": [], "validation": {"required": True}, "order": 0},
@@ -421,7 +421,7 @@ async def _seed_flow_definitions(db):
                           "validation": {"required": True}, "order": 2},
                          {"id": "f-incident-date", "type": "date", "label": "Date of Incident", "options": [], "validation": {"required": True}, "order": 3},
                      ], "conditions": [], "config": {"alertMessage": "Have your policy number ready before starting this claim.", "alertType": "info"}},
-                    {"id": "n-q2", "type": "question", "label": "Incident Details",
+                    {"id": "n-q2", "type": "form", "label": "Incident Details",
                      "position": {"x": 500, "y": 200},
                      "fields": [
                          {"id": "f-description", "type": "textarea", "label": "Describe what happened", "placeholder": "Provide a detailed account of the incident...", "options": [], "validation": {"required": True, "minLength": 20}, "order": 0},
@@ -431,7 +431,7 @@ async def _seed_flow_definitions(db):
                           "validation": {"required": True}, "order": 2},
                          {"id": "f-estimated-damage", "type": "number", "label": "Estimated Damage ($)", "options": [], "validation": {"required": True, "minValue": 0}, "order": 3},
                      ], "conditions": [], "config": {}},
-                    {"id": "n-q3", "type": "question", "label": "Upload Evidence",
+                    {"id": "n-q3", "type": "form", "label": "Upload Evidence",
                      "position": {"x": 750, "y": 200},
                      "fields": [
                          {"id": "f-photos", "type": "file", "label": "Photos of Damage", "options": [], "validation": {"required": True}, "order": 0},
@@ -490,7 +490,7 @@ async def _seed_flow_definitions(db):
             "definition": {
                 "nodes": [
                     {"id": "n-start", "type": "start", "label": "Start", "position": {"x": 50, "y": 200}, "fields": [], "conditions": []},
-                    {"id": "n-q1", "type": "question", "label": "Customer Information",
+                    {"id": "n-q1", "type": "form", "label": "Customer Information",
                      "position": {"x": 250, "y": 200},
                      "fields": [
                          {"id": "f-first", "type": "text", "label": "First Name", "options": [], "validation": {"required": True}, "order": 0},
@@ -501,7 +501,7 @@ async def _seed_flow_definitions(db):
                           "options": [{"label": "Individual", "value": "individual"}, {"label": "Business", "value": "business"}, {"label": "Joint", "value": "joint"}],
                           "validation": {"required": True}, "order": 4},
                      ], "conditions": [], "config": {"alertMessage": "Ensure customer consents to data collection before proceeding.", "alertType": "info"}},
-                    {"id": "n-q2", "type": "question", "label": "Identity Verification (KYC)",
+                    {"id": "n-q2", "type": "form", "label": "Identity Verification (KYC)",
                      "position": {"x": 500, "y": 200},
                      "fields": [
                          {"id": "f-id-type", "type": "select", "label": "ID Type",
@@ -580,7 +580,7 @@ async def _seed_flow_definitions(db):
                      "content": "Welcome to the Employee Onboarding Portal!\n\nThis guided flow will walk you through:\n• Personal details & ID verification\n• Background check (external API)\n• Equipment & access provisioning\n• Manager approval\n• Welcome notification\n\nPlease have your government ID and emergency contact information ready."},
 
                     # CUSTOM FORM (question) — Employee details with all field types
-                    {"id": "n-q1", "type": "question", "label": "Personal Information",
+                    {"id": "n-q1", "type": "form", "label": "Personal Information",
                      "position": {"x": 500, "y": 300},
                      "fields": [
                          {"id": "f-alert-info", "type": "alert", "label": "Important Notice",

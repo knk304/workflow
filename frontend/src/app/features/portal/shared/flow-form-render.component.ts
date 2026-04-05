@@ -9,7 +9,7 @@ export interface FieldAnswerChange {
 }
 
 /**
- * Renders the fields list + completion bar for a single question node.
+ * Renders the fields list + completion bar for a single form node.
  * Handles both "linked form" mode (FormDefinition fields) and
  * "custom fields" mode (FlowField array on the node itself).
  *

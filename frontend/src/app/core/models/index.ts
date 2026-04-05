@@ -705,7 +705,7 @@ export interface CaseTypeUpdateRequest {
 
 // ===== Flow Definitions (Unified Process & Flows) =====
 
-export type FlowNodeType = 'start' | 'end' | 'question' | 'decision' | 'display' | 'subprocess' | 'task' | 'parallel' | 'approval' | 'notification' | 'timer' | 'api_call';
+export type FlowNodeType = 'start' | 'end' | 'form' | 'decision' | 'display' | 'subprocess' | 'task' | 'parallel' | 'approval' | 'notification' | 'timer' | 'api_call';
 export type FlowFieldType = 'text' | 'textarea' | 'number' | 'date' | 'select' | 'radio' | 'checkbox' | 'multi_select' | 'file' | 'alert';
 
 export interface FlowFieldValidation {
