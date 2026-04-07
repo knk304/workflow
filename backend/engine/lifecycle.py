@@ -33,6 +33,7 @@ async def instantiate_case(
     created_by: str | None = None,
     parent_case_id: str | None = None,
     parent_step_id: str | None = None,
+    intake_form_data: dict | None = None,
 ) -> dict | None:
     """
     Create a new case from a case type definition.
@@ -145,6 +146,11 @@ async def instantiate_case(
     first_stage = _get_first_primary_stage(stages_runtime)
     if first_stage:
         await _enter_stage(case_id, first_stage, db)
+
+    # If intake mode: auto-complete all Stage 1 assignment steps with submitted data
+    if intake_form_data and first_stage:
+        await _auto_complete_intake_stage(case_id, first_stage["definition_id"],
+                                          intake_form_data, created_by or owner_id, db)
 
     return await db.cases.find_one({"_id": case_id})
 
@@ -385,6 +391,83 @@ async def manual_advance_stage(case_id: str, user: dict) -> dict:
 
     await advance_to_next_stage(case_id, current_stage_id, db)
     return await db.cases.find_one({"_id": case_id})
+
+
+# ── Intake Stage Auto-Complete ─────────────────────────────
+
+async def _auto_complete_intake_stage(
+    case_id: str, stage_def_id: str,
+    form_data: dict, user_id: str, db,
+):
+    """Auto-complete all assignment steps in the intake (first) stage."""
+    now = datetime.now(timezone.utc).isoformat()
+    case = await db.cases.find_one({"_id": case_id})
+    if not case:
+        return
+
+    stages = case.get("stages", [])
+    stage = None
+    for s in stages:
+        if s["definition_id"] == stage_def_id:
+            stage = s
+            break
+    if not stage:
+        return
+
+    # Complete every assignment step in Stage 1
+    for proc in stage.get("processes", []):
+        proc["status"] = "completed"
+        proc["started_at"] = proc.get("started_at") or now
+        proc["completed_at"] = now
+        for step in proc.get("steps", []):
+            if step["type"] in ("assignment",):
+                step["status"] = "completed"
+                step["started_at"] = step.get("started_at") or now
+                step["completed_at"] = now
+                step["assigned_to"] = user_id
+            else:
+                # Non-assignment steps in intake are auto-skipped
+                if step["status"] == "pending":
+                    step["status"] = "skipped"
+                    step["skipped_reason"] = "intake_auto_skip"
+
+    # Mark stage completed
+    stage["status"] = "completed"
+    stage["completed_at"] = now
+    stage["completed_by"] = user_id
+
+    # Save form submission
+    form_doc = {
+        "_id": f"{case_id}_intake",
+        "case_id": case_id,
+        "stage_id": stage_def_id,
+        "form_data": form_data,
+        "submitted_by": user_id,
+        "submitted_at": now,
+    }
+    await db.form_submissions.replace_one(
+        {"_id": form_doc["_id"]}, form_doc, upsert=True
+    )
+
+    # Cancel any open assignments engine may have created for Stage 1
+    await db.assignments.update_many(
+        {"case_id": case_id, "stage_id": stage_def_id,
+         "status": {"$in": ["open", "in_progress"]}},
+        {"$set": {"status": "completed", "completed_at": now}},
+    )
+
+    await db.cases.update_one({"_id": case_id}, {"$set": {
+        "stages": stages,
+        "updated_at": now,
+    }})
+
+    # Trigger stage completion → advance to next stage
+    on_complete = stage.get("on_complete", "auto_advance")
+    if on_complete == "auto_advance":
+        await advance_to_next_stage(case_id, stage_def_id, db)
+    elif on_complete == "resolve_case":
+        res_status = stage.get("resolution_status", "resolved_completed")
+        await resolve_case(case_id, res_status)
 
 
 # ── Helpers ──────────────────────────────────────────────

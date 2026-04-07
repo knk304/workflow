@@ -25,6 +25,7 @@ import { PortalFlowListComponent } from './features/portal/portal-flow-list.comp
 import { PortalFlowCreateComponent } from './features/portal/portal-flow-create.component';
 import { PortalFlowRunnerComponent } from './features/portal/portal-flow-runner.component';
 import { PortalFlowSummaryComponent } from './features/portal/portal-flow-summary.component';
+import { PortalCaseIntakeComponent } from './features/portal/portal-case-intake.component';
 
 export const routes: Routes = [
   // Auth Routes (public)
@@ -92,6 +93,7 @@ export const routes: Routes = [
           { path: '', component: PortalDashboardComponent, data: { title: 'Worker Portal' } },
           { path: 'cases', component: PortalCaseListComponent, data: { title: 'Case Instances' } },
           { path: 'cases/new', component: PortalCaseCreateComponent, data: { title: 'Create Case' } },
+          { path: 'cases/new/:caseTypeId/intake', component: PortalCaseIntakeComponent, data: { title: 'Intake Form' } },
           { path: 'cases/:id', component: PortalCaseViewComponent, data: { title: 'Case View' } },
           { path: 'worklist', component: PortalWorklistComponent, data: { title: 'Worklist' } },
           { path: 'flows', component: PortalFlowListComponent, data: { title: 'All Requests' } },

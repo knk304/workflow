@@ -355,6 +355,7 @@ export class ApiDataService extends DataService {
         allowedTypes: a.allowed_types ?? [],
       })),
       caseWideActions: raw.case_wide_actions ?? [],
+      intakeEnabled: raw.intake_enabled ?? false,
       createdBy: raw.created_by,
       createdAt: raw.created_at,
       updatedAt: raw.updated_at,
@@ -557,7 +558,7 @@ export class ApiDataService extends DataService {
   }
 
   createCaseInstance(req: CaseCreateRequest): Observable<CaseInstance> {
-    const body = {
+    const body: Record<string, any> = {
       case_type_id: req.caseTypeId,
       title: req.title,
       description: req.description,
@@ -566,6 +567,9 @@ export class ApiDataService extends DataService {
       team_id: req.teamId,
       custom_fields: req.customFields,
     };
+    if (req.intakeFormData) {
+      body['intake_form_data'] = req.intakeFormData;
+    }
     return this.http.post<any>(`${this.caseUrl}/cases`, body).pipe(
       map(d => this.mapCaseInstance(d))
     );
@@ -720,6 +724,7 @@ export class ApiDataService extends DataService {
         required_for_resolution: c.requiredForResolution,
         allowed_types: c.allowedTypes,
       })),
+      intake_enabled: req.intakeEnabled ?? false,
     };
     return this.http.post<any>(`${this.caseUrl}/case-types`, body).pipe(
       map(d => this.mapCaseTypeDef(d))
@@ -735,6 +740,7 @@ export class ApiDataService extends DataService {
     if (req.prefix !== undefined) body['prefix'] = req.prefix;
     if (req.fieldSchema !== undefined) body['field_schema'] = req.fieldSchema;
     if (req.isActive !== undefined) body['is_active'] = req.isActive;
+    if (req.intakeEnabled !== undefined) body['intake_enabled'] = req.intakeEnabled;
     if (req.stages !== undefined) body['stages'] = req.stages.map(s => this.serializeStageDef(s));
     if (req.attachmentCategories !== undefined) body['attachment_categories'] = req.attachmentCategories.map(c => ({
       id: c.id, name: c.name,

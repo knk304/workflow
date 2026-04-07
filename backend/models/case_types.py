@@ -170,6 +170,7 @@ class CaseTypeDefinitionCreate(BaseModel):
     stages: list[StageDefinition] = []
     attachment_categories: list[AttachmentCategory] = []
     case_wide_actions: list[str] = []
+    intake_enabled: bool = False
 
 
 class CaseTypeDefinitionUpdate(BaseModel):
@@ -183,6 +184,7 @@ class CaseTypeDefinitionUpdate(BaseModel):
     attachment_categories: Optional[list[AttachmentCategory]] = None
     case_wide_actions: Optional[list[str]] = None
     is_active: Optional[bool] = None
+    intake_enabled: Optional[bool] = None
 
 
 class CaseTypeDefinitionResponse(BaseModel):
@@ -196,6 +198,7 @@ class CaseTypeDefinitionResponse(BaseModel):
     stages: list[StageDefinition] = []
     attachment_categories: list[AttachmentCategory] = []
     case_wide_actions: list[str] = []
+    intake_enabled: bool = False
     created_by: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

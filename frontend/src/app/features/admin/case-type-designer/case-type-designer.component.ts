@@ -562,6 +562,36 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
               </div>
             </div>
 
+            <!-- ══ Case Creation Mode ══ -->
+            <div>
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-teal-500">input</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Case Creation Mode</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3 pl-6">Control how workers create new cases of this type</p>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
+                  <div class="flex-1">
+                    <p class="text-xs font-semibold text-slate-700">Enable Intake Mode</p>
+                    <p class="text-[11px] text-slate-400 leading-snug mt-0.5">
+                      Show the first stage's forms inline during case creation. The case ID is generated after submission.
+                      Worker sees only the case number after submitting. The case moves to the work queue for Stage 2.
+                    </p>
+                  </div>
+                  <mat-slide-toggle [(ngModel)]="caseType.intakeEnabled" (ngModelChange)="markDirty()"></mat-slide-toggle>
+                </div>
+                @if (caseType.intakeEnabled) {
+                  <div class="flex items-start gap-2 px-3 py-2 bg-teal-50 border border-teal-200 rounded-lg">
+                    <mat-icon class="!text-sm text-teal-500 mt-0.5 flex-shrink-0">info</mat-icon>
+                    <p class="text-[11px] text-teal-700 leading-snug">
+                      Stage 1 (<strong>{{ getFirstPrimaryStageName() }}</strong>) assignment steps with forms will be shown
+                      to the worker during case creation. Ensure those steps have forms configured in the Workflow tab.
+                    </p>
+                  </div>
+                }
+              </div>
+            </div>
+
             <!-- ══ Attachment Categories ══ -->
             <div>
               <div class="flex items-center gap-2 mb-0.5">
@@ -955,6 +985,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
           fieldSchema: this.caseType.fieldSchema,
           stages: this.caseType.stages,
           attachmentCategories: this.caseType.attachmentCategories,
+          intakeEnabled: this.caseType.intakeEnabled,
         },
       }));
     } else {
@@ -968,6 +999,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
           prefix: this.caseType.prefix,
           fieldSchema: this.caseType.fieldSchema,
           isActive: this.caseType.isActive,
+          intakeEnabled: this.caseType.intakeEnabled,
           stages: this.caseType.stages,
           attachmentCategories: this.caseType.attachmentCategories,
         },
@@ -1083,6 +1115,14 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
 
   // --- Settings Tab ---
 
+  getFirstPrimaryStageName(): string {
+    if (!this.caseType) return 'Stage 1';
+    const primary = this.caseType.stages
+      .filter(s => s.stageType === 'primary')
+      .sort((a, b) => a.order - b.order);
+    return primary[0]?.name || 'Stage 1';
+  }
+
   addAttachmentCategory(): void {
     if (!this.caseType) return;
     const cat: AttachmentCategory = {
@@ -1167,6 +1207,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
       stages: [createStage],
       attachmentCategories: [],
       caseWideActions: [],
+      intakeEnabled: false,
       version: 1,
       isActive: true,
     };

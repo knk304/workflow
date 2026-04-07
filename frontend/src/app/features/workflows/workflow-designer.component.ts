@@ -492,7 +492,7 @@ import { FlowNodeFormEditorComponent, FormEditorDialogData } from './flow-node-f
                 }
               }
             }
-0
+
             <!-- DECISION conditions editor -->
             @if (getNode()?.type === 'decision') {
               <mat-divider></mat-divider>

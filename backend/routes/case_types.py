@@ -50,6 +50,7 @@ def _to_response(doc: dict) -> dict:
         "stages": doc.get("stages", []),
         "attachment_categories": doc.get("attachment_categories", []),
         "case_wide_actions": doc.get("case_wide_actions", []),
+        "intake_enabled": doc.get("intake_enabled", False),
         "created_by": doc.get("created_by"),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),

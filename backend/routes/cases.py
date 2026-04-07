@@ -126,14 +126,22 @@ async def create_case(body: CaseCreateRequest, user: dict = Depends(get_current_
     owner_id = body.owner_id or str(user["_id"])
     team_id = body.team_id or (user.get("team_ids", [""])[0] if user.get("team_ids") else None)
 
+    # Auto-generate title for intake mode when title is not provided
+    title = body.title
+    if not title:
+        db = get_db()
+        ct = await db.case_type_definitions.find_one({"_id": body.case_type_id})
+        title = ct["name"] if ct else body.case_type_id
+
     case = await instantiate_case(
         case_type_id=body.case_type_id,
-        title=body.title,
+        title=title,
         owner_id=owner_id,
         team_id=team_id,
         priority=body.priority.value if hasattr(body.priority, 'value') else body.priority,
         custom_fields=body.custom_fields,
         created_by=str(user["_id"]),
+        intake_form_data=body.intake_form_data,
     )
     if not case:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case type not found")

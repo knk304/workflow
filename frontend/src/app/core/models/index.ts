@@ -433,6 +433,7 @@ export interface CaseTypeDefinition {
   stages: StageDefinition[];
   attachmentCategories: AttachmentCategory[];
   caseWideActions: string[];
+  intakeEnabled?: boolean;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -527,12 +528,13 @@ export interface CaseInstance {
 
 export interface CaseCreateRequest {
   caseTypeId: string;
-  title: string;
+  title?: string;
   description?: string;
   priority?: 'low' | 'medium' | 'high' | 'critical';
   ownerId?: string;
   teamId?: string;
   customFields?: Record<string, any>;
+  intakeFormData?: Record<string, any>;
 }
 
 export interface CaseUpdateRequest {
@@ -689,6 +691,7 @@ export interface CaseTypeCreateRequest {
   fieldSchema?: Record<string, any>;
   stages?: Partial<StageDefinition>[];
   attachmentCategories?: AttachmentCategory[];
+  intakeEnabled?: boolean;
 }
 
 export interface CaseTypeUpdateRequest {
@@ -701,6 +704,7 @@ export interface CaseTypeUpdateRequest {
   stages?: StageDefinition[];
   attachmentCategories?: AttachmentCategory[];
   isActive?: boolean;
+  intakeEnabled?: boolean;
 }
 
 // ===== Flow Definitions (Unified Process & Flows) =====

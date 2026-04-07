@@ -121,11 +121,12 @@ class CaseInstance(BaseModel):
 
 class CaseCreateRequest(BaseModel):
     case_type_id: str
-    title: str
+    title: Optional[str] = None
     priority: Priority = Priority.medium
     owner_id: Optional[str] = None
     team_id: Optional[str] = None
     custom_fields: dict = {}
+    intake_form_data: Optional[dict] = None
 
 
 class CaseUpdateRequest(BaseModel):
