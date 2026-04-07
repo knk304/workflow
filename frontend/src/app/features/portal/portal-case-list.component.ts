@@ -14,8 +14,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { CaseInstance } from '@core/models';
+import { CaseInstance, Team } from '@core/models';
 import { statusLabel } from '@core/utils/status-labels';
+import { DataService } from '@core/services/data.service';
 import * as CasesActions from '@state/cases/cases.actions';
 import {
   selectCaseInstances,
@@ -106,6 +107,19 @@ import {
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="team">
+              <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Team</th>
+              <td mat-cell *matCellDef="let c">
+                @if (c.teamId && teamMap[c.teamId]) {
+                  <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700">
+                    {{ teamMap[c.teamId] }}
+                  </span>
+                } @else {
+                  <span class="text-xs text-slate-300">—</span>
+                }
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Status</th>
               <td mat-cell *matCellDef="let c">
@@ -193,21 +207,26 @@ import {
 export class PortalCaseListComponent implements OnInit {
   allCases: CaseInstance[] = [];
   filteredCases: CaseInstance[] = [];
-  displayedColumns = ['title', 'caseType', 'status', 'priority', 'stage', 'sla', 'created'];
+  displayedColumns = ['title', 'caseType', 'team', 'status', 'priority', 'stage', 'sla', 'created'];
   searchTerm = '';
   statusFilter = '';
   statusLabel = statusLabel;
   priorityFilter = '';
   pageSize = 25;
   caseCount$: Observable<number> = this.store.select(selectCaseInstanceCount);
+  teamMap: Record<string, string> = {};
 
-  constructor(private store: Store) {}
+  constructor(private store: Store, private dataService: DataService) {}
 
   ngOnInit(): void {
     this.store.dispatch(CasesActions.loadCaseInstances({}));
     this.store.select(selectCaseInstances).subscribe((cases) => {
       this.allCases = cases;
       this.applyFilters();
+    });
+    this.dataService.getTeams().subscribe(teams => {
+      this.teamMap = {};
+      teams.forEach(t => this.teamMap[t.id] = t.name);
     });
   }
 

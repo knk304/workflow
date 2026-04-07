@@ -174,9 +174,9 @@ async def list_cases(
     if case_type_id:
         query["case_type_id"] = case_type_id
 
-    # Authorization: non-admin/manager see own/team cases
+    # Authorization: admin sees all, others see own/team cases
     role = user.get("role", "WORKER")
-    if role not in ("ADMIN", "MANAGER"):
+    if role != "ADMIN":
         uid = str(user["_id"])
         team_ids = user.get("team_ids", [])
         ownership = [{"owner_id": uid}, {"created_by": uid}]

@@ -643,6 +643,8 @@ export class ApiDataService extends DataService {
       assignedTo: raw.assigned_to,
       assignedToName: raw.assigned_to_name,
       assignedRole: raw.assigned_role,
+      assignedTeamId: raw.assigned_team_id,
+      assignedTeamName: raw.assigned_team_name,
       formId: raw.form_id,
       instructions: raw.instructions,
       dueAt: raw.due_at,

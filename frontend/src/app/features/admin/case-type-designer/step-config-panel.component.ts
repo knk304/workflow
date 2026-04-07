@@ -24,7 +24,7 @@ import {
 } from '@core/models';
 import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-builder.component';
 import { DataService } from '@core/services/data.service';
-import { FormDefinition, FormField, DecisionTable } from '@core/models';
+import { FormDefinition, FormField, DecisionTable, Team } from '@core/models';
 
 @Component({
   selector: 'app-step-config-panel',
@@ -184,6 +184,21 @@ import { FormDefinition, FormField, DecisionTable } from '@core/models';
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Route To (Role)</mat-label>
                 <input matInput [(ngModel)]="step.config.assigneeRole" (ngModelChange)="emitChange()" placeholder="e.g. caseworker">
+              </mat-form-field>
+
+              <mat-form-field class="w-full" subscriptSizing="dynamic">
+                <mat-label>Route To Team</mat-label>
+                <mat-select [(ngModel)]="step.config.assigneeTeamId" (ngModelChange)="emitChange()">
+                  <mat-option [value]="null">— None (use role) —</mat-option>
+                  @for (team of teams; track team.id) {
+                    <mat-option [value]="team.id">
+                      <span class="flex items-center gap-2">
+                        <mat-icon class="!text-base text-indigo-400">group</mat-icon>
+                        {{ team.name }}
+                      </span>
+                    </mat-option>
+                  }
+                </mat-select>
               </mat-form-field>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
@@ -688,6 +703,7 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
   private dialog = inject(MatDialog);
   formDefinitions: FormDefinition[] = [];
   decisionTables: DecisionTable[] = [];
+  teams: Team[] = [];
 
   skipWhenCondition: RuleCondition | null = null;
   branchConditions: (RuleCondition | null)[] = [];
@@ -721,6 +737,7 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
   ngOnInit(): void {
     this.dataService.getFormDefinitions().subscribe(forms => this.formDefinitions = forms);
     this.dataService.getDecisionTables().subscribe(tables => this.decisionTables = tables);
+    this.dataService.getTeams().subscribe(teams => this.teams = teams);
   }
 
   ngOnChanges(): void {

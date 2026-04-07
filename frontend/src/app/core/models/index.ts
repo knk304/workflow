@@ -335,6 +335,7 @@ export type AssignmentStatus = 'open' | 'in_progress' | 'completed' | 'cancelled
 export interface StepConfig {
   assigneeRole?: string;
   assigneeUserId?: string;
+  assigneeTeamId?: string;
   formId?: string;
   formFields?: FormField[];
   instructions?: string;
@@ -578,6 +579,8 @@ export interface Assignment {
   assignedTo?: string;
   assignedToName?: string;
   assignedRole?: string;
+  assignedTeamId?: string;
+  assignedTeamName?: string;
   formId?: string;
   instructions?: string;
   dueAt?: string;

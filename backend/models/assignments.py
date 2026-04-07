@@ -48,6 +48,7 @@ class Assignment(BaseModel):
     priority: Priority
     assigned_to: Optional[str] = None
     assigned_role: Optional[str] = None
+    assigned_team_id: Optional[str] = None
     form_id: Optional[str] = None
     instructions: Optional[str] = None
     sla_hours: Optional[int] = None
@@ -71,6 +72,8 @@ class AssignmentResponse(BaseModel):
     assigned_to: Optional[str] = None
     assigned_to_name: Optional[str] = None
     assigned_role: Optional[str] = None
+    assigned_team_id: Optional[str] = None
+    assigned_team_name: Optional[str] = None
     form_id: Optional[str] = None
     instructions: Optional[str] = None
     due_at: Optional[str] = None

@@ -203,6 +203,19 @@ type StatusFilter = 'all' | 'open' | 'in_progress' | 'on_hold' | 'completed';
                           {{ a.assignedToName }}
                         </span>
                       }
+                      @if (a.assignedTeamName) {
+                        <span class="text-slate-300">·</span>
+                        <span class="flex items-center gap-0.5 text-indigo-400">
+                          <mat-icon class="!text-[10px] !w-3 !h-3">group</mat-icon>
+                          {{ a.assignedTeamName }}
+                        </span>
+                      } @else if (a.assignedRole) {
+                        <span class="text-slate-300">·</span>
+                        <span class="flex items-center gap-0.5 text-slate-400">
+                          <mat-icon class="!text-[10px] !w-3 !h-3">badge</mat-icon>
+                          {{ a.assignedRole }}
+                        </span>
+                      }
                     </div>
                   </div>
 

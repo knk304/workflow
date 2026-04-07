@@ -64,6 +64,8 @@ def _to_response(doc: dict) -> dict:
         "assigned_to": doc.get("assigned_to"),
         "assigned_to_name": doc.get("assigned_to_name"),
         "assigned_role": doc.get("assigned_role"),
+        "assigned_team_id": doc.get("assigned_team_id"),
+        "assigned_team_name": doc.get("assigned_team_name"),
         "form_id": doc.get("form_id"),
         "instructions": doc.get("instructions"),
         "due_at": due_at,
@@ -79,6 +81,7 @@ def _to_response(doc: dict) -> dict:
 async def list_assignments(
     assigned_to: str | None = None,
     assigned_role: str | None = None,
+    assigned_team_id: str | None = None,
     status_filter: str | None = Query(None, alias="status"),
     case_type_id: str | None = None,
     priority: str | None = None,
@@ -92,6 +95,8 @@ async def list_assignments(
         query["assigned_to"] = assigned_to
     if assigned_role:
         query["assigned_role"] = assigned_role
+    if assigned_team_id:
+        query["assigned_team_id"] = assigned_team_id
     if status_filter:
         query["status"] = status_filter
     if case_type_id:
@@ -114,12 +119,18 @@ async def my_assignments(user: dict = Depends(get_current_user)):
     uid = str(user["_id"])
     user_role = user.get("role", "")
 
+    team_ids = user.get("team_ids", [])
+
+    or_conditions = [
+        {"assigned_to": uid},
+        {"assigned_role": user_role},
+    ]
+    if team_ids:
+        or_conditions.append({"assigned_team_id": {"$in": team_ids}})
+
     query = {
         "status": {"$in": ["open", "in_progress"]},
-        "$or": [
-            {"assigned_to": uid},
-            {"assigned_role": user_role},
-        ],
+        "$or": or_conditions,
     }
     cursor = db.assignments.find(query).sort("created_at", -1)
     results = []
