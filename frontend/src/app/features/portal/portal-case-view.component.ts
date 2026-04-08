@@ -387,7 +387,8 @@ import { OutcomeReportComponent } from '@features/portal/outcome-report/outcome-
                         [isCurrent]="isCurrentStep(step, stage)"
                         [caseId]="c.id"
                         [currentUser]="currentUser"
-                        (onComplete)="onCompleteStep($event)">
+                        (onComplete)="onCompleteStep($event)"
+                        (onReclaimStep)="reloadCase()">
                       </app-step-card>
                     }
                   </div>
@@ -812,6 +813,11 @@ export class PortalCaseViewComponent implements OnInit, OnDestroy {
       })
     );
     this.snackBar.open(`Step "${event.step.name}" completed`, 'OK', { duration: 3000 });
+  }
+
+  reloadCase(): void {
+    if (!this.c) return;
+    this.store.dispatch(CasesActions.loadCaseInstance({ id: this.c.id }));
   }
 
   onAdvanceStage(): void {

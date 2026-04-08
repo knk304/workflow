@@ -42,6 +42,7 @@ class ProcessType(str, Enum):
 class AssignmentStepConfig(BaseModel):
     assignee_role: str = ""
     assignee_user_id: Optional[str] = None
+    assignee_team_id: Optional[str] = None
     form_id: Optional[str] = None
     instructions: Optional[str] = None
     set_case_status: Optional[str] = None

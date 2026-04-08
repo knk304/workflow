@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -14,10 +14,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { CaseInstance, Team } from '@core/models';
+import { CaseInstance, Team, User } from '@core/models';
 import { statusLabel } from '@core/utils/status-labels';
 import { DataService } from '@core/services/data.service';
 import * as CasesActions from '@state/cases/cases.actions';
+import { selectUser } from '@state/auth/auth.selectors';
 import {
   selectCaseInstances,
   selectCasesLoading,
@@ -48,33 +49,42 @@ import {
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-slate-800">Case Instances</h1>
-          <p class="text-sm text-slate-500">{{ (caseCount$ | async) || 0 }} total cases</p>
+          <p class="text-sm text-slate-500">{{ totalCount }} case{{ totalCount !== 1 ? 's' : '' }}</p>
         </div>
         <button mat-raised-button color="primary" routerLink="/portal/cases/new">
           <mat-icon>add</mat-icon> New Case
         </button>
       </div>
 
+      <!-- Manager read-only notice -->
+      @if (isManager) {
+        <div class="flex items-center gap-2.5 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+          <mat-icon class="!text-base text-amber-500">visibility</mat-icon>
+          You have read-only access to cases outside your team. You can view all cases but can only edit cases assigned to your team.
+        </div>
+      }
+
       <!-- Filters -->
       <mat-card class="!rounded-xl !shadow-sm border border-slate-100">
         <mat-card-content class="!pt-4">
           <div class="flex flex-wrap gap-3 items-end">
-            <mat-form-field class="flex-1 min-w-[200px]">
+            <mat-form-field class="flex-1 min-w-[200px]" subscriptSizing="dynamic">
               <mat-label>Search</mat-label>
-              <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="Search cases...">
+              <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="Search by title, case numberâ€¦">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
-            <mat-form-field class="w-40">
+            <mat-form-field class="w-44" subscriptSizing="dynamic">
               <mat-label>Status</mat-label>
               <mat-select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
                 <mat-option value="">All</mat-option>
                 <mat-option value="open">Open</mat-option>
                 <mat-option value="in_progress">In Progress</mat-option>
-                <mat-option value="resolved">Resolved</mat-option>
-                <mat-option value="closed">Closed</mat-option>
+                <mat-option value="pending">Pending</mat-option>
+                <mat-option value="resolved_completed">Resolved</mat-option>
+                <mat-option value="resolved_rejected">Rejected</mat-option>
               </mat-select>
             </mat-form-field>
-            <mat-form-field class="w-40">
+            <mat-form-field class="w-40" subscriptSizing="dynamic">
               <mat-label>Priority</mat-label>
               <mat-select [(ngModel)]="priorityFilter" (ngModelChange)="applyFilters()">
                 <mat-option value="">All</mat-option>
@@ -91,35 +101,62 @@ import {
       <!-- Case Table -->
       <mat-card class="!rounded-xl !shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
-          <table mat-table [dataSource]="filteredCases" class="w-full">
+          <table mat-table [dataSource]="pagedCases" class="w-full">
+
+            <!-- Case Number -->
+            <ng-container matColumnDef="caseNumber">
+              <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600 !w-36">Case #</th>
+              <td mat-cell *matCellDef="let c">
+                <a [routerLink]="['/portal/cases', c.id]"
+                   class="font-mono text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-2 py-0.5 rounded">
+                  {{ c.id }}
+                </a>
+              </td>
+            </ng-container>
+
+            <!-- Title -->
             <ng-container matColumnDef="title">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Title</th>
               <td mat-cell *matCellDef="let c">
-                <a [routerLink]="['/portal/cases', c.id]"
-                   class="text-primary-500 hover:text-primary-800 font-medium">{{ c.title }}</a>
+                <div class="flex items-center gap-2 min-w-0">
+                  <a [routerLink]="['/portal/cases', c.id]"
+                     class="text-slate-800 hover:text-primary-700 font-medium truncate">
+                    {{ c.title }}
+                  </a>
+                  @if (isManager && c.teamId && !currentUserTeamIds.includes(c.teamId)) {
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-semibold shrink-0"
+                          matTooltip="View only â€” outside your team">
+                      VIEW
+                    </span>
+                  }
+                </div>
               </td>
             </ng-container>
 
+            <!-- Case Type -->
             <ng-container matColumnDef="caseType">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Type</th>
               <td mat-cell *matCellDef="let c">
-                <span class="text-sm text-slate-600">{{ c.caseTypeId }}</span>
+                <span class="text-xs text-slate-500 font-mono">{{ c.caseTypeName || c.caseTypeId }}</span>
               </td>
             </ng-container>
 
+            <!-- Team -->
             <ng-container matColumnDef="team">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Team</th>
               <td mat-cell *matCellDef="let c">
                 @if (c.teamId && teamMap[c.teamId]) {
-                  <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700">
+                  <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                        [ngClass]="currentUserTeamIds.includes(c.teamId) ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500'">
                     {{ teamMap[c.teamId] }}
                   </span>
                 } @else {
-                  <span class="text-xs text-slate-300">—</span>
+                  <span class="text-xs text-slate-300">â€”</span>
                 }
               </td>
             </ng-container>
 
+            <!-- Status -->
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Status</th>
               <td mat-cell *matCellDef="let c">
@@ -130,6 +167,7 @@ import {
               </td>
             </ng-container>
 
+            <!-- Priority -->
             <ng-container matColumnDef="priority">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Priority</th>
               <td mat-cell *matCellDef="let c">
@@ -140,6 +178,7 @@ import {
               </td>
             </ng-container>
 
+            <!-- Stage -->
             <ng-container matColumnDef="stage">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Stage</th>
               <td mat-cell *matCellDef="let c">
@@ -149,6 +188,7 @@ import {
               </td>
             </ng-container>
 
+            <!-- SLA -->
             <ng-container matColumnDef="sla">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">SLA</th>
               <td mat-cell *matCellDef="let c">
@@ -167,15 +207,16 @@ import {
                     }
                   </span>
                 } @else {
-                  <span class="text-xs text-slate-300">—</span>
+                  <span class="text-xs text-slate-300">â€”</span>
                 }
               </td>
             </ng-container>
 
+            <!-- Created -->
             <ng-container matColumnDef="created">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-600">Created</th>
               <td mat-cell *matCellDef="let c">
-                <span class="text-sm text-slate-500">{{ c.createdAt | date:'shortDate' }}</span>
+                <span class="text-sm text-slate-500">{{ c.createdAt | date:'MMM d, y' }}</span>
               </td>
             </ng-container>
 
@@ -207,14 +248,20 @@ import {
 export class PortalCaseListComponent implements OnInit {
   allCases: CaseInstance[] = [];
   filteredCases: CaseInstance[] = [];
-  displayedColumns = ['title', 'caseType', 'team', 'status', 'priority', 'stage', 'sla', 'created'];
+  pagedCases: CaseInstance[] = [];
+  displayedColumns = ['caseNumber', 'title', 'caseType', 'team', 'status', 'priority', 'stage', 'sla', 'created'];
   searchTerm = '';
   statusFilter = '';
   statusLabel = statusLabel;
   priorityFilter = '';
   pageSize = 25;
-  caseCount$: Observable<number> = this.store.select(selectCaseInstanceCount);
+  pageIndex = 0;
   teamMap: Record<string, string> = {};
+  isManager = false;
+  currentUserTeamIds: string[] = [];
+
+  get totalCount(): number { return this.filteredCases.length; }
+  caseCount$: Observable<number> = this.store.select(selectCaseInstanceCount);
 
   constructor(private store: Store, private dataService: DataService) {}
 
@@ -227,6 +274,12 @@ export class PortalCaseListComponent implements OnInit {
     this.dataService.getTeams().subscribe(teams => {
       this.teamMap = {};
       teams.forEach(t => this.teamMap[t.id] = t.name);
+    });
+    this.store.select(selectUser).subscribe(user => {
+      if (user) {
+        this.isManager = user.role === 'MANAGER';
+        this.currentUserTeamIds = user.teamIds || [];
+      }
     });
   }
 
@@ -245,29 +298,40 @@ export class PortalCaseListComponent implements OnInit {
       result = result.filter((c) => c.priority === this.priorityFilter);
     }
     this.filteredCases = result;
+    this.pageIndex = 0;
+    this.updatePage();
+  }
+
+  updatePage(): void {
+    const start = this.pageIndex * this.pageSize;
+    this.pagedCases = this.filteredCases.slice(start, start + this.pageSize);
   }
 
   onPageChange(event: PageEvent): void {
     this.pageSize = event.pageSize;
+    this.pageIndex = event.pageIndex;
+    this.updatePage();
   }
 
   statusBadge(status: string): string {
-    return {
+    return ({
       open: 'bg-primary-100 text-primary-700',
       in_progress: 'bg-amber-100 text-amber-700',
-      resolved: 'bg-green-100 text-green-700',
-      closed: 'bg-slate-100 text-slate-600',
+      pending: 'bg-blue-100 text-blue-700',
+      resolved_completed: 'bg-green-100 text-green-700',
+      resolved_cancelled: 'bg-slate-100 text-slate-600',
+      resolved_rejected: 'bg-red-100 text-red-700',
       withdrawn: 'bg-red-100 text-red-600',
-    }[status] || 'bg-slate-100 text-slate-600';
+    } as Record<string,string>)[status] || 'bg-slate-100 text-slate-600';
   }
 
   priorityBadge(priority: string): string {
-    return {
+    return ({
       critical: 'bg-red-100 text-red-700',
       high: 'bg-orange-100 text-orange-700',
       medium: 'bg-yellow-100 text-yellow-700',
       low: 'bg-green-100 text-green-700',
-    }[priority] || 'bg-slate-100 text-slate-600';
+    } as Record<string,string>)[priority] || 'bg-slate-100 text-slate-600';
   }
 
   slaBadge(c: CaseInstance): string {

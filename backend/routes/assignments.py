@@ -67,6 +67,7 @@ def _to_response(doc: dict) -> dict:
         "assigned_team_id": doc.get("assigned_team_id"),
         "assigned_team_name": doc.get("assigned_team_name"),
         "form_id": doc.get("form_id"),
+        "step_id": doc.get("step_id", ""),
         "instructions": doc.get("instructions"),
         "due_at": due_at,
         "is_overdue": is_overdue,
@@ -82,6 +83,7 @@ async def list_assignments(
     assigned_to: str | None = None,
     assigned_role: str | None = None,
     assigned_team_id: str | None = None,
+    case_id: str | None = None,
     status_filter: str | None = Query(None, alias="status"),
     case_type_id: str | None = None,
     priority: str | None = None,
@@ -97,6 +99,8 @@ async def list_assignments(
         query["assigned_role"] = assigned_role
     if assigned_team_id:
         query["assigned_team_id"] = assigned_team_id
+    if case_id:
+        query["case_id"] = case_id
     if status_filter:
         query["status"] = status_filter
     if case_type_id:
@@ -165,6 +169,26 @@ async def complete_assignment(
     if asgn.get("status") not in ("open", "in_progress"):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Assignment is not active")
 
+    # Authorization: check if user is allowed to complete this assignment
+    uid = str(user["_id"])
+    user_role = user.get("role", "WORKER")
+    user_team_ids = user.get("team_ids", [])
+    if user_role != "ADMIN":
+        at = asgn.get("assigned_to")
+        ar = asgn.get("assigned_role")
+        ati = asgn.get("assigned_team_id")
+        authorized = False
+        if at and at == uid:
+            authorized = True
+        elif ati and ati in user_team_ids:
+            authorized = True
+        elif ar and ar == user_role:
+            authorized = True
+        elif not at and not ar and not ati:
+            authorized = True  # no restrictions
+        if not authorized:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "You are not authorized to complete this assignment")
+
     # Delegate to the step engine
     data = body.model_dump(exclude_none=True)
     # Handle both field name variants (seeded data uses step_definition_id)
@@ -203,6 +227,31 @@ async def reassign(
         {"_id": assignment_id},
         {"$set": {"assigned_to": body.assigned_to, "updated_at": now}},
     )
+
+    # Also sync the live case step so GET /cases/:id reflects the current assignee.
+    # The step config's assignee_user_id is used by the frontend for access control.
+    step_id = asgn.get("step_id")
+    case_id_val = asgn.get("case_id")
+    if step_id and case_id_val:
+        case_doc = await db.cases.find_one({"_id": case_id_val})
+        if case_doc:
+            found = False
+            for si, stage in enumerate(case_doc.get("stages", [])):
+                if found:
+                    break
+                for pi, proc in enumerate(stage.get("processes", [])):
+                    if found:
+                        break
+                    for ski, step_data in enumerate(proc.get("steps", [])):
+                        if step_data.get("definition_id") == step_id:
+                            path = f"stages.{si}.processes.{pi}.steps.{ski}.config.assignee_user_id"
+                            await db.cases.update_one(
+                                {"_id": case_id_val},
+                                {"$set": {path: body.assigned_to, "updated_at": now}}
+                            )
+                            found = True
+                            break
+
     await db.audit_logs.insert_one({
         "entityType": "assignment",
         "entityId": assignment_id,

@@ -9,6 +9,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { forkJoin, Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -35,6 +37,7 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
     MatFormFieldModule,
     MatTooltipModule,
     RouterLink,
+    MatSnackBarModule,
     DynamicFormComponent,
   ],
   styles: [`
@@ -405,17 +408,62 @@ import { DynamicFormComponent, DynamicField } from './dynamic-form.component';
           @if (step.status === 'in_progress' || step.status === 'pending') {
             @if (isCurrent && step.type !== 'decision' && step.type !== 'automation' && step.type !== 'subprocess' && step.type !== 'approval') {
               @if (canActOnStep()) {
-                <button mat-flat-button color="primary" class="!mt-3 !text-xs !h-8"
+                @if (assignedToInfo) {
+                  <div class="mt-2 text-[11px] text-indigo-500 flex items-center gap-1">
+                    <mat-icon class="!text-[13px]">info_outline</mat-icon>
+                    {{ assignedToInfo }}
+                  </div>
+                }
+                <button mat-flat-button color="primary" class="!mt-2 !text-xs !h-8"
                         [disabled]="(step.type === 'assignment' && hasFormFields && !isFormValid) ||
                                     (step.type === 'attachment' && selectedFiles.length === 0)"
                         (click)="completeStep()">
                   <mat-icon class="!text-sm mr-1">check_circle</mat-icon>
                   {{ completeLabel }}
                 </button>
+              } @else if (isSameTeamPeerAssigned()) {
+                <!-- Same-team peer: show reclaim UI -->
+                <div class="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <mat-icon class="!text-sm text-indigo-500">group</mat-icon>
+                    <span class="text-xs font-semibold text-indigo-700">Assigned to a team member</span>
+                  </div>
+                  <p class="text-xs text-indigo-600 mb-3">
+                    This step is currently assigned to another member of your team. You can reclaim it to work on it yourself, or wait for them to complete it.
+                  </p>
+                  @if (!isReclaimConfirming()) {
+                    <button mat-stroked-button color="primary" class="!text-xs !h-8"
+                            (click)="isReclaimConfirming.set(true)">
+                      <mat-icon class="!text-sm mr-1">assignment_ind</mat-icon>
+                      Reclaim Assignment
+                    </button>
+                  } @else {
+                    <div class="space-y-2">
+                      <p class="text-xs font-semibold text-indigo-700">Reassign this step to yourself?</p>
+                      <div class="flex gap-2">
+                        <button mat-flat-button color="primary" class="!text-xs !h-8"
+                                [disabled]="isReclaimLoading()"
+                                (click)="confirmReclaim()">
+                          @if (isReclaimLoading()) {
+                            <mat-icon class="!text-sm mr-1 animate-spin">refresh</mat-icon>
+                          } @else {
+                            <mat-icon class="!text-sm mr-1">assignment_ind</mat-icon>
+                          }
+                          Confirm Reclaim
+                        </button>
+                        <button mat-stroked-button class="!text-xs !h-8"
+                                [disabled]="isReclaimLoading()"
+                                (click)="isReclaimConfirming.set(false)">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
               } @else {
-                <div class="mt-3 text-xs text-slate-400 flex items-center gap-1">
-                  <mat-icon class="!text-sm">lock</mat-icon>
-                  {{ assignmentHint }}
+                <div class="mt-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 flex items-center gap-2">
+                  <mat-icon class="!text-sm text-slate-400">lock</mat-icon>
+                  <span>{{ assignmentHint }}</span>
                 </div>
               }
             }
@@ -439,12 +487,16 @@ export class StepCardComponent implements OnChanges, OnDestroy {
   @Input() caseId = '';
   @Input() currentUser: User | null = null;
   @Output() onComplete = new EventEmitter<{ step: StepInstance; formData: Record<string, any> }>();
+  @Output() onReclaimStep = new EventEmitter<void>();
 
   @ViewChild(DynamicFormComponent) dynamicForm?: DynamicFormComponent;
 
   isFormValid = false;
   selectedFiles: File[] = [];
   isUploading = signal(false);
+  isReclaimConfirming = signal(false);
+  isReclaimLoading = signal(false);
+  isReclaimedByMe = signal(false);
   cachedFormFields: DynamicField[] = [];
   approvalChain: ApprovalChain | null = null;
   approvalAction = signal<'approve' | 'reject' | null>(null);
@@ -459,7 +511,7 @@ export class StepCardComponent implements OnChanges, OnDestroy {
   private chainSub?: Subscription;
   private destroy$ = new Subject<void>();
 
-  constructor(private dataService: DataService, private store: Store) {}
+  constructor(private dataService: DataService, private store: Store, private snackBar: MatSnackBar) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['step']) {
@@ -598,12 +650,14 @@ export class StepCardComponent implements OnChanges, OnDestroy {
   }
 
   canActOnStep(): boolean {
+    if (this.isReclaimedByMe()) return true;
     if (!this.currentUser) return true; // no user info → don't block
     if (this.currentUser.role === 'ADMIN') return true;
 
     const cfg = this.step.config || {};
     const userId = this.currentUser.id;
     const userRole = this.currentUser.role;
+    const userTeamIds = this.currentUser.teamIds || [];
 
     if (this.step.type === 'approval') {
       const roles: string[] = cfg['approver_roles'] || [];
@@ -613,14 +667,20 @@ export class StepCardComponent implements OnChanges, OnDestroy {
       }
     }
 
-    // assignment / attachment / other steps
-    if (this.step.assignedTo) {
-      return this.step.assignedTo === userId;
+    const assignedTo: string | undefined = this.step.assignedTo ?? cfg['assignee_user_id'];
+    const assignedTeam: string | undefined = cfg['assignee_team_id'];
+    const assignedRole: string | undefined = cfg['assignee_role'];
+
+    // If assigned to a specific user, only that user can complete (others in same team must reclaim first)
+    if (assignedTo) {
+      return assignedTo === userId;
     }
-    const assigneeRole: string | undefined = cfg['assignee_role'];
-    if (assigneeRole) {
-      return userRole === assigneeRole;
-    }
+    // No specific user — check team or role
+    if (assignedTeam && userTeamIds.includes(assignedTeam)) return true;
+    if (assignedRole && userRole === assignedRole) return true;
+
+    // Any routing configured but none matched → deny
+    if (assignedTeam || assignedRole) return false;
 
     return true; // no restrictions configured
   }
@@ -631,10 +691,78 @@ export class StepCardComponent implements OnChanges, OnDestroy {
       const roles: string[] = cfg['approver_roles'] || [];
       if (roles.length) return `Assigned to ${roles.join(', ')} role(s)`;
     }
-    if (this.step.assignedTo) return `Assigned to ${this.step.assignedTo}`;
+    const assignedTo = this.step.assignedTo ?? cfg['assignee_user_id'];
+    if (assignedTo) return `Assigned to user ${assignedTo}`;
+    const team = cfg['assignee_team_id'];
+    if (team) return 'Assigned to another team';
     const role = cfg['assignee_role'];
     if (role) return `Assigned to ${role} role`;
     return 'Not assigned to you';
+  }
+
+  /** True when this step is assigned to a different user who is in the same team as current user */
+  isSameTeamPeerAssigned(): boolean {
+    if (!this.currentUser || this.isReclaimedByMe()) return false;
+    const cfg = this.step.config || {};
+    const userId = this.currentUser.id;
+    const userTeamIds = this.currentUser.teamIds || [];
+    const assignedTo: string | undefined = this.step.assignedTo ?? cfg['assignee_user_id'];
+    const assignedTeam: string | undefined = cfg['assignee_team_id'];
+    return !!(assignedTo && assignedTo !== userId && assignedTeam && userTeamIds.includes(assignedTeam));
+  }
+
+  confirmReclaim(): void {
+    if (!this.currentUser || !this.caseId) return;
+    this.isReclaimLoading.set(true);
+    // Fetch all active assignments for this case (open + in_progress) and find by step
+    this.dataService.getAssignments({ case_id: this.caseId })
+      .subscribe({
+        next: (assignments) => {
+          const stepDefId = this.step.stepDefinitionId;
+          const match = assignments.find(a =>
+            a.stepId === stepDefId &&
+            a.caseId === this.caseId &&
+            (a.status === 'open' || a.status === 'in_progress')
+          );
+          if (!match) {
+            this.isReclaimLoading.set(false);
+            this.snackBar.open('Could not find the active assignment to reclaim', 'OK', { duration: 3000 });
+            return;
+          }
+          this._doReassign(match.id);
+        },
+        error: () => { this.isReclaimLoading.set(false); },
+      });
+  }
+
+  private _doReassign(assignmentId: string): void {
+    const userId = this.currentUser!.id;
+    this.dataService.reassignAssignment(assignmentId, { assignedTo: userId })
+      .subscribe({
+        next: () => {
+          this.isReclaimLoading.set(false);
+          this.isReclaimConfirming.set(false);
+          this.isReclaimedByMe.set(true);
+          this.snackBar.open('Assignment reclaimed — you can now complete this step', 'OK', { duration: 4000 });
+          this.onReclaimStep.emit();
+        },
+        error: () => {
+          this.isReclaimLoading.set(false);
+          this.snackBar.open('Failed to reclaim assignment', 'OK', { duration: 3000 });
+        },
+      });
+  }
+
+  get assignedToInfo(): string {
+    const cfg = this.step.config || {};
+    const assignedTo = this.step.assignedTo ?? cfg['assignee_user_id'];
+    if (assignedTo && this.currentUser && assignedTo === this.currentUser.id) {
+      return 'Assigned to you';
+    }
+    if (assignedTo) return `Assigned to user ${assignedTo}`;
+    const team = cfg['assignee_team_id'];
+    if (team) return 'Assigned to your team';
+    return '';
   }
 
   completeStep(): void {

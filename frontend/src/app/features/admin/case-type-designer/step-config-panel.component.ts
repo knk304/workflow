@@ -24,7 +24,7 @@ import {
 } from '@core/models';
 import { RuleBuilderComponent, RuleCondition } from '@shared/rule-builder/rule-builder.component';
 import { DataService } from '@core/services/data.service';
-import { FormDefinition, FormField, DecisionTable, Team } from '@core/models';
+import { FormDefinition, FormField, DecisionTable, Team, User } from '@core/models';
 
 @Component({
   selector: 'app-step-config-panel',
@@ -188,7 +188,7 @@ import { FormDefinition, FormField, DecisionTable, Team } from '@core/models';
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
                 <mat-label>Route To Team</mat-label>
-                <mat-select [(ngModel)]="step.config.assigneeTeamId" (ngModelChange)="emitChange()">
+                <mat-select [(ngModel)]="step.config.assigneeTeamId" (ngModelChange)="onTeamChange()">
                   <mat-option [value]="null">— None (use role) —</mat-option>
                   @for (team of teams; track team.id) {
                     <mat-option [value]="team.id">
@@ -202,8 +202,22 @@ import { FormDefinition, FormField, DecisionTable, Team } from '@core/models';
               </mat-form-field>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
-                <mat-label>Specific User ID</mat-label>
-                <input matInput [(ngModel)]="step.config.assigneeUserId" (ngModelChange)="emitChange()" placeholder="Optional">
+                <mat-label>Assign To User</mat-label>
+                <mat-select [(ngModel)]="step.config.assigneeUserId" (ngModelChange)="emitChange()">
+                  <mat-option [value]="null">— Any (use role/team) —</mat-option>
+                  @for (user of teamFilteredUsers; track user.id) {
+                    <mat-option [value]="user.id">
+                      <span class="flex items-center gap-2">
+                        <mat-icon class="!text-base text-slate-400">person</mat-icon>
+                        {{ user.name }}
+                        <span class="text-[10px] text-slate-400">· {{ user.role }}</span>
+                      </span>
+                    </mat-option>
+                  }
+                </mat-select>
+                @if (step.config.assigneeTeamId) {
+                  <mat-hint>Showing members of selected team</mat-hint>
+                }
               </mat-form-field>
 
               <mat-form-field class="w-full" subscriptSizing="dynamic">
@@ -704,6 +718,7 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
   formDefinitions: FormDefinition[] = [];
   decisionTables: DecisionTable[] = [];
   teams: Team[] = [];
+  allUsers: User[] = [];
 
   skipWhenCondition: RuleCondition | null = null;
   branchConditions: (RuleCondition | null)[] = [];
@@ -738,6 +753,22 @@ export class StepConfigPanelComponent implements OnChanges, OnInit {
     this.dataService.getFormDefinitions().subscribe(forms => this.formDefinitions = forms);
     this.dataService.getDecisionTables().subscribe(tables => this.decisionTables = tables);
     this.dataService.getTeams().subscribe(teams => this.teams = teams);
+    this.dataService.getUsers().subscribe(users => this.allUsers = users);
+  }
+
+  /** Users filtered by selected team; if no team selected, show all users */
+  get teamFilteredUsers(): User[] {
+    const teamId = this.step?.config?.assigneeTeamId;
+    if (!teamId) return this.allUsers;
+    const team = this.teams.find(t => t.id === teamId);
+    if (!team) return this.allUsers;
+    return this.allUsers.filter(u => team.memberIds.includes(u.id));
+  }
+
+  onTeamChange(): void {
+    // Clear user selection when team changes (previous user may not belong to new team)
+    this.step.config.assigneeUserId = undefined;
+    this.emitChange();
   }
 
   ngOnChanges(): void {

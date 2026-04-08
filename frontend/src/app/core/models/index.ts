@@ -571,6 +571,7 @@ export interface Assignment {
   caseTypeId: string;
   stageName: string;
   processName: string;
+  stepId: string;
   stepName: string;
   name: string;
   assignmentType: AssignmentType;

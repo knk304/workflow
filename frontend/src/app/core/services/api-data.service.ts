@@ -411,6 +411,7 @@ export class ApiDataService extends DataService {
     return {
       assigneeRole: c.assignee_role ?? c.assigneeRole,
       assigneeUserId: c.assignee_user_id ?? c.assigneeUserId,
+      assigneeTeamId: c.assignee_team_id ?? c.assigneeTeamId,
       formId: c.form_id ?? c.formId,
       formFields: c.form_fields ?? c.formFields ?? [],
       instructions: c.instructions,
@@ -635,6 +636,7 @@ export class ApiDataService extends DataService {
       caseTypeId: raw.case_type_id ?? '',
       stageName: raw.stage_name ?? '',
       processName: raw.process_name ?? '',
+      stepId: raw.step_id ?? '',
       stepName: raw.step_name ?? '',
       name: raw.name ?? raw.step_name ?? '',
       assignmentType: raw.type ?? raw.assignment_type ?? 'form',
@@ -792,6 +794,7 @@ export class ApiDataService extends DataService {
     if (!c) return {};
     return {
       assignee_role: c.assigneeRole, assignee_user_id: c.assigneeUserId,
+      assignee_team_id: c.assigneeTeamId,
       form_id: c.formId, form_fields: c.formFields ?? [],
       instructions: c.instructions,
       set_case_status: c.setCaseStatus, mode: c.mode,
