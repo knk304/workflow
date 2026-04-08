@@ -32,6 +32,7 @@ type StatusFilter = 'all' | 'open' | 'in_progress' | 'on_hold' | 'completed';
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    MatDividerModule,
     MatSnackBarModule,
   ],
   template: `
@@ -125,10 +126,10 @@ type StatusFilter = 'all' | 'open' | 'in_progress' | 'on_hold' | 'completed';
       </div>
 
       <!-- Assignment Cards -->
-      <div class="space-y-2.5">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         @if (isLoading()) {
-          @for (n of [1,2,3]; track n) {
-            <div class="bg-white rounded-xl border border-slate-200 h-20 animate-pulse"></div>
+          @for (n of [1,2,3,4,5,6]; track n) {
+            <div class="bg-white rounded-xl border border-slate-200 h-52 animate-pulse"></div>
           }
         } @else if (filteredAssignments().length === 0) {
           <div class="text-center py-16 text-slate-400">
@@ -145,112 +146,144 @@ type StatusFilter = 'all' | 'open' | 'in_progress' | 'on_hold' | 'completed';
           </div>
         } @else {
           @for (a of filteredAssignments(); track a.id) {
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-              <div class="flex items-stretch">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden group flex flex-col">
 
-                <!-- Priority stripe -->
-                <div class="w-1 shrink-0 rounded-l-xl" [ngClass]="priorityColor(a.priority)"></div>
+              <!-- Priority stripe top -->
+              <div class="h-1" [ngClass]="priorityColor(a.priority)"></div>
 
-                <div class="flex-1 flex items-center gap-4 px-4 py-3.5 min-w-0">
-
-                  <!-- Type icon -->
-                  <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+              <div class="p-4 flex flex-col flex-1">
+                <!-- Header: type icon + step name + badges -->
+                <div class="flex items-start gap-2.5">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                        [ngClass]="typeIconBg(a.assignmentType)">
-                    <mat-icon class="!text-base !w-4 !h-4" [ngClass]="typeIconColor(a.assignmentType)">
+                    <mat-icon class="!text-sm !w-4 !h-4" [ngClass]="typeIconColor(a.assignmentType)">
                       {{ typeIcon(a.assignmentType) }}
                     </mat-icon>
                   </div>
-
-                  <!-- Main info -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <a [routerLink]="['/portal/cases', a.caseId]"
-                         class="font-semibold text-sm text-slate-800 hover:text-indigo-600 transition-colors truncate">
-                        {{ a.stepName || a.name }}
-                      </a>
-                      <!-- status badge -->
-                      <span class="wf-badge shrink-0" [ngClass]="statusBadgeClass(a.status)">
-                        {{ statusLabel(a.status) }}
-                      </span>
-                      <!-- priority badge -->
-                      <span class="wf-badge shrink-0" [ngClass]="priorityBadgeClass(a.priority)">
-                        {{ a.priority }}
-                      </span>
-                      @if (a.isOverdue) {
-                        <span class="wf-badge wf-badge--danger flex items-center gap-0.5 shrink-0">
-                          <mat-icon class="!text-[10px] !w-3 !h-3">alarm_off</mat-icon>
-                          Overdue
-                        </span>
-                      }
-                    </div>
-                    <div class="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
-                      <a [routerLink]="['/portal/cases', a.caseId]"
-                         class="hover:text-indigo-600 transition-colors font-medium truncate">
-                        {{ a.caseTitle }}
-                      </a>
-                      <span class="text-slate-300">·</span>
-                      <span class="flex items-center gap-0.5 text-slate-400">
-                        <mat-icon class="!text-[10px] !w-3 !h-3">layers</mat-icon>
-                        {{ a.stageName }}
-                      </span>
-                      @if (a.processName) {
-                        <span class="text-slate-300">›</span>
-                        <span class="text-slate-400">{{ a.processName }}</span>
-                      }
-                      @if (viewMode() === 'all' && a.assignedToName) {
-                        <span class="text-slate-300">·</span>
-                        <span class="flex items-center gap-0.5 text-slate-400">
-                          <mat-icon class="!text-[10px] !w-3 !h-3">person</mat-icon>
-                          {{ a.assignedToName }}
-                        </span>
-                      }
-                      @if (a.assignedTeamName) {
-                        <span class="text-slate-300">·</span>
-                        <span class="flex items-center gap-0.5 text-indigo-400">
-                          <mat-icon class="!text-[10px] !w-3 !h-3">group</mat-icon>
-                          {{ a.assignedTeamName }}
-                        </span>
-                      } @else if (a.assignedRole) {
-                        <span class="text-slate-300">·</span>
-                        <span class="flex items-center gap-0.5 text-slate-400">
-                          <mat-icon class="!text-[10px] !w-3 !h-3">badge</mat-icon>
-                          {{ a.assignedRole }}
-                        </span>
-                      }
-                    </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-sm text-slate-800 leading-tight truncate" [matTooltip]="a.stepName || a.name">
+                      {{ a.stepName || a.name }}
+                    </p>
+                    <span class="text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                      {{ typeLabel(a.assignmentType) }}
+                    </span>
                   </div>
+                  <!-- Due date chip -->
+                  @if (a.dueAt) {
+                    <div class="px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0"
+                         [ngClass]="a.isOverdue ? 'bg-red-50 text-red-700' : dueSoonClass(a)">
+                      @if (a.isOverdue) { <mat-icon class="!text-[10px] !w-3 !h-3 align-middle">alarm_off</mat-icon> }
+                      {{ formatDate(a.dueAt) }}
+                    </div>
+                  } @else if (a.slaHours) {
+                    <div class="px-2 py-0.5 rounded-md bg-slate-50 text-[10px] font-semibold text-slate-500 shrink-0">
+                      {{ a.slaHours }}h SLA
+                    </div>
+                  }
+                </div>
 
-                  <!-- Due date / SLA -->
-                  <div class="text-right shrink-0 hidden sm:block">
-                    @if (a.dueAt) {
-                      <div class="text-xs font-medium"
-                           [ngClass]="a.isOverdue ? 'text-red-600' : 'text-slate-600'">
-                        {{ formatDate(a.dueAt) }}
-                      </div>
-                      <div class="text-[10px] text-slate-400">Due date</div>
-                    } @else if (a.slaHours) {
-                      <div class="text-xs font-medium text-slate-600">{{ a.slaHours }}h SLA</div>
-                      <div class="text-[10px] text-slate-400">Target</div>
-                    } @else {
-                      <div class="text-xs text-slate-300">—</div>
-                    }
-                  </div>
+                <!-- Badges row -->
+                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                  <span class="wf-badge" [ngClass]="statusBadgeClass(a.status)">
+                    {{ statusLabel(a.status) }}
+                  </span>
+                  <span class="wf-badge" [ngClass]="priorityBadgeClass(a.priority)">
+                    {{ a.priority }}
+                  </span>
+                  @if (a.isOverdue) {
+                    <span class="wf-badge wf-badge--danger flex items-center gap-0.5">
+                      <mat-icon class="!text-[10px] !w-3 !h-3">warning</mat-icon> Overdue
+                    </span>
+                  }
+                </div>
 
-                  <!-- Quick actions -->
-                  <div class="flex items-center gap-1 shrink-0">
-                    @if (a.assignmentType === 'approval' && (a.status === 'open' || a.status === 'in_progress')) {
-                      <button mat-icon-button matTooltip="Approve" (click)="onApprove(a)">
-                        <mat-icon class="text-emerald-500">check_circle</mat-icon>
-                      </button>
-                      <button mat-icon-button matTooltip="Decline" (click)="onDecline(a)">
-                        <mat-icon class="text-red-500">cancel</mat-icon>
-                      </button>
-                    }
-                    <a mat-icon-button [routerLink]="['/portal/cases', a.caseId]" matTooltip="Open case">
-                      <mat-icon class="text-slate-400">open_in_new</mat-icon>
+                <!-- Case info -->
+                <div class="mt-2.5 space-y-1">
+                  <div class="flex items-center gap-1.5 text-xs">
+                    <a [routerLink]="['/portal/cases', a.caseId]"
+                       class="font-mono text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded transition-colors shrink-0">
+                      {{ a.caseId }}
+                    </a>
+                    <a [routerLink]="['/portal/cases', a.caseId]"
+                       class="text-slate-700 hover:text-indigo-600 font-medium transition-colors truncate">
+                      {{ a.caseTitle }}
                     </a>
                   </div>
+                  <!-- Breadcrumb -->
+                  <div class="flex items-center gap-1 text-[11px] text-slate-400 truncate">
+                    <mat-icon class="!text-[11px] !w-3 !h-3 text-slate-300">account_tree</mat-icon>
+                    <span class="truncate">{{ a.stageName }}</span>
+                    @if (a.processName) {
+                      <mat-icon class="!text-[9px] !w-2.5 !h-2.5 text-slate-300">chevron_right</mat-icon>
+                      <span class="truncate">{{ a.processName }}</span>
+                    }
+                  </div>
+                </div>
 
+                <!-- Assignment meta -->
+                <div class="mt-2 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                  @if (viewMode() === 'all' && a.assignedToName) {
+                    <span class="inline-flex items-center gap-1">
+                      <span class="w-4 h-4 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold">
+                        {{ initials(a.assignedToName) }}
+                      </span>
+                      <span class="font-medium text-slate-600 truncate max-w-[80px]">{{ a.assignedToName }}</span>
+                    </span>
+                  }
+                  @if (a.assignedTeamName) {
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[11px] font-medium truncate max-w-[100px]">
+                      <mat-icon class="!text-[10px] !w-3 !h-3">group</mat-icon>
+                      {{ a.assignedTeamName }}
+                    </span>
+                  }
+                  @if (a.assignedRole && !a.assignedTeamName) {
+                    <span class="inline-flex items-center gap-0.5 text-slate-400 text-[11px]">
+                      <mat-icon class="!text-[10px] !w-3 !h-3">badge</mat-icon>
+                      {{ a.assignedRole }}
+                    </span>
+                  }
+                  @if (a.instructions) {
+                    <span class="text-slate-400 truncate text-[11px]" [matTooltip]="a.instructions">
+                      <mat-icon class="!text-[10px] !w-3 !h-3 align-middle">info_outline</mat-icon>
+                      {{ truncate(a.instructions, 40) }}
+                    </span>
+                  }
+                </div>
+
+                <!-- Spacer to push action to bottom -->
+                <div class="flex-1"></div>
+
+                <mat-divider class="!my-2.5"></mat-divider>
+
+                <!-- Actions row -->
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[10px] text-slate-400">{{ formatDate(a.createdAt) }}</span>
+                  <div class="flex items-center gap-1.5">
+                    @if (a.assignmentType === 'approval' && (a.status === 'open' || a.status === 'in_progress')) {
+                      <button mat-stroked-button class="!h-7 !text-[11px] !px-2.5 text-emerald-600 !border-emerald-300 hover:!bg-emerald-50"
+                              matTooltip="Approve" (click)="onApprove(a)">
+                        <mat-icon class="!text-sm mr-0.5">check</mat-icon> Approve
+                      </button>
+                      <button mat-stroked-button class="!h-7 !text-[11px] !px-2.5 text-red-600 !border-red-300 hover:!bg-red-50"
+                              matTooltip="Decline" (click)="onDecline(a)">
+                        <mat-icon class="!text-sm mr-0.5">close</mat-icon> Decline
+                      </button>
+                    } @else if (a.status === 'open' || a.status === 'in_progress') {
+                      <a mat-raised-button color="primary"
+                         class="!h-7 !text-[11px] !px-2.5"
+                         [routerLink]="['/portal/cases', a.caseId]"
+                         matTooltip="Open case and complete this step">
+                        <mat-icon class="!text-sm mr-0.5">open_in_new</mat-icon> Open &amp; Act
+                      </a>
+                    } @else {
+                      <a mat-stroked-button
+                         class="!h-7 !text-[11px] !px-2.5"
+                         [routerLink]="['/portal/cases', a.caseId]"
+                         matTooltip="View case">
+                        <mat-icon class="!text-sm mr-0.5">visibility</mat-icon> View
+                      </a>
+                    }
+                  </div>
                 </div>
               </div>
             </div>
@@ -337,6 +370,25 @@ export class PortalWorklistComponent implements OnInit, OnDestroy {
 
   formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  truncate(text: string, max: number): string {
+    return text.length > max ? text.substring(0, max) + '…' : text;
+  }
+
+  initials(name: string): string {
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
+  }
+
+  dueSoonClass(a: Assignment): string {
+    if (!a.dueAt) return 'bg-slate-50 text-slate-600';
+    const hours = (new Date(a.dueAt).getTime() - Date.now()) / 3600000;
+    if (hours < 24) return 'bg-amber-50 text-amber-700';
+    return 'bg-slate-50 text-slate-600';
+  }
+
+  typeLabel(t: string): string {
+    return { assignment: 'Task', approval: 'Approval', attachment: 'Attachment', decision: 'Decision', automation: 'Automation', subprocess: 'Sub-process' }[t] ?? 'Step';
   }
 
   priorityColor(p: string): string {
