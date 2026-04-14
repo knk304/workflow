@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block header_title %}New Assignment{% endblock %}
+{% block header_subtitle %}{{ case_id }} · {{ timestamp }}{% endblock %}
+
+{% block content %}
+<p>You have been assigned a new step on case <strong>{{ case_id }}</strong>.</p>
+
+<div class="field">
+  <div class="field-label">Case</div>
+  <div class="field-value">{{ case_id }} — {{ case_title }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Step</div>
+  <div class="field-value">{{ step_name }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Priority</div>
+  <div class="field-value">
+    <span class="badge badge-{{ priority }}">{{ priority | upper }}</span>
+  </div>
+</div>
+
+{% if assignee_name %}
+<div class="field">
+  <div class="field-label">Assigned To</div>
+  <div class="field-value">{{ assignee_name }}</div>
+</div>
+{% endif %}
+
+<div class="field">
+  <div class="field-label">Case Type</div>
+  <div class="field-value">{{ case_type_name }}</div>
+</div>
+
+<p style="margin-top: 20px;">Please review and complete this assignment at your earliest convenience.</p>
+{% endblock %}

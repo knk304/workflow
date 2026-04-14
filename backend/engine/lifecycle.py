@@ -142,6 +142,13 @@ async def instantiate_case(
                            priority, created_by or owner_id,
                            custom_fields, parent_case_id)
 
+    # Mail hook: notify on case creation
+    try:
+        from mail_engine.mail_hooks import on_case_created as _mail_case_created
+        await _mail_case_created(case_id, case_type_id, title, owner_id, team_id)
+    except Exception:
+        pass  # Mail failure must never block case creation
+
     # Enter first primary stage
     first_stage = _get_first_primary_stage(stages_runtime)
     if first_stage:
@@ -334,6 +341,13 @@ async def resolve_case(case_id: str, resolution_status: str,
 
     # Write audit log
     await log_case_resolved(db, case_id, resolution_status, user)
+
+    # Mail hook: notify on case resolution
+    try:
+        from mail_engine.mail_hooks import on_case_resolved as _mail_case_resolved
+        await _mail_case_resolved(case_id, resolution_status, user_id)
+    except Exception:
+        pass  # Mail failure must never block case resolution
 
     # If this is a child case, complete the parent subprocess step
     case = await db.cases.find_one({"_id": case_id})

@@ -265,6 +265,10 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
               <mat-icon>history</mat-icon>
               <span>Audit Logs</span>
             </a>
+            <a mat-menu-item routerLink="/admin/mail-config" routerLinkActive="menu-active">
+              <mat-icon>email</mat-icon>
+              <span>Email Notifications</span>
+            </a>
           </mat-menu>
         } @else if (currentUserData?.role === 'MANAGER') {
           <button [matMenuTriggerFor]="adminMenu" class="nav-link" [class.nav-active]="isAdminActive">
@@ -361,7 +365,7 @@ export class ShellComponent implements OnInit {
       const url = this.router.url;
       this.isPortalActive = url.startsWith('/portal');
       this.isToolsActive = url.startsWith('/flows') || url.startsWith('/forms') || url.startsWith('/sla') || url.startsWith('/admin/case-types') || url.startsWith('/admin/decision-tables');
-      this.isAdminActive = url.startsWith('/admin/users') || url.startsWith('/admin/teams') || url.startsWith('/admin/audit-logs');
+      this.isAdminActive = url.startsWith('/admin/users') || url.startsWith('/admin/teams') || url.startsWith('/admin/audit-logs') || url.startsWith('/admin/mail-');
     });
   }
 

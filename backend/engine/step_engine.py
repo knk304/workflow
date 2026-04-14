@@ -234,6 +234,13 @@ async def complete_step(case_id: str, step_def_id: str, data: dict, user: dict, 
                              completion_data={"notes": data.get("notes"),
                                               "form_data_keys": list((data.get("form_data") or {}).keys())})
 
+    # Mail hook: notify case owner on step completion
+    try:
+        from mail_engine.mail_hooks import on_step_completed as _mail_step_completed
+        await _mail_step_completed(case_id, step["name"], str(user.get("_id", "system")))
+    except Exception:
+        pass  # Mail failure must never block step completion
+
     # Check process completion
     from engine.process_engine import check_process_completion
     await check_process_completion(case_id, stage_id, process_id, db)

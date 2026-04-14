@@ -61,6 +61,16 @@ async def activate(case: dict, stage_id: str, process_id: str,
                                  config.get("assignee_user_id"),
                                  config.get("assignee_role"))
 
+    # Mail hook: notify assignee
+    try:
+        from mail_engine.mail_hooks import on_step_assigned as _mail_step_assigned
+        await _mail_step_assigned(
+            case["_id"], assignment["_id"], step["name"],
+            config.get("assignee_user_id"), config.get("assignee_team_id"),
+        )
+    except Exception:
+        pass  # Mail failure must never block assignment
+
     # Optionally set case status
     if config.get("set_case_status"):
         await db.cases.update_one(

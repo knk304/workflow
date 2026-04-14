@@ -14,6 +14,7 @@ async def force_reseed():
         "approval_chains", "sla_definitions", "case_forms",
         "approval_routing_rules", "documents", "audit_logs",
         "form_submissions", "decision_tables", "counters",
+        "mail_configs", "mail_logs",
     ]
     for col in collections:
         await db[col].drop()
@@ -2734,6 +2735,10 @@ async def _insert_all(db):
     # Seed the all-fields demo form (defined in seed_forms_demo.py)
     from seed_forms_demo import seed_demo_form
     await seed_demo_form(db)
+
+    # Seed mail engine configs (defined in seed_mail_configs.py)
+    from seed_mail_configs import seed_mail_configs
+    await seed_mail_configs(db)
 
     # ─── Approval Routing Rules ─────────────────
     routing_rules = [

@@ -10,6 +10,8 @@ import { CaseTypeDesignerComponent } from './features/admin/case-type-designer/c
 import { AdminDecisionTablesComponent } from './features/admin/admin-decision-tables/admin-decision-tables.component';
 import { DecisionTableEditorComponent } from './features/admin/decision-table-editor/decision-table-editor.component';
 import { AdminAuditLogsComponent } from './features/admin/admin-audit-logs.component';
+import { MailConfigComponent } from './features/admin/mail-config/mail-config.component';
+import { MailLogViewerComponent } from './features/admin/mail-config/mail-log-viewer.component';
 import { WorkflowDesignerComponent } from './features/workflows/workflow-designer.component';
 import { ApprovalsComponent } from './features/approvals/approvals.component';
 import { DocumentsComponent } from './features/documents/documents.component';
@@ -150,6 +152,16 @@ export const routes: Routes = [
             path: 'audit-logs',
             component: AdminAuditLogsComponent,
             data: { title: 'Audit Logs' },
+          },
+          {
+            path: 'mail-config',
+            component: MailConfigComponent,
+            data: { title: 'Email Notifications' },
+          },
+          {
+            path: 'mail-logs',
+            component: MailLogViewerComponent,
+            data: { title: 'Email Delivery Log' },
           },
         ],
       },

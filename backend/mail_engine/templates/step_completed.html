@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block header_title %}Step Completed{% endblock %}
+{% block header_subtitle %}{{ case_id }} · {{ timestamp }}{% endblock %}
+
+{% block content %}
+<p>A step has been completed on case <strong>{{ case_id }}</strong>.</p>
+
+<div class="field">
+  <div class="field-label">Case</div>
+  <div class="field-value">{{ case_id }} — {{ case_title }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Step Completed</div>
+  <div class="field-value">{{ step_name }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Completed By</div>
+  <div class="field-value">{{ completed_by | default('System') }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Case Status</div>
+  <div class="field-value">
+    <span class="badge badge-{{ status }}">{{ status | replace('_', ' ') | title }}</span>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-label">Case Type</div>
+  <div class="field-value">{{ case_type_name }}</div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block extra_styles %}
+  .resolution-box { padding: 16px; border-radius: 6px; margin: 16px 0; }
+  .resolution-completed { background: #e8f5e9; border: 1px solid #a5d6a7; }
+  .resolution-rejected { background: #fce4ec; border: 1px solid #ef9a9a; }
+  .resolution-cancelled { background: #fff3e0; border: 1px solid #ffcc80; }
+{% endblock %}
+
+{% block header_title %}Case Resolved{% endblock %}
+{% block header_subtitle %}{{ case_id }} · {{ timestamp }}{% endblock %}
+
+{% block content %}
+<p>Case <strong>{{ case_id }}</strong> has been resolved.</p>
+
+<div class="field">
+  <div class="field-label">Case</div>
+  <div class="field-value">{{ case_id }} — {{ case_title }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Resolution</div>
+  <div class="field-value">
+    <span class="badge badge-resolved">{{ resolution_status | default('Completed') | replace('_', ' ') | title }}</span>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-label">Resolved By</div>
+  <div class="field-value">{{ resolved_by | default('System') }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Case Type</div>
+  <div class="field-value">{{ case_type_name }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Owner</div>
+  <div class="field-value">{{ owner_name }}</div>
+</div>
+{% endblock %}

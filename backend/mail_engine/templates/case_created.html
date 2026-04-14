@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block header_title %}New Case Created{% endblock %}
+{% block header_subtitle %}{{ case_id }} · {{ timestamp }}{% endblock %}
+
+{% block content %}
+<p>A new case has been created and requires attention.</p>
+
+<div class="field">
+  <div class="field-label">Case ID</div>
+  <div class="field-value">{{ case_id }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Title</div>
+  <div class="field-value">{{ case_title }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Case Type</div>
+  <div class="field-value">{{ case_type_name }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Priority</div>
+  <div class="field-value">
+    <span class="badge badge-{{ priority }}">{{ priority | upper }}</span>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-label">Owner</div>
+  <div class="field-value">{{ owner_name }}</div>
+</div>
+
+{% if status %}
+<div class="field">
+  <div class="field-label">Status</div>
+  <div class="field-value">
+    <span class="badge badge-{{ status }}">{{ status | replace('_', ' ') | title }}</span>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

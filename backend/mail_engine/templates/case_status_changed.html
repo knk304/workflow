@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block header_title %}Case Status Updated{% endblock %}
+{% block header_subtitle %}{{ case_id }} · {{ timestamp }}{% endblock %}
+
+{% block content %}
+<p>The status of case <strong>{{ case_id }}</strong> has been updated.</p>
+
+<div class="field">
+  <div class="field-label">Case</div>
+  <div class="field-value">{{ case_id }} — {{ case_title }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Previous Status</div>
+  <div class="field-value">
+    <span class="badge badge-{{ old_status | default('open') }}">{{ old_status | default('—') | replace('_', ' ') | title }}</span>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-label">New Status</div>
+  <div class="field-value">
+    <span class="badge badge-{{ new_status | default('in_progress') }}">{{ new_status | default('—') | replace('_', ' ') | title }}</span>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-label">Changed By</div>
+  <div class="field-value">{{ changed_by | default('System') }}</div>
+</div>
+
+<div class="field">
+  <div class="field-label">Case Type</div>
+  <div class="field-value">{{ case_type_name }}</div>
+</div>
+{% endblock %}
