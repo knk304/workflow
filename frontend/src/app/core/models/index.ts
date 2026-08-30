@@ -354,6 +354,7 @@ export interface StepConfig {
   defaultStepId?: string;
   actions?: AutomationAction[];
   rules?: AutomationRule[];
+  simulateFailures?: number;
   webhook?: WebhookConfig;
   childCaseTypeId?: string;
   fieldMapping?: Record<string, string>;
@@ -435,6 +436,7 @@ export interface CaseTypeDefinition {
   attachmentCategories: AttachmentCategory[];
   caseWideActions: string[];
   intakeEnabled?: boolean;
+  useTemporal?: boolean;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -696,6 +698,7 @@ export interface CaseTypeCreateRequest {
   stages?: Partial<StageDefinition>[];
   attachmentCategories?: AttachmentCategory[];
   intakeEnabled?: boolean;
+  useTemporal?: boolean;
 }
 
 export interface CaseTypeUpdateRequest {
@@ -709,6 +712,7 @@ export interface CaseTypeUpdateRequest {
   attachmentCategories?: AttachmentCategory[];
   isActive?: boolean;
   intakeEnabled?: boolean;
+  useTemporal?: boolean;
 }
 
 // ===== Flow Definitions (Unified Process & Flows) =====

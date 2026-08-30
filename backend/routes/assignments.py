@@ -202,6 +202,27 @@ async def complete_assignment(
     except Exception as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
 
+    # Signal the Temporal CaseWorkflow if this case uses durable execution
+    case = await db.cases.find_one({"_id": asgn["case_id"]})
+    if case and case.get("temporal_workflow_id"):
+        try:
+            from temporal_worker.client import get_temporal_client
+            from temporal_worker.workflows.case_workflow import StepCompletedSignal
+            tc = await get_temporal_client()
+            handle = tc.get_workflow_handle(case["temporal_workflow_id"])
+            await handle.signal(
+                "step_completed",
+                StepCompletedSignal(
+                    stage_id=asgn.get("stage_id", ""),
+                    process_id=asgn.get("process_id", ""),
+                    step_id=step_id,
+                    step_type="assignment",
+                    completed_by=uid,
+                ),
+            )
+        except Exception:
+            pass  # signal failure must never block the API response
+
     updated = await db.assignments.find_one({"_id": assignment_id})
     return _to_response(updated)
 

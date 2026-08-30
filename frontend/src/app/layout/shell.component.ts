@@ -269,6 +269,11 @@ import { CopilotPanelComponent } from '../features/ai/copilot-panel/copilot-pane
               <mat-icon>email</mat-icon>
               <span>Email Notifications</span>
             </a>
+            <mat-divider></mat-divider>
+            <a mat-menu-item routerLink="/temporal" routerLinkActive="menu-active">
+              <mat-icon>schema</mat-icon>
+              <span>Temporal Workflows</span>
+            </a>
           </mat-menu>
         } @else if (currentUserData?.role === 'MANAGER') {
           <button [matMenuTriggerFor]="adminMenu" class="nav-link" [class.nav-active]="isAdminActive">

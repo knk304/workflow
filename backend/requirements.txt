@@ -21,3 +21,6 @@ sentence-transformers==3.0.1
 
 # Mail Engine
 jinja2==3.1.4
+
+# Temporal durable workflow SDK
+temporalio==1.7.1

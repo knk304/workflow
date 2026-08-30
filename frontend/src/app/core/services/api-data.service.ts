@@ -356,6 +356,7 @@ export class ApiDataService extends DataService {
       })),
       caseWideActions: raw.case_wide_actions ?? [],
       intakeEnabled: raw.intake_enabled ?? false,
+      useTemporal: raw.use_temporal ?? false,
       createdBy: raw.created_by,
       createdAt: raw.created_at,
       updatedAt: raw.updated_at,
@@ -433,6 +434,7 @@ export class ApiDataService extends DataService {
       defaultStepId: c.default_step_id ?? c.defaultStepId,
       actions: c.actions,
       rules: c.rules,
+      simulateFailures: c.simulate_failures ?? c.simulateFailures,
       webhook: c.webhook ? {
         url: c.webhook.url, method: c.webhook.method, headers: c.webhook.headers,
         bodyTemplate: c.webhook.body_template ?? c.webhook.bodyTemplate,
@@ -729,6 +731,7 @@ export class ApiDataService extends DataService {
         allowed_types: c.allowedTypes,
       })),
       intake_enabled: req.intakeEnabled ?? false,
+      use_temporal: req.useTemporal ?? false,
     };
     return this.http.post<any>(`${this.caseUrl}/case-types`, body).pipe(
       map(d => this.mapCaseTypeDef(d))
@@ -745,6 +748,7 @@ export class ApiDataService extends DataService {
     if (req.fieldSchema !== undefined) body['field_schema'] = req.fieldSchema;
     if (req.isActive !== undefined) body['is_active'] = req.isActive;
     if (req.intakeEnabled !== undefined) body['intake_enabled'] = req.intakeEnabled;
+    if (req.useTemporal !== undefined) body['use_temporal'] = req.useTemporal;
     if (req.stages !== undefined) body['stages'] = req.stages.map(s => this.serializeStageDef(s));
     if (req.attachmentCategories !== undefined) body['attachment_categories'] = req.attachmentCategories.map(c => ({
       id: c.id, name: c.name,
@@ -807,6 +811,7 @@ export class ApiDataService extends DataService {
       })),
       decision_table_id: c.decisionTableId, default_step_id: c.defaultStepId,
       actions: c.actions, rules: c.rules,
+      simulate_failures: c.simulateFailures,
       webhook: c.webhook ? {
         url: c.webhook.url, method: c.webhook.method, headers: c.webhook.headers,
         body_template: c.webhook.bodyTemplate, response_map: c.webhook.responseMap,

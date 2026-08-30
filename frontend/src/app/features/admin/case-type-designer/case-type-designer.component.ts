@@ -592,6 +592,37 @@ type ConfigPanelMode = 'none' | 'stage' | 'process' | 'step';
               </div>
             </div>
 
+            <!-- ══ Temporal Durable Execution ══ -->
+            <div>
+              <div class="flex items-center gap-2 mb-0.5">
+                <mat-icon class="!text-[15px] text-indigo-500">schema</mat-icon>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Durable Execution</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3 pl-6">Use Temporal to make cases of this type durable — survives restarts, retries automation steps, drives precise SLA timers</p>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
+                  <div class="flex-1">
+                    <p class="text-xs font-semibold text-slate-700">Enable Temporal Workflow</p>
+                    <p class="text-[11px] text-slate-400 leading-snug mt-0.5">
+                      A <code class="bg-slate-100 px-1 rounded">CaseWorkflow</code> is started in Temporal when each new case is created.
+                      Human steps wait for signals; automation steps are retried automatically.
+                    </p>
+                  </div>
+                  <mat-slide-toggle [(ngModel)]="caseType.useTemporal" (ngModelChange)="markDirty()"></mat-slide-toggle>
+                </div>
+                @if (caseType.useTemporal) {
+                  <div class="flex items-start gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <mat-icon class="!text-sm text-indigo-500 mt-0.5 flex-shrink-0">info</mat-icon>
+                    <p class="text-[11px] text-indigo-700 leading-snug">
+                      Requires the Temporal worker container to be running.
+                      Monitor executions at <strong>/temporal</strong> or open the
+                      <a href="http://localhost:8088" target="_blank" rel="noopener" class="underline">Temporal Web UI</a>.
+                    </p>
+                  </div>
+                }
+              </div>
+            </div>
+
             <!-- ══ Attachment Categories ══ -->
             <div>
               <div class="flex items-center gap-2 mb-0.5">
@@ -986,6 +1017,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
           stages: this.caseType.stages,
           attachmentCategories: this.caseType.attachmentCategories,
           intakeEnabled: this.caseType.intakeEnabled,
+          useTemporal: this.caseType.useTemporal,
         },
       }));
     } else {
@@ -1000,6 +1032,7 @@ export class CaseTypeDesignerComponent implements OnInit, OnDestroy {
           fieldSchema: this.caseType.fieldSchema,
           isActive: this.caseType.isActive,
           intakeEnabled: this.caseType.intakeEnabled,
+          useTemporal: this.caseType.useTemporal,
           stages: this.caseType.stages,
           attachmentCategories: this.caseType.attachmentCategories,
         },

@@ -31,6 +31,16 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 > If `Activate.ps1` fails, run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` first.
 
+> Windows note: if `temporalio` fails to install or the app crashes with `ModuleNotFoundError: No module named 'temporalio'`, the active virtual environment is missing the dependency. On Windows, long-path issues can also block installs under deep folder paths like `C:\Users\...\workflow\backend\venv`. A reliable workaround is to create the venv in a short path such as `C:\wf\venv` and run the backend from there:
+>
+> ```powershell
+> python -m venv C:\wf\venv
+> C:\wf\venv\Scripts\Activate.ps1
+> pip install -r C:\development\workflow\backend\requirements.txt
+> cd C:\development\workflow\backend
+> uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+> ```
+
 The backend will:
 - Connect to MongoDB at `localhost:27017`
 - Seed initial data (users, teams, cases, tasks, etc.)

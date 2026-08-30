@@ -178,6 +178,27 @@ async def approve(approval_id: str, body: ApprovalDecision, user: dict = Depends
         except (ValueError, Exception):
             pass  # step may already be completed or in unexpected state
 
+    # Signal the Temporal CaseWorkflow if durable execution is enabled
+    case = await db.cases.find_one({"_id": doc["case_id"]})
+    if case and case.get("temporal_workflow_id") and chain_status in ("approved", "rejected"):
+        try:
+            from temporal_worker.client import get_temporal_client
+            from temporal_worker.workflows.case_workflow import StepCompletedSignal
+            tc = await get_temporal_client()
+            handle = tc.get_workflow_handle(case["temporal_workflow_id"])
+            await handle.signal(
+                "step_completed",
+                StepCompletedSignal(
+                    stage_id=doc.get("stage_id", ""),
+                    process_id=doc.get("process_id", ""),
+                    step_id=doc.get("step_id", ""),
+                    step_type="approval",
+                    completed_by=str(user["_id"]),
+                ),
+            )
+        except Exception:
+            pass  # signal failure must never block the API response
+
     updated_doc = await find_by_id(db.approval_chains, approval_id)
     return await _to_response(updated_doc, db)
 
@@ -224,6 +245,27 @@ async def reject(approval_id: str, body: ApprovalDecision, user: dict = Depends(
             )
         except (ValueError, Exception):
             pass  # step may already be completed or in unexpected state
+
+    # Signal the Temporal CaseWorkflow on rejection
+    case = await db.cases.find_one({"_id": doc["case_id"]})
+    if case and case.get("temporal_workflow_id"):
+        try:
+            from temporal_worker.client import get_temporal_client
+            from temporal_worker.workflows.case_workflow import StepCompletedSignal
+            tc = await get_temporal_client()
+            handle = tc.get_workflow_handle(case["temporal_workflow_id"])
+            await handle.signal(
+                "step_completed",
+                StepCompletedSignal(
+                    stage_id=doc.get("stage_id", ""),
+                    process_id=doc.get("process_id", ""),
+                    step_id=doc.get("step_id", ""),
+                    step_type="approval",
+                    completed_by=str(user["_id"]),
+                ),
+            )
+        except Exception:
+            pass
 
     updated_doc = await find_by_id(db.approval_chains, approval_id)
     return await _to_response(updated_doc, db)

@@ -165,6 +165,14 @@ export const routes: Routes = [
           },
         ],
       },
+
+      // Temporal durable workflow monitor (lazy-loaded)
+      {
+        path: 'temporal',
+        loadChildren: () =>
+          import('./features/temporal/temporal.routes').then(m => m.TEMPORAL_ROUTES),
+        data: { title: 'Temporal Workflows' },
+      },
     ],
   },
 

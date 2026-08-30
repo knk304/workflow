@@ -145,6 +145,34 @@ async def create_case(body: CaseCreateRequest, user: dict = Depends(get_current_
     )
     if not case:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Case type not found")
+
+    # Start CaseWorkflow when the case type opts in to durable execution
+    db = get_db()
+    case_type_doc = await db.case_type_definitions.find_one({"_id": body.case_type_id})
+    if case_type_doc and case_type_doc.get("use_temporal"):
+        try:
+            from datetime import timedelta
+            from temporal_worker.client import get_temporal_client
+            from temporal_worker.workflows.case_workflow import CaseWorkflow
+            from config import get_settings
+            settings = get_settings()
+            tc = await get_temporal_client()
+            case_id = case["_id"]
+            handle = await tc.start_workflow(
+                CaseWorkflow.run,
+                case_id,
+                id=f"case-{case_id}",
+                task_queue=settings.temporal_task_queue,
+                execution_timeout=timedelta(days=365),
+            )
+            await db.cases.update_one(
+                {"_id": case_id},
+                {"$set": {"temporal_workflow_id": handle.id}},
+            )
+            case["temporal_workflow_id"] = handle.id
+        except Exception:
+            pass  # Temporal unavailable must never block case creation
+
     return await _case_to_response(case)
 
 

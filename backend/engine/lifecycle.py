@@ -342,6 +342,24 @@ async def resolve_case(case_id: str, resolution_status: str,
     # Write audit log
     await log_case_resolved(db, case_id, resolution_status, user)
 
+    # Signal the Temporal workflow so it exits instead of remaining stuck waiting on a step.
+    case = await db.cases.find_one({"_id": case_id})
+    if case and case.get("temporal_workflow_id"):
+        try:
+            from temporal_worker.client import get_temporal_client
+            from temporal_worker.workflows.case_workflow import CaseResolvedSignal
+            tc = await get_temporal_client()
+            handle = tc.get_workflow_handle(case["temporal_workflow_id"])
+            await handle.signal(
+                "case_resolved",
+                CaseResolvedSignal(
+                    resolution_status=resolution_status,
+                    resolved_by=user_id,
+                ),
+            )
+        except Exception:
+            pass  # signal failure must never block case resolution
+
     # Mail hook: notify on case resolution
     try:
         from mail_engine.mail_hooks import on_case_resolved as _mail_case_resolved

@@ -495,6 +495,22 @@ import { FormDefinition, FormField, DecisionTable, Team, User } from '@core/mode
               </div>
               <p class="text-[11px] text-slate-400 mb-2.5 pl-6">Configure webhook calls and conditional execution rules</p>
 
+              <!-- Retry / Reliability testing subsection -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <mat-icon class="!text-[13px] text-slate-500">replay</mat-icon>
+                  <span class="text-[11px] font-semibold text-slate-600">Retry Testing (Temporal)</span>
+                </div>
+                <div class="section-card space-y-2">
+                  <mat-form-field class="w-full" subscriptSizing="dynamic">
+                    <mat-label>Simulate Failures (attempts)</mat-label>
+                    <mat-icon matPrefix class="!text-base mr-1 text-slate-400">bug_report</mat-icon>
+                    <input matInput type="number" [(ngModel)]="step.config.simulateFailures" (ngModelChange)="emitChange()" min="0" placeholder="0">
+                    <mat-hint>When run via Temporal, this activity fails the first N attempts before succeeding — useful to observe Pending Activities and retry backoff. Set to 0 to disable.</mat-hint>
+                  </mat-form-field>
+                </div>
+              </div>
+
               <!-- Webhook subsection -->
               <div class="mb-4">
                 <div class="flex items-center gap-2 mb-2">

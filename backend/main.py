@@ -45,6 +45,9 @@ from routes.flow_definitions import exec_router as flow_exec_router
 # Mail engine (pluggable email notifications)
 from mail_engine import mail_router
 
+# Temporal durable workflow routes
+from routes.temporal_routes import router as temporal_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -119,6 +122,9 @@ app.include_router(flow_exec_router)
 
 # Mail engine
 app.include_router(mail_router)
+
+# Temporal
+app.include_router(temporal_router)
 
 
 @app.get("/health")
