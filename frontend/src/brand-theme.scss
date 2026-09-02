@@ -1,0 +1,446 @@
+// =============================================================================
+// Citibank Standard Theme — Plug & Play Overlay
+// -----------------------------------------------------------------------------
+// Purpose: apply Citibank standard branding (header, text, buttons, links,
+// form elements) on top of the stock Angular Material theme WITHOUT touching
+// any component template/TS file. This file only targets Material's own CSS
+// classes / CSS custom properties, so it can be dropped into (or removed from)
+// the `styles` array in angular.json with zero code changes elsewhere.
+//
+// Load order matters: this file must be listed AFTER the Material prebuilt
+// theme and after styles.scss / styles.css in angular.json so these rules win
+// the cascade (see "styles" in frontend/angular.json).
+// =============================================================================
+
+// ----- Citibank design tokens -----
+// Values verified against citi.com's production CDS stylesheet (src/citi-website.css):
+// --cdsbs-primary, --cdsbs-link-color, .btn-primary, .form-control, --cdsbs-danger/success, etc.
+:root {
+  --citi-primary: #002d72;        // Citi navy (--cdsbs-primary)
+  --citi-blue: #056dae;           // link + primary button bg (--cdsbs-link-color / .btn-primary)
+  --citi-sky: #0A8AD2;
+  --citi-blue-dark: #002a54;      // primary button hover/focus/active (.btn-primary:hover)
+  --citi-link-hover: #002256;     // link hover (--cdsbs-link-hover-color)
+  --citi-accent: #E31837;         // Citi brand red (marketing accent, not form validation)
+  --citi-accent-dark: #A30E26;
+  --citi-danger: #d60000;         // form validation error (--cdsbs-danger / .has-error)
+  --citi-success: #006e0a;        // form validation success (--cdsbs-success / .has-success)
+  --citi-light: #EAF4FB;
+  --citi-surface: #ffffff;
+  --citi-border: #999999;         // .form-control border-color
+  --citi-border-light: #dee2e6;   // subtle divider border (--cdsbs-border-color)
+  --citi-text: #333333;           // body + heading text (--cdsbs-body-color)
+  --citi-text-secondary: #666666; // help text (.help-block)
+  --citi-disabled: #999999;       // .btn[disabled]
+  --citi-disabled-bg: #eeeeee;    // .form-control[disabled]
+  --citi-focus-ring: rgba(5, 109, 174, 0.1); // matches .form-control:focus box-shadow (#056dae1a)
+}
+
+// =============================================================================
+// 0. FONTS — self-hosted Citi Interstate typeface
+// -----------------------------------------------------------------------------
+// Source site loads these same files from citi.com/.../fonts/interstate/*.woff2.
+// Downloaded locally to src/assets/fonts so the app is not dependent on citi.com
+// at runtime. Angular copies src/assets to the build output root (see
+// angular.json "assets"), so the /assets/fonts/... paths below resolve as-is.
+// =============================================================================
+@font-face {
+  font-family: 'Interstate';
+  src: url('/assets/fonts/app-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Interstate';
+  src: url('/assets/fonts/app-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Interstate';
+  src: url('/assets/fonts/app-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+// =============================================================================
+// 1. HEADER / TOOLBAR
+// =============================================================================
+.mat-toolbar,
+.mat-toolbar.mat-primary {
+  background: var(--citi-blue-dark) !important;
+  color: #fff !important;
+  font-family: 'Interstate', sans-serif;
+}
+.mat-toolbar .mat-icon,
+.mat-toolbar button {
+  color: #fff;
+}
+
+// =============================================================================
+// 2. TEXT
+// =============================================================================
+body,
+.mat-typography {
+  color: var(--citi-text);
+  font-family: 'Interstate', 'Roboto', sans-serif;
+}
+.mat-typography h1,
+.mat-typography h2,
+.mat-typography h3,
+.mat-typography h4,
+.mat-typography h5,
+.mat-typography h6 {
+  color: var(--citi-text);
+  font-weight: 400;
+}
+
+// =============================================================================
+// 3. BUTTONS
+// =============================================================================
+// Raised / flat / fab — primary (matches .btn-primary)
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-fab.mat-primary,
+.mat-mdc-mini-fab.mat-primary {
+  --mdc-filled-button-container-color: var(--citi-blue);
+  --mdc-filled-button-label-text-color: #fff;
+  --mdc-protected-button-container-color: var(--citi-blue);
+  --mdc-protected-button-label-text-color: #fff;
+  --mat-fab-foreground-color: #fff;
+  background: var(--citi-blue) !important;
+  color: #fff !important;
+  font-family: 'Interstate', sans-serif;
+  font-weight: 700;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.mat-mdc-raised-button.mat-primary:hover,
+.mat-mdc-unelevated-button.mat-primary:hover,
+.mat-mdc-raised-button.mat-primary:focus,
+.mat-mdc-unelevated-button.mat-primary:focus,
+.mat-mdc-raised-button.mat-primary:active,
+.mat-mdc-unelevated-button.mat-primary:active {
+  background: var(--citi-blue-dark) !important;
+  box-shadow: none !important;
+}
+
+// Raised / flat — accent (Citibank brand red, marketing/warn actions)
+.mat-mdc-raised-button.mat-accent,
+.mat-mdc-unelevated-button.mat-accent,
+.mat-mdc-fab.mat-accent {
+  background: var(--citi-accent) !important;
+  color: #fff !important;
+  font-family: 'Interstate', sans-serif;
+  font-weight: 700;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.mat-mdc-raised-button.mat-accent:hover,
+.mat-mdc-unelevated-button.mat-accent:hover {
+  background: var(--citi-accent-dark) !important;
+  box-shadow: none !important;
+}
+
+// Outlined / stroked buttons — Citibank blue text & border (matches .btn-secondary/.btn-link)
+.mat-mdc-outlined-button,
+.mat-mdc-outlined-button.mat-primary {
+  --mdc-outlined-button-label-text-color: var(--citi-blue);
+  --mdc-outlined-button-outline-color: var(--citi-blue);
+  color: var(--citi-blue) !important;
+  border-color: var(--citi-blue) !important;
+  font-family: 'Interstate', sans-serif;
+  font-weight: 700;
+}
+.mat-mdc-outlined-button:hover,
+.mat-mdc-outlined-button:focus {
+  background-color: var(--citi-blue) !important;
+  color: #fff !important;
+}
+.mat-mdc-outlined-button:active {
+  background-color: var(--citi-blue-dark) !important;
+  border-color: var(--citi-blue-dark) !important;
+}
+.mat-mdc-button.mat-primary,
+.mat-mdc-icon-button.mat-primary {
+  --mdc-text-button-label-text-color: var(--citi-blue);
+  color: var(--citi-blue) !important;
+  font-family: 'Interstate', sans-serif;
+}
+
+// Disabled state (matches .btn-primary[disabled]: solid grey bg, white text)
+.mat-mdc-raised-button:disabled,
+.mat-mdc-unelevated-button:disabled,
+.mat-mdc-fab:disabled {
+  background-color: var(--citi-disabled) !important;
+  color: #fff !important;
+  border-color: var(--citi-disabled) !important;
+  box-shadow: none !important;
+}
+.mat-mdc-outlined-button:disabled {
+  background-color: transparent !important;
+  color: var(--citi-disabled) !important;
+  border-color: var(--citi-border-light) !important;
+}
+
+// =============================================================================
+// 4. LINKS
+// =============================================================================
+a,
+a:visited {
+  color: var(--citi-blue);
+}
+a:hover,
+a:focus {
+  color: var(--citi-link-hover);
+}
+a:focus-visible,
+button:focus-visible,
+.mat-mdc-button:focus-visible,
+.mat-mdc-raised-button:focus-visible,
+.mat-mdc-outlined-button:focus-visible,
+.mat-mdc-icon-button:focus-visible {
+  outline: 2px solid var(--citi-blue);
+  outline-offset: 2px;
+}
+
+// =============================================================================
+// 5. FORM ELEMENTS
+// =============================================================================
+// Text fields (fill + outline appearance) — matches .form-control
+.mat-mdc-form-field {
+  --mdc-filled-text-field-active-indicator-color: var(--citi-border);
+  --mdc-filled-text-field-hover-active-indicator-color: var(--citi-blue);
+  --mdc-filled-text-field-focus-active-indicator-color: var(--citi-blue);
+  --mdc-filled-text-field-focus-label-text-color: var(--citi-blue);
+  --mdc-outlined-text-field-outline-color: var(--citi-border);
+  --mdc-outlined-text-field-hover-outline-color: var(--citi-blue);
+  --mdc-outlined-text-field-focus-outline-color: var(--citi-blue);
+  --mdc-outlined-text-field-focus-label-text-color: var(--citi-blue);
+  --mat-form-field-container-text-color: var(--citi-text);
+  --mdc-filled-text-field-error-active-indicator-color: var(--citi-danger);
+  --mdc-outlined-text-field-error-outline-color: var(--citi-danger);
+  --mdc-outlined-text-field-error-focus-outline-color: var(--citi-danger);
+  --mat-form-field-error-text-color: var(--citi-danger);
+  font-family: 'Interstate', sans-serif;
+}
+.mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: var(--citi-blue) !important;
+}
+.mat-mdc-input-element::placeholder {
+  color: var(--citi-disabled);
+}
+
+// Select
+.mat-mdc-select-arrow,
+.mat-mdc-select-value {
+  color: var(--citi-text);
+}
+.mat-mdc-select-panel .mat-mdc-option.mat-mdc-option-active,
+.mat-mdc-select-panel .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+  background: var(--citi-light) !important;
+}
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) .mdc-list-item__primary-text {
+  color: var(--citi-blue) !important;
+}
+
+// Checkbox
+.mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: #fff;
+  --mdc-checkbox-selected-icon-color: var(--citi-blue);
+  --mdc-checkbox-selected-hover-icon-color: var(--citi-blue-dark);
+  --mdc-checkbox-selected-focus-icon-color: var(--citi-blue-dark);
+  --mdc-checkbox-selected-pressed-icon-color: var(--citi-blue-dark);
+  --mdc-checkbox-selected-focus-state-layer-color: var(--citi-blue);
+  --mdc-checkbox-selected-hover-state-layer-color: var(--citi-blue);
+  --mdc-checkbox-selected-pressed-state-layer-color: var(--citi-blue);
+  --mdc-checkbox-unselected-icon-color: var(--citi-text-secondary);
+}
+
+// Radio button
+.mat-mdc-radio-button {
+  --mdc-radio-selected-icon-color: var(--citi-blue);
+  --mdc-radio-selected-focus-icon-color: var(--citi-blue-dark);
+  --mdc-radio-selected-hover-icon-color: var(--citi-blue-dark);
+  --mdc-radio-selected-pressed-icon-color: var(--citi-blue-dark);
+  --mdc-radio-selected-focus-state-layer-color: var(--citi-blue);
+  --mdc-radio-selected-hover-state-layer-color: var(--citi-blue);
+  --mdc-radio-selected-pressed-state-layer-color: var(--citi-blue);
+  --mdc-radio-unselected-icon-color: var(--citi-text-secondary);
+}
+
+// Slide toggle
+.mat-mdc-slide-toggle {
+  --mdc-switch-selected-track-color: var(--citi-sky);
+  --mdc-switch-selected-handle-color: var(--citi-blue);
+  --mdc-switch-selected-hover-track-color: var(--citi-sky);
+  --mdc-switch-selected-hover-handle-color: var(--citi-blue-dark);
+  --mdc-switch-selected-focus-track-color: var(--citi-sky);
+  --mdc-switch-selected-focus-handle-color: var(--citi-blue-dark);
+  --mdc-switch-selected-pressed-track-color: var(--citi-sky);
+  --mdc-switch-selected-pressed-handle-color: var(--citi-blue-dark);
+  --mdc-switch-selected-icon-color: #fff;
+}
+
+// Datepicker toggle icon + calendar selected day
+.mat-datepicker-toggle-active {
+  color: var(--citi-blue) !important;
+}
+.mat-calendar-body-selected {
+  background-color: var(--citi-blue) !important;
+  color: #fff !important;
+}
+.mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  border-color: var(--citi-blue-dark) !important;
+}
+
+// Slider
+.mat-mdc-slider {
+  --mdc-slider-handle-color: var(--citi-blue);
+  --mdc-slider-focus-handle-color: var(--citi-blue-dark);
+  --mdc-slider-hover-handle-color: var(--citi-blue-dark);
+  --mdc-slider-active-track-color: var(--citi-blue);
+  --mdc-slider-inactive-track-color: var(--citi-border);
+}
+
+// =============================================================================
+// 6. SUPPORTING FEEDBACK COMPONENTS (kept lightweight, still form/action related)
+// =============================================================================
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: var(--citi-blue);
+}
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--citi-primary);
+  --mdc-snackbar-supporting-text-color: #fff;
+  --mat-snack-bar-button-color: var(--citi-sky);
+}
+
+// =============================================================================
+// 7. COMPACT CITIBANK RADII
+// =============================================================================
+:root {
+  --citi-radius-sm: 2px;
+  --citi-radius: 4px;
+  --citi-radius-lg: 6px;
+}
+
+// Keep Material surfaces and controls visually compact without changing size or spacing.
+.mat-mdc-card,
+.mat-mdc-menu-panel,
+.mat-mdc-dialog-container .mdc-dialog__surface,
+.mat-mdc-snack-bar-container,
+.mat-expansion-panel,
+.mat-mdc-tab-group,
+.mat-mdc-chip,
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-outlined-button,
+.mat-mdc-button,
+.mat-mdc-fab,
+.mat-mdc-mini-fab {
+  border-radius: var(--citi-radius) !important;
+}
+
+.mat-mdc-card {
+  border-radius: var(--citi-radius-lg) !important;
+}
+
+.mat-mdc-form-field .mat-mdc-text-field-wrapper,
+.mat-mdc-form-field .mdc-text-field--filled,
+.mat-mdc-form-field .mdc-text-field--outlined {
+  border-radius: var(--citi-radius) !important;
+}
+
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-datepicker-content {
+  border-radius: var(--citi-radius) !important;
+}
+
+// Override Tailwind utility classes used directly by existing components.
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
+  border-radius: var(--citi-radius) !important;
+  box-shadow: none !important;
+}
+
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+// =============================================================================
+// 8. CITIBANK REPLACEMENT FOR TAILWIND INDIGO UTILITIES
+// =============================================================================
+// Existing templates use indigo utility names; remap them globally so no
+// component template changes are needed.
+.bg-indigo-50 { background-color: #eaf4fb !important; }
+.bg-indigo-50\/50 { background-color: rgb(234 244 251 / 0.5) !important; }
+.bg-indigo-100 { background-color: #d0e8f7 !important; }
+.bg-indigo-200 { background-color: #a1d1ef !important; }
+.bg-indigo-300 { background-color: #5db4e3 !important; }
+.bg-indigo-400 { background-color: #1a97d6 !important; }
+.bg-indigo-500 { background-color: #056dae !important; }
+.bg-indigo-600 { background-color: #056dae !important; }
+.bg-indigo-700 { background-color: #034d7c !important; }
+.bg-indigo-800 { background-color: #003b70 !important; }
+.bg-indigo-900 { background-color: #002c54 !important; }
+
+.text-indigo-50 { color: #eaf4fb !important; }
+.text-indigo-100 { color: #d0e8f7 !important; }
+.text-indigo-200 { color: #a1d1ef !important; }
+.text-indigo-300 { color: #5db4e3 !important; }
+.text-indigo-400 { color: #1a97d6 !important; }
+.text-indigo-500,
+.text-indigo-600 { color: #056dae !important; }
+.text-indigo-700 { color: #034d7c !important; }
+.text-indigo-800 { color: #003b70 !important; }
+.text-indigo-900 { color: #002c54 !important; }
+
+.border-indigo-50 { border-color: #eaf4fb !important; }
+.border-indigo-100 { border-color: #d0e8f7 !important; }
+.border-indigo-200 { border-color: #a1d1ef !important; }
+.border-indigo-300 { border-color: #5db4e3 !important; }
+.border-indigo-400 { border-color: #1a97d6 !important; }
+.border-indigo-500 { border-color: #056dae !important; }
+.border-indigo-600 { border-color: #056dae !important; }
+.border-indigo-700 { border-color: #034d7c !important; }
+.border-indigo-800 { border-color: #003b70 !important; }
+.border-indigo-900 { border-color: #002c54 !important; }
+
+.ring-indigo-50 { --tw-ring-color: #eaf4fb !important; }
+.ring-indigo-100 { --tw-ring-color: #d0e8f7 !important; }
+.ring-indigo-200 { --tw-ring-color: #a1d1ef !important; }
+.ring-indigo-300 { --tw-ring-color: #5db4e3 !important; }
+.ring-indigo-400 { --tw-ring-color: #1a97d6 !important; }
+.ring-indigo-500,
+.ring-indigo-600 { --tw-ring-color: #056dae !important; }
+.ring-indigo-700 { --tw-ring-color: #034d7c !important; }
+.ring-indigo-800 { --tw-ring-color: #003b70 !important; }
+.ring-indigo-900 { --tw-ring-color: #002c54 !important; }
+
+.from-indigo-50 { --tw-gradient-from: #eaf4fb var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(234 244 251 / 0) var(--tw-gradient-to-position) !important; }
+.to-indigo-50 { --tw-gradient-to: #eaf4fb var(--tw-gradient-to-position) !important; }
+
+.hover\:bg-indigo-50:hover { background-color: #eaf4fb !important; }
+.hover\:bg-indigo-100:hover { background-color: #d0e8f7 !important; }
+.hover\:bg-indigo-500:hover,
+.hover\:bg-indigo-600:hover { background-color: #056dae !important; }
+.hover\:bg-indigo-700:hover,
+.hover\:bg-indigo-800:hover { background-color: #003b70 !important; }
+.hover\:text-indigo-600:hover { color: #056dae !important; }
+.hover\:text-indigo-800:hover { color: #003b70 !important; }
+.hover\:border-indigo-300:hover { border-color: #5db4e3 !important; }
+
+.focus\:ring-indigo-200:focus { --tw-ring-color: #a1d1ef !important; }
+.focus\:ring-indigo-300:focus { --tw-ring-color: #5db4e3 !important; }
